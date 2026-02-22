@@ -892,12 +892,9 @@
 
 	// Registrace jednoduchého Service Workeru pro možnost instalace
 	if ('serviceWorker' in navigator) {
-		const swCode = `
-			self.addEventListener('fetch', function(event) {});
-		`;
-		const blob = new Blob([swCode], {type: 'text/javascript'});
-		const swUrl = URL.createObjectURL(blob);
-		navigator.serviceWorker.register(swUrl);
+	  navigator.serviceWorker.register('sw.js')
+		.then(() => console.log("Service Worker registrovan!"))
+		.catch(err => console.log("Chyba SW:", err));
 	}
 </script>
 </body>

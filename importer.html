@@ -2,54 +2,102 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Flashcards Smart Importer</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Import Slovíček</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f0f2f5; color: #333; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 8px; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
-        select, input[type="file"] { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd; }
-        .btn-import { background: #2196F3; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; }
-        .btn-import:hover { background: #1976D2; }
-        #status { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; }
-        .success { background: #d4edda; color: #155724; display: block !important; }
-        .info-box { font-size: 0.85rem; color: #666; margin-top: 5px; }
+        :root {
+            --primary: #2196F3;
+            --bg: #f5f5f5;
+            --text: #333;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: var(--bg); 
+            color: var(--text);
+            margin: 0; padding: 20px;
+            display: flex; justify-content: center;
+        }
+        .card {
+            background: white;
+            width: 100%; max-width: 500px;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h2 { margin-top: 0; color: var(--primary); font-size: 1.5rem; }
+        
+        .field { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem; }
+        
+        select, input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            background: #fff;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            margin-top: 10px;
+        }
+        .btn:active { transform: scale(0.98); background: #1976D2; }
+
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        .success { display: block !important; background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+        .error { display: block !important; background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+        
+        .info { font-size: 0.8rem; color: #666; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>🚀 Hromadný Importer</h2>
+<div class="card">
+    <h2>Hromadný Import</h2>
     
-    <div class="section">
-        <label for="categorySelect">1. Vyber cílovou kategorii:</label>
+    <div class="field">
+        <label for="categorySelect">Cílová kategorie:</label>
         <select id="categorySelect">
-            <option value="none">-- Bez kategorie (Hlavní menu) --</option>
+            <option value="none">-- Hlavní menu (bez kategorie) --</option>
         </select>
-        <div class="info-box">Kategorie se načítají z tvé aplikace Flashcards.</div>
+        <div class="info">Kategorie načteny z vaší aplikace.</div>
     </div>
 
-    <div class="section">
-        <label>2. Vyber soubory (CSV nebo ZIP):</label>
-        <input type="file" id="fileInput" multiple accept=".csv,.zip">
-        <div class="info-box">Můžeš vybrat více CSV najednou.</div>
+    <div class="field">
+        <label for="fileInput">Vybrat soubory CSV:</label>
+        <input type="file" id="fileInput" multiple accept=".csv">
+        <div class="info">Můžete vybrat více souborů najednou.</div>
     </div>
 
-    <button class="btn-import" id="importBtn">PROVÉST IMPORT</button>
+    <button class="btn" id="importBtn">IMPORTovat DO APLIKACE</button>
 
     <div id="status"></div>
 </div>
 
 <script>
-    const categorySelect = document.getElementById('categorySelect');
-    const fileInput = document.getElementById('fileInput');
-    const importBtn = document.getElementById('importBtn');
-    const status = document.getElementById('status');
-
-    // NAČTENÍ KATEGORIÍ Z LOCALSTORAGE
-    function loadCategories() {
+    // Načtení kategorií při startu
+    function init() {
+        const categorySelect = document.getElementById('categorySelect');
         const categories = JSON.parse(localStorage.getItem('pl_categories') || '{}');
+        
         Object.keys(categories).sort().forEach(cat => {
             const opt = document.createElement('option');
             opt.value = cat;
@@ -57,70 +105,88 @@
             categorySelect.appendChild(opt);
         });
     }
-    loadCategories();
 
-    importBtn.onclick = async () => {
-        const files = Array.from(fileInput.files);
-        if (files.length === 0) {
-            alert("Vyber prosím soubory k importu.");
+    // Robustní CSV parser (převzato z Flashcards.html pro 100% kompatibilitu)
+    function parseCSV(text) {
+        const lines = [];
+        // Regex zvládne uvozovky i nové řádky uvnitř buněk
+        const regex = /("([^"]*(?:""[^"]*)*)"|([^;,\n]+))?(;|,\n?|\n|$)/g;
+        let currentLine = [];
+        let match;
+
+        while ((match = regex.exec(text)) !== null) {
+            let value = match[2] ? match[2].replace(/""/g, '"') : match[3];
+            if (value === undefined) value = '';
+            currentLine.push(value.trim());
+
+            if (match[4] === '\n' || match[4] === '') {
+                if (currentLine.length > 0 && currentLine.some(x => x !== '')) {
+                    lines.push(currentLine);
+                }
+                currentLine = [];
+                if (match[4] === '') break;
+            }
+        }
+        return lines;
+    }
+
+    document.getElementById('importBtn').onclick = async () => {
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('status');
+        const targetCat = document.getElementById('categorySelect').value;
+        
+        if (fileInput.files.length === 0) {
+            status.innerText = "Chyba: Vyber alespoň jeden soubor!";
+            status.className = "error";
             return;
         }
 
-        const targetCat = categorySelect.value;
         let allLessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
         let categories = JSON.parse(localStorage.getItem('pl_categories') || '{}');
-        let count = 0;
+        let importedCount = 0;
 
-        for (const file of files) {
-            if (file.name.endsWith('.zip')) {
-                const zip = await JSZip.loadAsync(file);
-                const promises = [];
-                zip.forEach((path, entry) => {
-                    if (!entry.dir && path.endsWith('.csv') && !path.includes('__MACOSX')) {
-                        promises.push(entry.async("string").then(content => {
-                            const lName = path.split('/').pop().replace('.csv', '');
-                            processEntry(lName, content, targetCat, allLessons, categories);
-                            count++;
-                        }));
+        for (const file of fileInput.files) {
+            try {
+                const text = await file.text();
+                const rawData = parseCSV(text);
+                
+                // Odfiltrování hlavičky (pokud existuje) a prázdných řádků
+                const filteredData = rawData.filter(row => 
+                    row.length >= 2 && 
+                    row[0].toLowerCase() !== 'nizozemsky'
+                );
+
+                const formattedWords = filteredData.map(row => ({
+                    nl: row[0] || '',
+                    ipa: (row[1] || '').replace(/[\[\]]/g, ''),
+                    cz: row[2] || ''
+                }));
+
+                const lessonName = file.name.replace('.csv', '');
+                allLessons[lessonName] = formattedWords;
+
+                // Zařazení do kategorie
+                if (targetCat !== 'none') {
+                    if (!categories[targetCat]) categories[targetCat] = [];
+                    if (!categories[targetCat].includes(lessonName)) {
+                        categories[targetCat].push(lessonName);
                     }
-                });
-                await Promise.all(promises);
-            } else {
-                const content = await file.text();
-                const lName = file.name.replace('.csv', '');
-                processEntry(lName, content, targetCat, allLessons, categories);
-                count++;
+                }
+                importedCount++;
+            } catch (err) {
+                console.error(err);
             }
         }
 
-        // ULOŽENÍ
         localStorage.setItem('pl_lessons', JSON.stringify(allLessons));
         localStorage.setItem('pl_categories', JSON.stringify(categories));
 
-        status.className = 'success';
-        status.innerHTML = `✅ Úspěšně naimportováno ${count} lekcí do: ${targetCat === 'none' ? 'Hlavní menu' : targetCat}`;
+        status.innerHTML = `✅ Hotovo!<br>Naimportováno lekcí: ${importedCount}<br>Kam: ${targetCat === 'none' ? 'Hlavní menu' : targetCat}`;
+        status.className = "success";
+        fileInput.value = ""; // Vyčistit výběr
     };
 
-    function processEntry(name, content, category, allLessons, allCategories) {
-        // Parsování CSV
-        const lines = content.split('\n').filter(l => l.trim().length > 0);
-        const words = lines.map(line => {
-            const delim = line.includes(';') ? ';' : ',';
-            const p = line.split(delim).map(item => item.trim());
-            return { nl: p[0] || '', ipa: (p[1] || '').replace(/[\[\]]/g, ''), cz: p[2] || '' };
-        });
-
-        // Uložení lekce
-        allLessons[name] = words;
-
-        // Zařazení do kategorie
-        if (category !== 'none') {
-            if (!allCategories[category]) allCategories[category] = [];
-            if (!allCategories[category].includes(name)) {
-                allCategories[category].push(name);
-            }
-        }
-    }
+    init();
 </script>
 
 </body>

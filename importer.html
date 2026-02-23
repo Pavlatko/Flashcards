@@ -5,28 +5,24 @@
     <title>Flashcards Bulk Importer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f0f2f5; color: #333; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f0f2f5; }
         .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .drop-zone { border: 3px dashed #cbd5e0; padding: 40px; text-align: center; cursor: pointer; border-radius: 10px; transition: 0.3s; background: #fafafa; }
-        .drop-zone:hover { border-color: #4a90e2; background: #edf2f7; }
-        #status { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; }
+        .drop-zone { border: 3px dashed #cbd5e0; padding: 40px; text-align: center; cursor: pointer; border-radius: 10px; background: #fafafa; }
+        #status { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; font-weight: bold; }
         .success { background: #d4edda; color: #155724; display: block !important; }
-        
-        /* Styl pro tabulku zobrazenou po importu */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9em; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #f8f9fa; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 0.9em; }
+        th { background: #f8f9fa; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🚀 Flashcards Importer</h2>
-    <p>Nahraj CSV soubory nebo ZIP (složky v ZIPu budou brány jako kategorie).</p>
+    <h2>🚀 Flashcards Bulk Importer</h2>
+    <p>Nahraj CSV nebo ZIP. Složky v ZIPu se automaticky stanou kategoriemi.</p>
     
     <div class="drop-zone" id="dropZone">
-        <strong>Klikni sem nebo přetáhni soubory</strong>
+        <strong>Klikni nebo přetáhni soubory (CSV/ZIP)</strong>
         <input type="file" id="fileInput" multiple accept=".csv,.zip" style="display:none">
     </div>
 
@@ -47,35 +43,33 @@
         if (files.length === 0) return;
 
         status.className = '';
-        status.innerText = "⏳ Zpracovávám data...";
+        status.innerText = "⏳ Importuji...";
         
-        // Načtení stávajících dat (ukládání postupu)
-        let allData = JSON.parse(localStorage.getItem('flashcards_data') || '{}');
-        let importedCount = 0;
+        // NAČTENÍ DAT POMOCÍ SPRÁVNÝCH KLÍČŮ Z FLASHCARDS.HTML
+        let allLessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
+        let categories = JSON.parse(localStorage.getItem('pl_categories') || '{}');
 
         for (const file of files) {
             if (file.name.endsWith('.zip')) {
-                const zipData = await processZip(file);
-                // Sloučení ZIP dat do hlavního objektu
-                allData = { ...allData, ...zipData };
-                importedCount++;
+                await processZip(file, allLessons, categories);
             } else if (file.name.endsWith('.csv')) {
                 const csvContent = await file.text();
                 const lessonName = file.name.replace('.csv', '');
-                allData[lessonName] = parseCsvContent(csvContent);
-                importedCount++;
+                allLessons[lessonName] = parseCsvContent(csvContent);
             }
         }
 
-        // Uložení zpět do localStorage
-        localStorage.setItem('flashcards_data', JSON.stringify(allData));
+        // ULOŽENÍ DO SPRÁVNÝCH KLÍČŮ
+        localStorage.setItem('pl_lessons', JSON.stringify(allLessons));
+        localStorage.setItem('pl_categories', JSON.stringify(categories));
         
         status.className = 'success';
-        status.innerHTML = `✅ Import dokončen! Zpracováno položek: ${importedCount}.<br><small>Data byla uložena do prohlížeče.</small>`;
+        status.innerHTML = `✅ Import úspěšný! Otevři hlavní aplikaci Flashcards.`;
         
-        renderPreview(allData);
+        renderPreview(allLessons);
     };
 
+    // Převede CSV na formát { nl, ipa, cz }
     function parseCsvContent(text) {
         return text.split('\n')
             .map(line => line.trim())
@@ -84,52 +78,45 @@
                 const delimiter = line.includes(';') ? ';' : ',';
                 const parts = line.split(delimiter).map(p => p.trim());
                 return {
-                    nizozemsky: parts[0] || '',
-                    ipa: parts[1] || '',
-                    cesky: parts[2] || ''
+                    nl: parts[0] || '',
+                    ipa: (parts[1] || '').replace(/[\[\]]/g, ''), // Odstraní případné závorky
+                    cz: parts[2] || ''
                 };
             });
     }
 
-    async function processZip(file) {
+    async function processZip(file, allLessons, categories) {
         const zip = await JSZip.loadAsync(file);
-        const zipResults = {};
-        
         const promises = [];
+        
         zip.forEach((relativePath, zipEntry) => {
             if (zipEntry.dir || !relativePath.endsWith('.csv') || relativePath.includes('__MACOSX')) return;
 
             const p = zipEntry.async("string").then(content => {
                 const parts = relativePath.split('/');
-                let key = "";
+                let lessonName = parts[parts.length - 1].replace('.csv', '');
                 
+                // Pokud je soubor v podsložce, vytvoříme/přidáme do kategorie
                 if (parts.length > 1) {
-                    // Cesta: Slozka/Soubor.csv -> Klíč: Slozka - Soubor
-                    key = `${parts[0]} - ${parts[parts.length - 1].replace('.csv', '')}`;
-                } else {
-                    key = parts[0].replace('.csv', '');
+                    const catName = parts[0];
+                    if (!categories[catName]) categories[catName] = [];
+                    if (!categories[catName].includes(lessonName)) {
+                        categories[catName].push(lessonName);
+                    }
                 }
                 
-                zipResults[key] = parseCsvContent(content);
+                allLessons[lessonName] = parseCsvContent(content);
             });
             promises.push(p);
         });
         
         await Promise.all(promises);
-        return zipResults;
     }
 
     function renderPreview(data) {
-        let html = "<h3>Náhled naimportovaných dat:</h3>";
+        let html = "<h3>Náhled v paměti:</h3>";
         for (const [lesson, words] of Object.entries(data)) {
-            html += `<h4>Lekce: ${lesson}</h4>`;
-            html += `<table><thead><tr><th>Nizozemsky</th><th>IPA</th><th>Česky</th></tr></thead><tbody>`;
-            // Zobrazíme jen prvních 5 slov pro ukázku
-            words.slice(0, 5).forEach(word => {
-                html += `<tr><td>${word.nizozemsky}</td><td>${word.ipa}</td><td>${word.cesky}</td></tr>`;
-            });
-            if (words.length > 5) html += `<tr><td colspan="3">... a dalších ${words.length - 5} slov</td></tr>`;
-            html += `</tbody></table>`;
+            html += `<strong>${lesson}</strong> (${words.length} slov)<br>`;
         }
         previewArea.innerHTML = html;
     }

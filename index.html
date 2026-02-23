@@ -386,14 +386,14 @@
 		});
 
         const categorizedLessons = Object.values(categories).flat();
-        Object.keys(allLessons).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(n => {
-            if (!categorizedLessons.includes(n)) {
-                const r = document.createElement('div'); r.className = 'lesson-row';
-                const isFinished = finishedLessons.includes(n) ? ' is-finished' : '';
-                r.innerHTML = `<button class="lesson-btn${isFinished}" onclick="selectLesson('${n}')">${n} (${allLessons[n].length})<div class="lesson-del" onclick="event.stopPropagation(); deleteLesson('${n}')">×</div></button> `;
-                c.appendChild(r);
-            }
-        });
+		Object.keys(allLessons).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(n => {
+			if (!categorizedLessons.includes(n)) {
+				const r = document.createElement('div'); r.className = 'lesson-row';
+				const isFinished = finishedLessons.includes(n) ? ' is-finished' : '';
+				r.innerHTML = `<button class="lesson-btn${isFinished}" onclick="selectLesson('${n}')">${n} (${allLessons[n].length})<div class="lesson-del" onclick="event.stopPropagation(); deleteLesson('${n}')">×</div></button> `;
+				c.appendChild(r);
+			}
+		});
     }
 
     function createNewCategory() {

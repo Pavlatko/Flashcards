@@ -2,123 +2,124 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Flashcards Bulk Importer</title>
+    <title>Flashcards Smart Importer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f0f2f5; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .drop-zone { border: 3px dashed #cbd5e0; padding: 40px; text-align: center; cursor: pointer; border-radius: 10px; background: #fafafa; }
-        #status { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; font-weight: bold; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f0f2f5; color: #333; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 8px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+        select, input[type="file"] { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd; }
+        .btn-import { background: #2196F3; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .btn-import:hover { background: #1976D2; }
+        #status { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; }
         .success { background: #d4edda; color: #155724; display: block !important; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 0.9em; }
-        th { background: #f8f9fa; }
+        .info-box { font-size: 0.85rem; color: #666; margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🚀 Flashcards Bulk Importer</h2>
-    <p>Nahraj CSV nebo ZIP. Složky v ZIPu se automaticky stanou kategoriemi.</p>
+    <h2>🚀 Hromadný Importer</h2>
     
-    <div class="drop-zone" id="dropZone">
-        <strong>Klikni nebo přetáhni soubory (CSV/ZIP)</strong>
-        <input type="file" id="fileInput" multiple accept=".csv,.zip" style="display:none">
+    <div class="section">
+        <label for="categorySelect">1. Vyber cílovou kategorii:</label>
+        <select id="categorySelect">
+            <option value="none">-- Bez kategorie (Hlavní menu) --</option>
+        </select>
+        <div class="info-box">Kategorie se načítají z tvé aplikace Flashcards.</div>
     </div>
 
+    <div class="section">
+        <label>2. Vyber soubory (CSV nebo ZIP):</label>
+        <input type="file" id="fileInput" multiple accept=".csv,.zip">
+        <div class="info-box">Můžeš vybrat více CSV najednou.</div>
+    </div>
+
+    <button class="btn-import" id="importBtn">PROVÉST IMPORT</button>
+
     <div id="status"></div>
-    <div id="previewArea"></div>
 </div>
 
 <script>
+    const categorySelect = document.getElementById('categorySelect');
     const fileInput = document.getElementById('fileInput');
-    const dropZone = document.getElementById('dropZone');
+    const importBtn = document.getElementById('importBtn');
     const status = document.getElementById('status');
-    const previewArea = document.getElementById('previewArea');
 
-    dropZone.onclick = () => fileInput.click();
+    // NAČTENÍ KATEGORIÍ Z LOCALSTORAGE
+    function loadCategories() {
+        const categories = JSON.parse(localStorage.getItem('pl_categories') || '{}');
+        Object.keys(categories).sort().forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.innerText = cat;
+            categorySelect.appendChild(opt);
+        });
+    }
+    loadCategories();
 
-    fileInput.onchange = async (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
+    importBtn.onclick = async () => {
+        const files = Array.from(fileInput.files);
+        if (files.length === 0) {
+            alert("Vyber prosím soubory k importu.");
+            return;
+        }
 
-        status.className = '';
-        status.innerText = "⏳ Importuji...";
-        
-        // NAČTENÍ DAT POMOCÍ SPRÁVNÝCH KLÍČŮ Z FLASHCARDS.HTML
+        const targetCat = categorySelect.value;
         let allLessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
         let categories = JSON.parse(localStorage.getItem('pl_categories') || '{}');
+        let count = 0;
 
         for (const file of files) {
             if (file.name.endsWith('.zip')) {
-                await processZip(file, allLessons, categories);
-            } else if (file.name.endsWith('.csv')) {
-                const csvContent = await file.text();
-                const lessonName = file.name.replace('.csv', '');
-                allLessons[lessonName] = parseCsvContent(csvContent);
+                const zip = await JSZip.loadAsync(file);
+                const promises = [];
+                zip.forEach((path, entry) => {
+                    if (!entry.dir && path.endsWith('.csv') && !path.includes('__MACOSX')) {
+                        promises.push(entry.async("string").then(content => {
+                            const lName = path.split('/').pop().replace('.csv', '');
+                            processEntry(lName, content, targetCat, allLessons, categories);
+                            count++;
+                        }));
+                    }
+                });
+                await Promise.all(promises);
+            } else {
+                const content = await file.text();
+                const lName = file.name.replace('.csv', '');
+                processEntry(lName, content, targetCat, allLessons, categories);
+                count++;
             }
         }
 
-        // ULOŽENÍ DO SPRÁVNÝCH KLÍČŮ
+        // ULOŽENÍ
         localStorage.setItem('pl_lessons', JSON.stringify(allLessons));
         localStorage.setItem('pl_categories', JSON.stringify(categories));
-        
+
         status.className = 'success';
-        status.innerHTML = `✅ Import úspěšný! Otevři hlavní aplikaci Flashcards.`;
-        
-        renderPreview(allLessons);
+        status.innerHTML = `✅ Úspěšně naimportováno ${count} lekcí do: ${targetCat === 'none' ? 'Hlavní menu' : targetCat}`;
     };
 
-    // Převede CSV na formát { nl, ipa, cz }
-    function parseCsvContent(text) {
-        return text.split('\n')
-            .map(line => line.trim())
-            .filter(line => line.length > 0)
-            .map(line => {
-                const delimiter = line.includes(';') ? ';' : ',';
-                const parts = line.split(delimiter).map(p => p.trim());
-                return {
-                    nl: parts[0] || '',
-                    ipa: (parts[1] || '').replace(/[\[\]]/g, ''), // Odstraní případné závorky
-                    cz: parts[2] || ''
-                };
-            });
-    }
-
-    async function processZip(file, allLessons, categories) {
-        const zip = await JSZip.loadAsync(file);
-        const promises = [];
-        
-        zip.forEach((relativePath, zipEntry) => {
-            if (zipEntry.dir || !relativePath.endsWith('.csv') || relativePath.includes('__MACOSX')) return;
-
-            const p = zipEntry.async("string").then(content => {
-                const parts = relativePath.split('/');
-                let lessonName = parts[parts.length - 1].replace('.csv', '');
-                
-                // Pokud je soubor v podsložce, vytvoříme/přidáme do kategorie
-                if (parts.length > 1) {
-                    const catName = parts[0];
-                    if (!categories[catName]) categories[catName] = [];
-                    if (!categories[catName].includes(lessonName)) {
-                        categories[catName].push(lessonName);
-                    }
-                }
-                
-                allLessons[lessonName] = parseCsvContent(content);
-            });
-            promises.push(p);
+    function processEntry(name, content, category, allLessons, allCategories) {
+        // Parsování CSV
+        const lines = content.split('\n').filter(l => l.trim().length > 0);
+        const words = lines.map(line => {
+            const delim = line.includes(';') ? ';' : ',';
+            const p = line.split(delim).map(item => item.trim());
+            return { nl: p[0] || '', ipa: (p[1] || '').replace(/[\[\]]/g, ''), cz: p[2] || '' };
         });
-        
-        await Promise.all(promises);
-    }
 
-    function renderPreview(data) {
-        let html = "<h3>Náhled v paměti:</h3>";
-        for (const [lesson, words] of Object.entries(data)) {
-            html += `<strong>${lesson}</strong> (${words.length} slov)<br>`;
+        // Uložení lekce
+        allLessons[name] = words;
+
+        // Zařazení do kategorie
+        if (category !== 'none') {
+            if (!allCategories[category]) allCategories[category] = [];
+            if (!allCategories[category].includes(name)) {
+                allCategories[category].push(name);
+            }
         }
-        previewArea.innerHTML = html;
     }
 </script>
 

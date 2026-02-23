@@ -105,7 +105,8 @@
         .col-nl { color: var(--primary); font-weight: bold; }
 		.lesson-toast { position: fixed; left: 50%; top: 15%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.8); color: white; padding: 10px 20px; border-radius: 12px; font-size: 1rem; font-weight: bold; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 0.3s; text-align: center; max-width: 70%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid var(--primary); }
         [style*="display: none"] { pointer-events: none; }
-    </style>
+		.explosion-canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 100; }
+	</style>
 </head>
 <body id="app-body">
     <div id="counter-wrap">
@@ -454,25 +455,34 @@
     }
 
 	function selectLesson(id) { 
-        currentLessonId = id; 
-        words = id === 'problematic' ? [...problematic] : [...allLessons[id]]; 
-        
-        document.getElementById('menu-area').style.display = 'none'; 
-        document.getElementById('category-detail-area').style.display = 'none';
-        document.getElementById('mode-area').style.display = 'flex'; 
-        
-        const displayId = id === 'problematic' ? 'Problematické' : id;
-        document.getElementById('lesson-name-display').innerText = displayId;
-        
-        // Zobrazení počtu slovíček hned pod názvem
-        document.getElementById('lesson-info-sub').innerText = `Počet slovíček: ${words.length}`;
+		// --- OCHRANA POSTUPU ---
+		// Pokud existuje rozdělaná lekce (activeState) a uživatel kliká na jinou lekci
+		if (activeState && activeState.lessonId !== id) {
+			const currentName = activeState.lessonId === 'problematic' ? 'Problematické' : activeState.lessonId;
+			if (!confirm(`Máš rozdělanou lekci "${currentName}". Pokud spustíš novou lekci, tvůj postup bude ztracen. Chceš pokračovat?`)) {
+				return; // Uživatel zrušil akci, nic se neděje
+			}
+		}
+		// -----------------------
 
-        updateToggleFinishedBtn();
-        
-        localStorage.setItem('pl_app_view', 'mode-area');
-        localStorage.setItem('pl_current_lesson_id', id); 
-        window.scrollTo(0, 0);
-    }
+		currentLessonId = id; 
+		words = id === 'problematic' ? [...problematic] : [...allLessons[id]]; 
+		
+		document.getElementById('menu-area').style.display = 'none'; 
+		document.getElementById('category-detail-area').style.display = 'none';
+		document.getElementById('mode-area').style.display = 'flex'; 
+		
+		const displayId = id === 'problematic' ? 'Problematické' : id;
+		document.getElementById('lesson-name-display').innerText = displayId;
+		
+		document.getElementById('lesson-info-sub').innerText = `Počet slovíček: ${words.length}`;
+
+		updateToggleFinishedBtn();
+		
+		localStorage.setItem('pl_app_view', 'mode-area');
+		localStorage.setItem('pl_current_lesson_id', id); 
+		window.scrollTo(0, 0);
+	}
 
 	function updateToggleFinishedBtn() {
         const btn = document.getElementById('toggle-finished-btn');
@@ -598,21 +608,25 @@
 			}, 800);
 		} else {
 			isProcessing = true;
-			
-			// LOGIKA PRO SÉRII (Běží v pozadí v obou režimech)
+
 			if (pIdx !== -1) {
-				// Pokud uživatel slovo věděl, zvýšíme mu trvalé skóre
 				problematic[pIdx].score++;
 				
-				// Pokud dosáhl 4 úspěšných sezení v řadě, vyřadíme ho
+				// Pokud dosáhl 4 úspěšných (tzn. 3x v řadě + první přidání)
 				if (problematic[pIdx].score >= 4) {
 					problematic.splice(pIdx, 1);
+					
+					// --- VIZUÁLNÍ A ZVUKOVÝ EFEKT ---
+					createExplosion(document.getElementById('card'));
+					playVictoryFanfare(); // Tady se spustí fanfára
+					
+					setTimeout(() => {
+						finishResult();
+					}, 1000); 
+					return;
 				}
 			}
-			
-			// V sekci Problematické už teď nebudeme slovo duplikovat do stejného kola.
-			// Pokud ho jednou věděl, splnil "úkol" pro tento konkrétní trénink.
-			
+
 			finishResult();
 		}
 	}
@@ -895,6 +909,65 @@
 	  navigator.serviceWorker.register('sw.js')
 		.then(() => console.log("Service Worker registrovan!"))
 		.catch(err => console.log("Chyba SW:", err));
+	}
+
+	function createExplosion(element) {
+		const canvas = document.createElement('canvas');
+		canvas.className = 'explosion-canvas';
+		canvas.width = 400;
+		canvas.height = 400;
+		element.parentElement.appendChild(canvas);
+		const ctx = canvas.getContext('2d');
+		const particles = [];
+
+		for (let i = 0; i < 40; i++) {
+			particles.push({
+				x: 200, y: 200,
+				vx: (Math.random() - 0.5) * 10,
+				vy: (Math.random() - 0.5) * 10,
+				radius: Math.random() * 4 + 2,
+				color: `hsl(${Math.random() * 360}, 70%, 60%)`,
+				alpha: 1
+			});
+		}
+
+		function animate() {
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			let alive = false;
+			particles.forEach(p => {
+				p.x += p.vx; p.y += p.vy; p.alpha *= 0.96;
+				if (p.alpha > 0.01) {
+					alive = true;
+					ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
+					ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+				}
+			});
+			if (alive) requestAnimationFrame(animate);
+			else canvas.remove();
+		}
+		animate();
+	}
+
+	function playVictoryFanfare() {
+		if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+		const now = audioCtx.currentTime;
+		const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+
+		notes.forEach((freq, i) => {
+			const osc = audioCtx.createOscillator();
+			const gain = audioCtx.createGain();
+			osc.type = 'triangle'; 
+			osc.frequency.setValueAtTime(freq, now + i * 0.1);
+			
+			gain.gain.setValueAtTime(0, now + i * 0.1);
+			gain.gain.linearRampToValueAtTime(0.2, now + i * 0.1 + 0.05);
+			gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.5);
+			
+			osc.connect(gain);
+			gain.connect(audioCtx.destination);
+			osc.start(now + i * 0.1);
+			osc.stop(now + i * 0.1 + 0.5);
+		});
 	}
 </script>
 </body>

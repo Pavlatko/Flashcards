@@ -140,6 +140,7 @@
 
         <center class="upload-wrap">
             <label class="btn-load">📂 NAHRÁT LEKCI<input type="file" id="fIn" style="display:none" onchange="handleFile(this)" accept=".csv"></label>
+			<div class="btn-load" style="margin-top: 0px; background-color: #1976D2; text-align: center; cursor: pointer;" onclick="window.open('./importer.html', '_blank')">📂 HROMADNÝ IMPORT</div>
             <button class="btn-cat-add" onclick="createNewCategory()">📁 VYTVOŘIT KATEGORII</button>
         </center>
     </div>
@@ -149,6 +150,7 @@
         <div id="cat-lessons-container"></div>
         <center class="upload-wrap">
             <label class="btn-load">📂 NAHRÁT LEKCI<input type="file" id="fInCat" style="display:none" onchange="handleFile(this, true)" accept=".csv"></label>
+			<div class="btn-load" style="margin-top: 0px; background-color: #1976D2; text-align: center; cursor: pointer;" onclick="window.open('./importer.html', '_blank')">📂 HROMADNÝ IMPORT</div>
         </center>
     </div>
 

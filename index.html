@@ -31,7 +31,7 @@
         .training-mode #lesson-name-display { color: var(--neutral); font-weight: normal; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         #menu-area { width: 100%; max-width: 360px; display: flex; flex-direction: column; margin-top: 15px; }
-        .lesson-row { display: flex; align-items: stretch; gap: 8px; width: 100%; margin-bottom: 12px; position: relative; }
+		.lesson-row { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 12px; }
         .lesson-btn { flex-grow: 1; background: var(--gradient); color: white; padding: 18px; border-radius: 12px; font-weight: bold; border: none; text-align: left; box-shadow: 0 4px 8px rgba(0,0,0,0.1); position: relative; }
         
         .category-btn { background: linear-gradient(135deg, #607d8b, #455a64) !important; }
@@ -51,7 +51,8 @@
             border: 1.5px solid white; 
         }
 
-        .lesson-del { background: #fff; color: var(--danger); border: 2px solid var(--danger); border-radius: 12px; width: 50px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; font-weight: bold; order: -1; }
+		.lesson-del { background: #fff; color: #ccc; border: 1px solid #ddd; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; flex-shrink: 0; /* Aby se křížek nezmáčknul */ transition: all 0.2s; }
+		.lesson-del:hover { color: var(--danger); border-color: var(--danger); background: #fff5f5; }
         .resume-btn { background: linear-gradient(135deg, #FF9800, #F57C00) !important; }
         .problematic-btn { background: linear-gradient(135deg, #9c27b0, #7b1fa2) !important; }
         

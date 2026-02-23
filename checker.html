@@ -1,0 +1,89 @@
+﻿<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <title>CSV Checker v4.2 (Strictly ;)</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .upload-area { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 800px; text-align: center; margin-bottom: 20px; }
+        .btn-load { background: #4CAF50; color: white; padding: 15px 25px; border-radius: 10px; cursor: pointer; font-weight: bold; display: inline-block; }
+        #resultsTable { width: 100%; max-width: 900px; border-collapse: collapse; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        th { background: #2196F3; color: white; padding: 15px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #ddd; vertical-align: top; }
+        .nl-cell { background: #e3f2fd; width: 45%; }
+        .cz-cell { background: #fff; width: 45%; }
+        .main { font-weight: bold; display: block; }
+        .sub { font-size: 0.8rem; color: #666; white-space: pre-wrap; display: block; }
+        .ipa { color: #d32f2f; font-size: 0.85rem; font-family: serif; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Checker Tool v4.2</h1>
+    <div class="upload-area">
+        <label class="btn-load">📂 KONTROLA .CSV<input type="file" id="fIn" style="display:none" onchange="check(this)" accept=".csv"></label>
+        <div id="st" style="margin-top:10px; font-weight:bold;">PavlatkoLabs</div>
+    </div>
+    <table id="resultsTable" style="display:none">
+        <thead><tr><th>#</th><th>Nizozemština</th><th>Čeština</th></tr></thead>
+        <tbody id="tb"></tbody>
+    </table>
+
+<script>
+    function parseCSV(text) {
+        const rows = []; let curR = []; let curF = ""; let inQ = false; let i = 0;
+        const delim = text.split('\n')[0].includes(';') ? ';' : ',';
+        while (i < text.length) {
+            let c = text[i];
+            if (c === '"') {
+                if (inQ && text[i+1] === '"') { curF += '"'; i++; }
+                else inQ = !inQ;
+            } else if (c === delim && !inQ) { curR.push(curF.trim()); curF = ""; }
+            else if ((c === '\r' || c === '\n') && !inQ) {
+                if (curF !== "" || curR.length > 0) { curR.push(curF.trim()); rows.push(curR); curR = []; curF = ""; }
+            } else curF += c;
+            i++;
+        }
+        if (curF !== "" || curR.length > 0) { curR.push(curF.trim()); rows.push(curR); }
+        return rows;
+    }
+
+    function splitP(t) {
+        if (!t) return { m: "", s: "" };
+        const fi = t.indexOf(';');
+        if (fi === -1) return { m: t, s: "" };
+        return { m: t.substring(0, fi).trim(), s: t.substring(fi + 1).trim() };
+    }
+
+    function check(input) {
+        const file = input.files[0]; if (!file) return;
+        
+        // Získání názvu souboru bez přípony .csv
+        const fileName = file.name.replace(/\.[^/.]+$/, ""); 
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = parseCSV(e.target.result);
+            const tbody = document.getElementById('tb'); tbody.innerHTML = '';
+            let count = 0;
+            for (let r = 1; r < data.length; r++) {
+                let cols = data[r];
+                if (cols.length >= 3) {
+                    count++;
+                    const nl = splitP(cols[0]); 
+                    const cz = splitP(cols[2]);
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${count}</td>
+                        <td class="nl-cell"><span class="main">${nl.m}</span><span class="sub">${nl.s}</span><span class="ipa">${cols[1] ? '['+cols[1].replace(/[\[\]]/g, '')+']' : ''}</span></td>
+                        <td class="cz-cell"><span class="main">${cz.m}</span><span class="sub">${cz.s}</span></td>`;
+                    tbody.appendChild(tr);
+                }
+            }
+            // Upravený výpis s názvem souboru
+            document.getElementById('st').innerText = `${fileName}: Načteno ${count} slovíček.`;
+            document.getElementById('resultsTable').style.display = 'table';
+        };
+        reader.readAsText(file, 'UTF-8');
+    }
+</script>
+</body>
+</html>

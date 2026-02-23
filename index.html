@@ -455,34 +455,25 @@
     }
 
 	function selectLesson(id) { 
-		// --- OCHRANA POSTUPU ---
-		// Pokud existuje rozdělaná lekce (activeState) a uživatel kliká na jinou lekci
-		if (activeState && activeState.lessonId !== id) {
-			const currentName = activeState.lessonId === 'problematic' ? 'Problematické' : activeState.lessonId;
-			if (!confirm(`Máš rozdělanou lekci "${currentName}". Pokud spustíš novou lekci, tvůj postup bude ztracen. Chceš pokračovat?`)) {
-				return; // Uživatel zrušil akci, nic se neděje
-			}
-		}
-		// -----------------------
+        currentLessonId = id; 
+        words = id === 'problematic' ? [...problematic] : [...allLessons[id]]; 
+        
+        document.getElementById('menu-area').style.display = 'none'; 
+        document.getElementById('category-detail-area').style.display = 'none';
+        document.getElementById('mode-area').style.display = 'flex'; 
+        
+        const displayId = id === 'problematic' ? 'Problematické' : id;
+        document.getElementById('lesson-name-display').innerText = displayId;
+        
+        // Zobrazení počtu slovíček hned pod názvem
+        document.getElementById('lesson-info-sub').innerText = `Počet slovíček: ${words.length}`;
 
-		currentLessonId = id; 
-		words = id === 'problematic' ? [...problematic] : [...allLessons[id]]; 
-		
-		document.getElementById('menu-area').style.display = 'none'; 
-		document.getElementById('category-detail-area').style.display = 'none';
-		document.getElementById('mode-area').style.display = 'flex'; 
-		
-		const displayId = id === 'problematic' ? 'Problematické' : id;
-		document.getElementById('lesson-name-display').innerText = displayId;
-		
-		document.getElementById('lesson-info-sub').innerText = `Počet slovíček: ${words.length}`;
-
-		updateToggleFinishedBtn();
-		
-		localStorage.setItem('pl_app_view', 'mode-area');
-		localStorage.setItem('pl_current_lesson_id', id); 
-		window.scrollTo(0, 0);
-	}
+        updateToggleFinishedBtn();
+        
+        localStorage.setItem('pl_app_view', 'mode-area');
+        localStorage.setItem('pl_current_lesson_id', id); 
+        window.scrollTo(0, 0);
+    }
 
 	function updateToggleFinishedBtn() {
         const btn = document.getElementById('toggle-finished-btn');
@@ -524,20 +515,37 @@
         }
     }
 
-    function startTraining(m, isR = false) { 
-        if (!isR) { mode = m; currentIndex = 0; words.sort(() => Math.random() - 0.5); } 
-        trainingActive = true; 
-        document.getElementById('app-body').classList.add('training-mode');
-        document.getElementById('menu-area').style.display = 'none'; 
-        document.getElementById('category-detail-area').style.display = 'none';
-        document.getElementById('mode-area').style.display = 'none'; 
-        document.getElementById('dictionary-area').style.display = 'none';
-        document.getElementById('main-scene').style.display = 'block'; 
-        document.getElementById('training-controls').style.display = 'flex'; 
-        localStorage.setItem('pl_app_view', 'training');
-        window.scrollTo(0, 0);
-        showWord(); saveProgress(); 
-    }
+	function startTraining(m, isR = false) { 
+		// --- OCHRANA POSTUPU (PŘESUNUTO SEM) ---
+		// Varujeme pouze pokud spouštíme NOVÝ trénink (isR je false) 
+		// a v paměti už nějaký jiný rozdělaný trénink je.
+		if (!isR && activeState && activeState.lessonId !== currentLessonId) {
+			const currentName = activeState.lessonId === 'problematic' ? 'Problematické' : activeState.lessonId;
+			if (!confirm(`Máš rozdělanou lekci "${currentName}". Spuštěním nového tréninku o tento postup přijdeš. Pokračovat?`)) {
+				return; 
+			}
+		}
+		// ---------------------------------------
+
+		if (!isR) { 
+			mode = m; 
+			currentIndex = 0; 
+			words.sort(() => Math.random() - 0.5); 
+		} 
+		
+		trainingActive = true; 
+		document.getElementById('app-body').classList.add('training-mode');
+		document.getElementById('menu-area').style.display = 'none'; 
+		document.getElementById('category-detail-area').style.display = 'none';
+		document.getElementById('mode-area').style.display = 'none'; 
+		document.getElementById('dictionary-area').style.display = 'none';
+		document.getElementById('main-scene').style.display = 'block'; 
+		document.getElementById('training-controls').style.display = 'flex'; 
+		localStorage.setItem('pl_app_view', 'training');
+		window.scrollTo(0, 0);
+		showWord(); 
+		saveProgress(); 
+	}
 
     function resumeTraining() { if (!activeState) return; currentLessonId = activeState.lessonId; words = activeState.words; currentIndex = activeState.index; mode = activeState.mode; startTraining(mode, true); }
 

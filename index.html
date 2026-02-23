@@ -366,27 +366,31 @@
         if (activeState) {
             const r = document.createElement('div'); r.className = 'lesson-row';
             const displayName = activeState.lessonId === 'problematic' ? 'Problematické' : activeState.lessonId;
-            r.innerHTML = ` <button class="lesson-btn resume-btn" onclick="resumeTraining()"> ▶ POKRAČOVAT (${displayName}) <div class="lesson-del" onclick="event.stopPropagation(); clearProgress()">×</div> </button>`;
+            r.innerHTML = `<button class="lesson-btn resume-btn" onclick="resumeTraining()">▶ POKRAČOVAT (${displayName})<div class="lesson-del" onclick="event.stopPropagation(); clearProgress()">×</div></button>`;
             rc.appendChild(r);
         }
         if (problematic.length > 0) {
             const r = document.createElement('div'); r.className = 'lesson-row';
-            r.innerHTML = ` <button class="lesson-btn problematic-btn" onclick="selectLesson('problematic')"> 🔥 PROBLEMATICKÉ (${problematic.length}) <div class="lesson-del" onclick="event.stopPropagation(); clearProblematic()">×</div> </button>`;
+            r.innerHTML = `<button class="lesson-btn problematic-btn" onclick="selectLesson('problematic')">🔥 PROBLEMATICKÉ (${problematic.length})<div class="lesson-del" onclick="event.stopPropagation(); clearProblematic()">×</div></button>`;
             pc.appendChild(r);
         }
 
         Object.keys(categories).sort().forEach(catName => {
-            const r = document.createElement('div'); r.className = 'lesson-row';
-            r.innerHTML = `<button class="lesson-btn category-btn" onclick="openCategory('${catName}')">${catName} (${categories[catName].length})</button><div class="lesson-del" onclick="deleteCategory('${catName}')">×</div>`;
-            cc.appendChild(r);
-        });
+			const r = document.createElement('div'); r.className = 'lesson-row';
+			r.innerHTML = `
+				<button class="lesson-btn category-btn" onclick="openCategory('${catName}')">
+					${catName} (${categories[catName].length})
+					<div class="lesson-del" onclick="event.stopPropagation(); deleteCategory('${catName}')">×</div>
+				</button>`;
+			cc.appendChild(r);
+		});
 
         const categorizedLessons = Object.values(categories).flat();
         Object.keys(allLessons).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(n => {
             if (!categorizedLessons.includes(n)) {
                 const r = document.createElement('div'); r.className = 'lesson-row';
                 const isFinished = finishedLessons.includes(n) ? ' is-finished' : '';
-                r.innerHTML = ` <button class="lesson-btn${isFinished}" onclick="selectLesson('${n}')"> ${n} (${allLessons[n].length}) <div class="lesson-del" onclick="event.stopPropagation(); deleteLesson('${n}')">×</div> </button> `;
+                r.innerHTML = `<button class="lesson-btn${isFinished}" onclick="selectLesson('${n}')">${n} (${allLessons[n].length})<div class="lesson-del" onclick="event.stopPropagation(); deleteLesson('${n}')">×</div></button> `;
                 c.appendChild(r);
             }
         });

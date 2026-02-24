@@ -8,7 +8,7 @@
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 	<meta name="mobile-web-app-capable" content="yes">
-	<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Flashcards%22,%22short_name%22:%22Flashcards%22,%22start_url%22:%22index.html%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f5f5f5%22,%22theme_color%22:%22%232196F3%22,%22icons%22:[{%22src%22:%22icon.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
+	<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Flashcards%22,%22short_name%22:%22Flashcards%22,%22start_url%22:%22index.html%22,%22display%22:%22standalone%22,%22orientation%22:%22portrait%22,%22background_color%22:%22%23f5f5f5%22,%22theme_color%22:%22%232196F3%22,%22icons%22:[{%22src%22:%22icon.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
 
     <style>
         :root { --primary: #2196F3; --bg: #f5f5f5; --success: #4CAF50; --danger: #ff5252; --secondary: #9c27b0; --neutral: #757575; --category: #607d8b; --gradient: linear-gradient(135deg, #2196F3, #1976D2); }
@@ -70,9 +70,9 @@
         .flash-red-back { animation: flashRedBackAnim 0.6s ease-in-out; }
         @keyframes flashRedBackAnim { 0% { background-color: #e3f2fd; } 50% { background-color: #ffcdd2; } 100% { background-color: #e3f2fd; } }
 
-        .main-word { font-size: 1.6rem; font-weight: bold; color: #111; margin-bottom: 8px; }
-        .sub-word { font-size: 0.95rem; color: #666; white-space: pre-wrap; line-height: 1.3; }
-        .ipa { font-size: 1.1rem; color: #d32f2f; margin-top: 12px; font-family: serif; }
+        .main-word { font-size: 1.8rem; font-weight: bold; color: #111; margin-bottom: 15px; }
+        .sub-word { font-size: 1.4rem; color: #666; white-space: pre-wrap; line-height: 1.4; margin-top: 5px; }
+        .ipa { font-size: 1.2rem; color: #d32f2f; margin-top: 12px; font-family: serif; }
 
         .controls { margin-top: 25px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 90%; max-width: 360px; }
         .btn-row { display: none; gap: 10px; width: 100%; justify-content: center; }
@@ -106,6 +106,23 @@
 		.lesson-toast { position: fixed; left: 50%; top: 15%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.8); color: white; padding: 10px 20px; border-radius: 12px; font-size: 1rem; font-weight: bold; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 0.3s; text-align: center; max-width: 70%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid var(--primary); }
         [style*="display: none"] { pointer-events: none; }
 		.explosion-canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 100; }
+
+		@media screen and (orientation: landscape) and (max-height: 500px) {
+			body::before {
+				content: "Prosím, otočte telefon na výšku 📱";
+				position: fixed;
+				top: 0; left: 0; right: 0; bottom: 0;
+				background: var(--primary);
+				color: white;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 1.5rem;
+				font-weight: bold;
+				z-index: 9999;
+			}
+			#app-body > * { display: none !important; }
+		}
 	</style>
 	<link rel="icon" type="image/png" href="icon.png">
 	<link rel="apple-touch-icon" href="icon.png">
@@ -189,6 +206,9 @@
     <div class="controls" id="training-controls" style="display:none">
         <div class="btn-row" id="flip-row"><button class="btn-action btn-flip-big" onclick="toggleFlip(event)">OTOČIT KARTU</button></div>
         <div class="btn-row" id="action-row"><button class="btn-action btn-neumim" onclick="handleResult(false, event)">NEUMÍM</button><button class="btn-action btn-umim" onclick="handleResult(true, event)">UMÍM</button></div>
+		<div class="btn-row" id="hint-row" style="margin-top: -5px;">
+            <button id="hint-btn" class="btn-action btn-flip-big" style="background:var(--category);" onclick="showHint()">ZOBRAZIT NÁPOVĚDU</button>
+        </div>
         <button id="exit-btn" class="btn-exit" style="display:block" onclick="exitTraining()">UKONČIT TRÉNINK</button>
     </div>
 
@@ -205,10 +225,11 @@
     let finishedLessons = JSON.parse(localStorage.getItem('pl_finished_lessons') || '[]');
 	let dictSortActive = false; // Pomocná proměnná pro přepínání řazení
     
-    let words = []; let currentIndex = 0; let isFlipped = false; let mode = ''; 
+	let words = []; let currentIndex = 0; let isFlipped = false; let mode = ''; 
     let currentLessonId = ""; let trainingActive = false; let currentOpenCategory = null;
     let wasFlippedOnce = false; let isProcessing = false;
     let dictionaryScope = null;
+    let hintLevel = 0; // 0 = žádná, 1 = první písmeno, 2 = první a poslední
 
 	let keepAliveEnabled = localStorage.getItem('pl_keep_alive') === 'true';
     let oscillator = null;
@@ -593,6 +614,10 @@
 
 	function showWord() {
 		isFlipped = false; wasFlippedOnce = false; isProcessing = false;
+        hintLevel = 0;
+        document.getElementById('hint-btn').innerText = "ZOBRAZIT NÁPOVĚDU";
+        document.getElementById('hint-row').style.display = 'flex';
+
 		const faces = document.querySelectorAll('.card-face div');
 		faces.forEach(f => f.style.opacity = '0');
 		document.getElementById('card').classList.remove('is-flipped');
@@ -601,8 +626,15 @@
 		const cur = words[currentIndex]; 
 		const pNL = splitP(cur.nl); const pCZ = splitP(cur.cz);
 		setTimeout(() => {
-			if (mode === 'CZ-NL') { updateF('front', pCZ.m, pCZ.s, ""); updateF('back', pNL.m, pNL.s, cur.ipa); } 
-            else { updateF('front', pNL.m, pNL.s, cur.ipa); updateF('back', pCZ.m, pCZ.s, ""); speak(cur.nl); }
+			if (mode === 'CZ-NL') { 
+                updateF('front', pCZ.m, pCZ.s, "");
+                updateF('back', pNL.m, pNL.s, cur.ipa); 
+            } 
+            else { 
+                updateF('front', pNL.m, pNL.s, cur.ipa); 
+                updateF('back', pCZ.m, pCZ.s, ""); 
+                speak(cur.nl); 
+            }
 			faces.forEach(f => f.style.opacity = '1');
             const displayId = currentLessonId === 'problematic' ? 'Problematické' : currentLessonId;
 			document.getElementById('lesson-name-display').innerText = displayId;
@@ -615,8 +647,54 @@
         isFlipped = !isFlipped; wasFlippedOnce = true;
         document.getElementById('card').classList.toggle('is-flipped');
         document.getElementById('flip-row').style.display = 'none';
+        document.getElementById('hint-row').style.display = 'none'; // Schovat nápovědu po otočení
         document.getElementById('action-row').style.display = 'flex';
         if ((mode === 'CZ-NL' && isFlipped) || (mode === 'NL-CZ' && !isFlipped)) speak(words[currentIndex].nl);
+    }
+
+	function showHint() {
+        const cur = words[currentIndex];
+        const targetText = mode === 'CZ-NL' ? cur.nl : cur.cz;
+        const mainPart = splitP(targetText).m;
+        const hintEl = document.getElementById('hint-text');
+        
+        // Odstranění členů pro nápovědu v NL
+        let cleanText = mainPart;
+        if (mode === 'CZ-NL') {
+            cleanText = mainPart.replace(/^(de\s+|het\s+)/i, '');
+        }
+
+        hintLevel++;
+        let hintString = "";
+
+        if (hintLevel === 1) {
+            hintString = cleanText[0].toUpperCase();
+            hintEl.style.fontSize = "2.5rem";
+            hintEl.style.letterSpacing = "normal"; // U jednoho písmene netřeba řešit
+            document.getElementById('hint-btn').innerText = "ZOBRAZIT DRUHOU NÁPOVĚDU";
+        } else {
+            // Druhá nápověda: složíme slova, ale bez vkládání mezer dovnitř slova
+            hintString = cleanText.split(' ').map(word => {
+                if (word.length <= 1) return word.toUpperCase();
+                return word[0].toUpperCase() + "_".repeat(word.length - 2) + word[word.length - 1].toUpperCase();
+            }).join('   '); // Mezi slovy necháme větší mezeru pro přehlednost
+            
+            // Nastavení nepatrných mezer mezi znaky pomocí CSS
+            hintEl.style.letterSpacing = "2px"; 
+            
+            if (hintString.length > 25) {
+                hintEl.style.fontSize = "1.1rem";
+            } else if (hintString.length > 15) {
+                hintEl.style.fontSize = "1.4rem";
+            } else {
+                hintEl.style.fontSize = "1.8rem";
+            }
+            
+            document.getElementById('hint-row').style.display = 'none';
+        }
+
+        hintEl.innerText = hintString;
+        document.getElementById('hint-popup').style.display = 'flex';
     }
 
 	function handleResult(ok, e) {
@@ -651,8 +729,10 @@
 			setTimeout(() => {
 				document.getElementById('front-face').classList.remove('flash-red');
 				document.getElementById('back-face').classList.remove('flash-red-back');
+				// Změna na dvě tlačítka: POSLECH a POKRAČUJ
 				document.getElementById('action-row').innerHTML = `
-					<button class="btn-action btn-flip-big" style="background:var(--neutral)" onclick="forceNextAfterError()">NASTUDUJ A POKRAČUJ ➔</button>
+					<button class="btn-action btn-neumim" style="background:var(--secondary)" onclick="replayCurrentWord(event)">POSLECH</button>
+					<button class="btn-action btn-umim" onclick="forceNextAfterError()">POKRAČUJ</button>
 				`;
 				isProcessing = false;
 			}, 800);
@@ -679,6 +759,12 @@
 
 			finishResult();
 		}
+	}
+
+	function replayCurrentWord(e) {
+		if (e) e.stopPropagation();
+		const cur = words[currentIndex];
+		speak(cur.nl, true); // Přehraje základní slovo (před středníkem)
 	}
 
 	function finishResult() {
@@ -770,7 +856,6 @@
         const thead = document.querySelector('#dictionary-area thead tr');
         let dictMap = new Map();
         
-        // Upravíme hlavičku, aby bylo jasné, že se dá na "Nizozemsky" kliknout
         const nlHeaderStyle = dictionaryScope ? 'cursor:pointer; text-decoration:underline; color:var(--primary);' : '';
         thead.innerHTML = `<th width="50%" style="${nlHeaderStyle}" onclick="toggleDictSort()">Nizozemsky ${dictSortActive ? '↓' : ''}</th><th width="50%">Česky</th>`;
 
@@ -781,7 +866,6 @@
         Object.entries(targetLessons).forEach(([lessonName, lessonWords]) => {
             lessonWords.forEach(w => {
                 const key = w.nl.toLowerCase().trim();
-                // Pro scope lekce používáme unikátní klíče, aby se zachovalo pořadí a duplicity
                 const uniqueKey = dictionaryScope ? `${key}_${dictMap.size}` : key;
                 
                 if (!dictMap.has(uniqueKey)) {
@@ -795,7 +879,6 @@
 
         let uniqueWords = Array.from(dictMap.values());
         
-        // Řadíme pokud: jsme v globálním slovníčku NEBO pokud Pavel kliknul na řazení v lekci
         if (!dictionaryScope || dictSortActive) {
             const transformNL = (t) => { 
                 let m = splitP(t).m; 
@@ -809,34 +892,46 @@
         uniqueWords.forEach(w => {
 			const tr = document.createElement('tr');
 			
-			// Kliknutí na řádek (spustí výslovnost)
 			tr.onclick = (e) => { 
 				speak(w.nl, true); 
 				if (!dictionaryScope) showToast(e, w.lessons.join(', ')); 
 			};
 			
-			// NIZOZEMSKÝ SLOUPEC
-			const displayNL = (dictionaryScope && !dictSortActive) 
-				? splitP(w.nl).m 
-				: (function(t){ 
-					let m = splitP(t).m;
-					if (m.toLowerCase().startsWith('de ')) return m.substring(3) + ', De';
-					if (m.toLowerCase().startsWith('het ')) return m.substring(4) + ', Het';
-					return m;
-				  })(w.nl);
+            // Pomocná funkce pro formátování textu (Tučně první řádek, zmenšení členů)
+            const formatCell = (rawText, isNl = false) => {
+                const parts = splitP(rawText);
+                let main = parts.m;
+                
+                // Pokud řadíme/upravujeme NL text pro zobrazení s členem na konci
+                if (isNl && (!dictionaryScope || dictSortActive)) {
+                    if (main.toLowerCase().startsWith('de ')) main = main.substring(3) + ', De';
+                    else if (main.toLowerCase().startsWith('het ')) main = main.substring(4) + ', Het';
+                }
 
+                // Zmenšení členů na konci
+                main = main.replace(/, De$/g, ', <small>de</small>').replace(/, Het$/g, ', <small>het</small>');
+
+                // Výsledek: Tučně hlavní slovo, zbytek normálně na nových řádcích
+                let html = `<b>${main}</b>`;
+                if (parts.s) {
+                    html += `<br><span style="font-weight:normal; font-size:0.85em; color:#666;">${parts.s}</span>`;
+                }
+                return html;
+            };
+
+			// NIZOZEMSKÝ SLOUPEC
 			const tdNL = document.createElement('td');
 			tdNL.className = 'col-nl';
-			tdNL.innerHTML = displayNL.replace(/<br>/g, ', ');
+			tdNL.innerHTML = formatCell(w.nl, true);
 			tr.appendChild(tdNL);
 
-			// ČESKÝ SLOUPEC + KLIK PRO SMAZÁNÍ
+			// ČESKÝ SLOUPEC
 			const tdCZ = document.createElement('td');
-			tdCZ.innerHTML = splitP(w.cz).m.replace(/<br>/g, ', ');
+			tdCZ.innerHTML = formatCell(w.cz);
 			
 			if (dictionaryScope) {
 				tdCZ.onclick = (e) => {
-					e.stopPropagation(); // Zabrání spuštění výslovnosti při mazání
+					e.stopPropagation();
 					deleteWordFromLesson(w.nl, dictionaryScope);
 				};
 				tdCZ.style.cursor = 'pointer';
@@ -1002,5 +1097,13 @@
 		});
 	}
 </script>
+
+<div id="hint-popup" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; justify-content:center; align-items:center;" onclick="this.style.display='none'">
+	<div style="background:white; padding:40px; border-radius:20px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.3); max-width:80%;">
+		<div id="hint-text" style="font-size:1.8rem; font-family:monospace; letter-spacing: 2px; color:var(--primary); font-weight:bold;"></div>
+		<div style="margin-top:20px; color:var(--neutral); font-size:0.9rem;">Kliknutím zavřeš</div>
+	</div>
+</div>
+
 </body>
 </html>

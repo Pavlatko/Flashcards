@@ -673,16 +673,20 @@
         if (hintLevel === 1) {
             hintString = cleanText[0].toUpperCase();
             hintEl.style.fontSize = "2.5rem";
-            hintEl.style.letterSpacing = "normal"; // U jednoho písmene netřeba řešit
+            hintEl.style.letterSpacing = "normal";
             document.getElementById('hint-btn').innerText = "ZOBRAZIT DRUHOU NÁPOVĚDU";
         } else {
-            // Druhá nápověda: složíme slova, ale bez vkládání mezer dovnitř slova
-            hintString = cleanText.split(' ').map(word => {
-                if (word.length <= 1) return word.toUpperCase();
-                return word[0].toUpperCase() + "_".repeat(word.length - 2) + word[word.length - 1].toUpperCase();
-            }).join('   '); // Mezi slovy necháme větší mezeru pro přehlednost
+            // Druhá nápověda: Zachováme první písmeno, poslední písmeno a všechny mezery.
+            // Ostatní znaky nahradíme tečkou.
+            const chars = cleanText.split('');
+            const lastIdx = chars.length - 1;
             
-            // Nastavení nepatrných mezer mezi znaky pomocí CSS
+            hintString = chars.map((char, index) => {
+                if (index === 0 || index === lastIdx) return char.toUpperCase();
+                if (char === ' ') return ' '; // Zachová mezeru
+                return '·'; // Vše ostatní je tečka
+            }).join('');
+            
             hintEl.style.letterSpacing = "2px"; 
             
             if (hintString.length > 25) {

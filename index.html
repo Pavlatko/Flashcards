@@ -923,7 +923,7 @@
         } 
     }
 
-	function exitTraining() { if (confirm("Ukončit?")) { trainingActive = false; manageKeepAlive(); resetAppView(); } }
+	function exitTraining() { trainingActive = false; manageKeepAlive(); resetAppView(); }
     function clearProgress() { if (confirm("Smazat uložený postup?")) { localStorage.removeItem('pl_active_state'); activeState = null; renderMenu(); } }
     function clearProblematic() { if (confirm("Vymazat problematická?")) { problematic = []; saveData(); renderMenu(); } }
 

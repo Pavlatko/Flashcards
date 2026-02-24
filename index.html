@@ -135,6 +135,7 @@
 			<div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
 				<label class="checkbox-row"><input type="checkbox" id="read-articles" onchange="toggleArticles(this.checked)"> Předčítat určité členy (de/het)</label>
                 <label class="checkbox-row"><input type="checkbox" id="read-all-forms" onchange="toggleAllForms(this.checked)"> Předčítat všechno</label>
+				<label class="checkbox-row"><input type="checkbox" id="keep-alive-enabled" onchange="toggleKeepAlive(this.checked)"> Vysílat šum pro sluchátka</label>
 			</div>
 		</div>
 
@@ -209,7 +210,12 @@
     let wasFlippedOnce = false; let isProcessing = false;
     let dictionaryScope = null;
 
+	let keepAliveEnabled = localStorage.getItem('pl_keep_alive') === 'true';
+    let oscillator = null;
+    let gainNode = null;
+
     // Inicializace nastavení UI
+	document.getElementById('keep-alive-enabled').checked = keepAliveEnabled;
     document.getElementById('speed-slider').value = speechRate;
     document.getElementById('speed-val').innerText = speechRate;
     document.getElementById('read-articles').checked = readArticles;
@@ -313,19 +319,37 @@
 		}
     }
 
-	function startKeepAlive() {
-		if (audioCtx) return;
-		try {
-			audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-			const osc = audioCtx.createOscillator();
-			const gain = audioCtx.createGain();
-			osc.type = 'sine'; osc.frequency.setValueAtTime(35, audioCtx.currentTime);
-			gain.gain.setValueAtTime(0.002, audioCtx.currentTime);
-			osc.connect(gain); gain.connect(audioCtx.destination);
-			osc.start();
-			window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
-		} catch (e) {}
-	}
+    function toggleKeepAlive(val) {
+        keepAliveEnabled = val;
+        localStorage.setItem('pl_keep_alive', val);
+        manageKeepAlive(); // Aktualizovat stav hned
+    }
+
+    function manageKeepAlive() {
+        // Podmínka: Chceme šum jen když je to zapnuté v nastavení A zároveň běží trénink
+        const shouldRun = keepAliveEnabled && trainingActive;
+
+        if (shouldRun) {
+            if (!oscillator) {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                oscillator = audioCtx.createOscillator();
+                gainNode = audioCtx.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(35, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.002, audioCtx.currentTime);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+            }
+        } else {
+            if (oscillator) {
+                oscillator.stop();
+                oscillator.disconnect();
+                oscillator = null;
+                gainNode = null;
+            }
+        }
+    }
 
 	function toggleArticles(val) { readArticles = val; localStorage.setItem('pl_read_articles', val); speak("de tafel"); }
     function toggleAllForms(val) { readAllForms = val; localStorage.setItem('pl_read_all_forms', val); speak("Het bos; bossen"); }
@@ -562,6 +586,7 @@
 		window.scrollTo(0, 0);
 		showWord(); 
 		saveProgress(); 
+		manageKeepAlive();
 	}
 
     function resumeTraining() { if (!activeState) return; currentLessonId = activeState.lessonId; words = activeState.words; currentIndex = activeState.index; mode = activeState.mode; startTraining(mode, true); }
@@ -694,31 +719,14 @@
 		finishResult();
 	}
 
-	// Nová funkce pro vynucený přechod
-	function forceNextAfterError() {
-		// Vrátíme tlačítka do původního stavu
-		document.getElementById('action-row').innerHTML = `
-			<button class="btn-action btn-neumim" onclick="handleResult(false, event)">NEUMÍM</button>
-			<button class="btn-action btn-umim" onclick="handleResult(true, event)">UMÍM</button>
-		`;
-		finishResult();
-	}
-
-	function forceNextAfterError() {
-		// Vrátíme tlačítka zpět na Umím/Neumím
-		document.getElementById('action-row').innerHTML = `
-			<button class="btn-action btn-neumim" onclick="handleResult(false, event)">NEUMÍM</button>
-			<button class="btn-action btn-umim" onclick="handleResult(true, event)">UMÍM</button>
-		`;
-		finishResult();
-	}
-
     function resetAppView() { 
         localStorage.removeItem('pl_app_view'); 
         localStorage.removeItem('pl_dict_scope');
         localStorage.removeItem('pl_current_lesson_id');
         localStorage.removeItem('pl_current_cat');
-        location.reload(); 
+		trainingActive = false;
+		manageKeepAlive();
+		location.reload();
     }
 
 	function openDictionary(lessonId = null) {
@@ -915,7 +923,7 @@
         } 
     }
 
-    function exitTraining() { if (confirm("Ukončit?")) resetAppView(); }
+	function exitTraining() { if (confirm("Ukončit?")) { trainingActive = false; manageKeepAlive(); resetAppView(); } }
     function clearProgress() { if (confirm("Smazat uložený postup?")) { localStorage.removeItem('pl_active_state'); activeState = null; renderMenu(); } }
     function clearProblematic() { if (confirm("Vymazat problematická?")) { problematic = []; saveData(); renderMenu(); } }
 
@@ -927,7 +935,6 @@
             if (e.code === 'KeyU' || e.code === 'ArrowRight') handleResult(true);
         }
     });
-	document.addEventListener('click', startKeepAlive, { once: true });
 
 	// Registrace jednoduchého Service Workeru pro možnost instalace
 	if ('serviceWorker' in navigator) {

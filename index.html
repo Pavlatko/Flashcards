@@ -11,9 +11,32 @@
 	<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Flashcards%22,%22short_name%22:%22Flashcards%22,%22start_url%22:%22index.html%22,%22display%22:%22standalone%22,%22orientation%22:%22portrait%22,%22background_color%22:%22%23f5f5f5%22,%22theme_color%22:%22%232196F3%22,%22icons%22:[{%22src%22:%22icon.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
 
     <style>
-        :root { --primary: #2196F3; --bg: #f5f5f5; --success: #4CAF50; --danger: #ff5252; --secondary: #9c27b0; --neutral: #757575; --category: #607d8b; --gradient: linear-gradient(135deg, #2196F3, #1976D2); }
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: var(--bg); margin: 0; padding: 10px; min-height: 100vh; width: 100vw; box-sizing: border-box; overflow-x: hidden; }
-        
+		:root { 
+            --primary: #2196F3; 
+            --bg: #f5f5f5; 
+            --success: #4CAF50; 
+            --danger: #ff5252; 
+            --secondary: #9c27b0; 
+            --neutral: #757575; 
+            --category: #607d8b; 
+            --gradient: linear-gradient(135deg, #2196F3, #1976D2); 
+            --app-bg: #f5f5f5; 
+            --text-color: #333; /* Nová proměnná pro texty mimo karty */
+        }
+        body { 
+            font-family: sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            background: var(--app-bg); 
+            color: var(--text-color); /* Aplikace barvy na celé body */
+            margin: 0; padding: 10px; min-height: 100vh; width: 100vw; 
+            box-sizing: border-box; overflow-x: hidden; 
+            transition: background-color 0.4s ease, color 0.4s ease; 
+        }
+
+		h1, h2, #lesson-title, #lesson-info, .settings-label { color: var(--text-color); transition: color 0.4s ease; }
+
         #counter-wrap { 
             width: 100%; 
             max-width: 340px; 
@@ -22,13 +45,41 @@
             justify-content: center; 
             align-items: center; 
             font-size: 1.2rem; 
-            color: #111; 
+            color: var(--text-color); /* Změněno z #111 */
             font-weight: bold; 
             min-height: 1.5rem; 
+            transition: color 0.4s ease;
+        }
+
+        .settings-label { 
+            font-size: 0.9rem; 
+            color: var(--text-color); /* Změněno z #555 */
+            font-weight: bold; 
+            display: block; 
+            margin-bottom: 10px; 
+            transition: color 0.4s ease;
+        }
+
+        .checkbox-row { 
+            display: flex; 
+            align-items: center; 
+            cursor: pointer; 
+            margin-top: 10px; 
+            font-size: 0.9rem; 
+            color: var(--text-color); /* Změněno z #555 */
+            transition: color 0.4s ease;
         }
         
         .training-mode #counter-wrap { justify-content: space-between; font-size: 0.95rem; }
-        .training-mode #lesson-name-display { color: var(--neutral); font-weight: normal; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+		.training-mode #lesson-name-display { color: var(--text-color); /* Změněno z var(--neutral) */ font-weight: bold; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.4s ease; }
+		#lesson-info-sub { 
+            font-size: 0.8rem; 
+            color: var(--text-color) !important; /* Přidáno !important a proměnná */
+            margin: -22px 0 10px 0; 
+            font-weight: normal; 
+            opacity: 0.8; /* Trochu ztlumíme, aby to vypadalo jako podnadpis */
+            transition: color 0.4s ease;
+        }
 
         #menu-area { width: 100%; max-width: 360px; display: flex; flex-direction: column; margin-top: 15px; }
 		.lesson-row { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 12px; position: relative; }
@@ -125,7 +176,12 @@
 			}
 			#app-body > * { display: none !important; }
 		}
-	</style>
+
+		.theme-picker { display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+        .theme-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.2s; }
+        .theme-dot:hover { transform: scale(1.1); }
+
+		</style>
 	<link rel="icon" type="image/png" href="icon.png">
 	<link rel="apple-touch-icon" href="icon.png">
 </head>
@@ -169,6 +225,25 @@
                 <label class="checkbox-row"><input type="checkbox" id="read-all-forms" onchange="toggleAllForms(this.checked)"> Předčítat všechno</label>
 				<label class="checkbox-row"><input type="checkbox" id="keep-alive-enabled" onchange="toggleKeepAlive(this.checked)"> Udržovat spojení se sluchátkami</label>
 			</div>
+			<div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+				<label class="settings-label">Barva pozadí aplikace:</label>
+				<div class="theme-picker">
+					<div class="theme-dot" title="Výchozí" style="background: #f5f5f5;" onclick="changeTheme('#f5f5f5')"></div>
+					<div class="theme-dot" style="background: #e3f2fd;" onclick="changeTheme('#e3f2fd')"></div>
+					<div class="theme-dot" style="background: #f1f8e9;" onclick="changeTheme('#f1f8e9')"></div>
+					<div class="theme-dot" style="background: #fff3e0;" onclick="changeTheme('#fff3e0')"></div>
+					<div class="theme-dot" style="background: #f3e5f5;" onclick="changeTheme('#f3e5f5')"></div>
+					<div class="theme-dot" style="background: #efebe9;" onclick="changeTheme('#efebe9')"></div>
+				</div>
+				<div class="theme-picker" style="margin-top: 10px;">
+					<div class="theme-dot" style="background: #1a237e;" onclick="changeTheme('#1a237e')"></div>
+					<div class="theme-dot" style="background: #1b5e20;" onclick="changeTheme('#1b5e20')"></div>
+					<div class="theme-dot" style="background: #3e2723;" onclick="changeTheme('#3e2723')"></div>
+					<div class="theme-dot" style="background: #263238;" onclick="changeTheme('#263238')"></div>
+					<div class="theme-dot" style="background: #424242;" onclick="changeTheme('#424242')"></div>
+					<div class="theme-dot" style="background: #000000;" onclick="changeTheme('#000000')"></div>
+				</div>
+			</div>
 		</div>
 
         <center class="upload-wrap">
@@ -187,7 +262,7 @@
     </div>
 
     <div id="mode-area" class="controls" style="display:none">
-		<div id="lesson-info-sub" style="font-size: 0.8rem; color: #757575; margin: -22px 0 10px 0; font-weight: normal;"></div>
+		<div id="lesson-info-sub"></div>
 		<button class="btn-action btn-flip-big" style="background:var(--neutral)" onclick="backFromModeSelection()">ZPĚT</button>
 		<button class="btn-action btn-flip-big" onclick="startTraining('CZ-NL')">ČESKY ➔ NIZOZEMSKY</button>
 		<button class="btn-action btn-flip-big" onclick="startTraining('NL-CZ')">NIZOZEMSKY ➔ ČESKY</button>
@@ -227,6 +302,10 @@
     </div>
 
 <script>
+	let currentTheme = localStorage.getItem('pl_theme') || '#f5f5f5';
+    let currentTextColor = localStorage.getItem('pl_text_color') || '#333333';
+    document.documentElement.style.setProperty('--app-bg', currentTheme);
+    document.documentElement.style.setProperty('--text-color', currentTextColor);
     let audioCtx;
     let failedWords = []; 
     let readArticles = localStorage.getItem('pl_read_articles') === 'true';
@@ -421,6 +500,18 @@
         keepAliveEnabled = val;
         localStorage.setItem('pl_keep_alive', val);
         manageKeepAlive(); // Aktualizovat stav hned
+    }
+
+	function changeTheme(color) {
+        currentTheme = color;
+        const darkColors = ['#1a237e', '#1b5e20', '#3e2723', '#263238', '#424242', '#000000'];
+        const textColor = darkColors.includes(color) ? '#ffffff' : '#333333';
+        
+        document.documentElement.style.setProperty('--app-bg', color);
+        document.documentElement.style.setProperty('--text-color', textColor);
+        
+        localStorage.setItem('pl_theme', color);
+        localStorage.setItem('pl_text_color', textColor);
     }
 
     function manageKeepAlive() {
@@ -618,7 +709,7 @@
         document.getElementById('mode-area').style.display = 'flex'; 
         
         const displayId = id === 'problematic' ? 'Problematické' : id;
-        document.getElementById('lesson-name-display').innerText = displayId;
+        document.getElementById('lesson-name-display').style.color = "var(--text-color)";
         
         // Zobrazení počtu slovíček hned pod názvem
         document.getElementById('lesson-info-sub').innerText = `Počet slovíček: ${words.length}`;

@@ -46,22 +46,54 @@
 </div>
 
 <script>
-    // Inicializace kategorií
+    // Inicializace elementů
     const sel = document.getElementById('catSel');
     const nc = document.getElementById('newCat');
+    
+    // Načtení existujících kategorií a naplnění selectu (pouze jednou)
     const cats = JSON.parse(localStorage.getItem('pl_categories') || '{}');
     Object.keys(cats).sort().forEach(c => {
-        const o = document.createElement('option'); o.value = o.innerText = c;
-        sel.add(o, sel.options[1]);
+        const o = document.createElement('option'); 
+        o.value = o.innerText = c;
+        sel.add(o, sel.options[1]); // Přidá kategorii pod "Vytvořit novou"
     });
-    sel.onchange = () => nc.style.display = sel.value === 'NEW' ? 'block' : 'none';
 
-    async function runImport() {
+    // Ovládání viditelnosti textového pole pro novou kategorii
+    sel.onchange = () => {
+        const isNew = sel.value === 'NEW';
+        nc.style.display = isNew ? 'block' : 'none';
+        if (isNew) {
+            nc.value = ""; // Vyčistí pole při každém přepnutí
+            nc.focus();
+        }
+    };
+
+    // Aktivace importu stiskem Enter v poli pro novou kategorii
+    nc.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            runImport();
+        }
+    });
+
+	async function runImport() {
         const fileInput = document.getElementById('files');
-        if (!fileInput.files.length) return;
+        if (!fileInput.files.length) {
+            alert("Vyber alespoň jeden CSV soubor.");
+            return;
+        }
 
         let target = sel.value === 'NEW' ? nc.value.trim() : sel.value;
+        
+        // Kontrola, zda není název nové kategorie prázdný
+        if (sel.value === 'NEW' && !target) {
+            alert("Zadej prosím název nové kategorie.");
+            nc.focus();
+            return;
+        }
+
         let lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
+        // ... zbytek funkce zůstává stejný
         let categories = JSON.parse(localStorage.getItem('pl_categories') || '{}');
         let report = [];
 

@@ -1118,6 +1118,14 @@
 
 	document.addEventListener('keydown', e => {
         if (!trainingActive || isProcessing) return;
+
+        // Pokud je otevřený popup s nápovědou, zavři ho jakoukoliv klávesou
+        const hintPopup = document.getElementById('hint-popup');
+        if (hintPopup.style.display === 'flex') {
+            e.preventDefault();
+            hintPopup.style.display = 'none';
+            return; // Nepokračujeme dál, aby klávesa neudělala i jinou akci
+        }
         
         // Mezera nebo šipka nahoru = Otočení karty
         if (e.code === 'Space' || e.code === 'ArrowUp') { 

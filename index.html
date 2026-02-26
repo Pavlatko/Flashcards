@@ -81,8 +81,9 @@
         .btn-neumim { background: var(--danger); color: white; width: 48%; }
         .btn-umim { background: var(--success); color: white; width: 48%; }
         .btn-exit { background: var(--neutral); color: white; padding: 15px; border: none; border-radius: 15px; width: 100%; font-weight: bold; display: none; }
-        .btn-load { background: var(--success); color: white; padding: 12px; border-radius: 12px; cursor: pointer; font-weight: bold; width: 220px; text-align: center; display: inline-block; border:none; }
-        .btn-cat-add { background: var(--category); color: white; padding: 12px; border-radius: 12px; cursor: pointer; font-weight: bold; width: 220px; text-align: center; border:none; }
+        .btn-load { background: var(--success); color: white; padding: 12px; border-radius: 12px; cursor: pointer; font-weight: bold; width: 90%; text-align: center; display: inline-block; border:none; box-sizing: border-box; font-family: sans-serif; font-size: 0.95rem; }
+        .btn-load2 { background: var(--success); color: white; padding: 12px; border-radius: 12px; cursor: pointer; font-weight: bold; width: 50%; text-align: center; display: inline-block; border:none; box-sizing: border-box; font-family: sans-serif; font-size: 0.95rem; }
+        .btn-cat-add { background: var(--category); color: white; padding: 12px; border-radius: 12px; cursor: pointer; font-weight: bold; width: 90%; text-align: center; border:none; box-sizing: border-box; font-family: sans-serif; font-size: 0.95rem; }
 
 		.settings-wrap { margin-top: 25px; width: 100%; max-width: 360px; padding: 15px; background: #fff; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); box-sizing: border-box; }
 		.settings-label { font-size: 0.9rem; color: #555; font-weight: bold; display: block; margin-bottom: 10px; }
@@ -170,9 +171,9 @@
 		</div>
 
         <center class="upload-wrap">
-            <label class="btn-load">📂 Nahrát lekci<input type="file" id="fIn" style="display:none" onchange="handleFile(this)" accept=".csv"></label>
-			<div class="btn-load" style="margin-top: 0px; background-color: #1976D2; text-align: center; cursor: pointer;" onclick="window.open('./importer.html', '_blank')">📂 Hromadný import lekcí</div>
-            <button class="btn-cat-add" onclick="createNewCategory()">📁 Vytvořit kategorii</button>
+            <button class="btn-cat-add" onclick="createNewCategory()">📁 Vytvořit novou kategorii</button>
+            <label class="btn-load">📂 Nahrát lekci do hlavní nabídky<input type="file" id="fIn" style="display:none" onchange="handleFile(this)" accept=".csv"></label>
+            <div class="btn-load" style="background-color: #1976D2;" onclick="window.open('./importer.html', '_blank')">📂 Hromadný import lekcí</div>
         </center>
     </div>
 
@@ -180,7 +181,7 @@
         <button class="btn-action btn-flip-big" style="background:var(--neutral); margin-bottom: 20px;" onclick="closeCategory()">← ZPĚT DO MENU</button>
         <div id="cat-lessons-container"></div>
         <center class="upload-wrap">
-            <label class="btn-load">📂 NAHRÁT LEKCI<input type="file" id="fInCat" style="display:none" onchange="handleFile(this, true)" accept=".csv"></label>
+            <label class="btn-load2">📂 Nahrát lekci<input type="file" id="fInCat" style="display:none" onchange="handleFile(this, true)" accept=".csv"></label>
         </center>
     </div>
 

@@ -153,9 +153,8 @@
         .dict-table-wrap { max-height: 60vh; overflow-y: auto; border: 1px solid #eee; border-radius: 10px; position: relative; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th { background: #f8f8f8; position: sticky; top: 0; padding: 10px; text-align: left; font-size: 0.8rem; border-bottom: 2px solid #eee; z-index: 10; }
-        td { padding: 12px 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; word-wrap: break-word; cursor: pointer; position: relative; }
+        td { padding: 12px 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; word-wrap: break-word; cursor: pointer; position: relative; color: #333; } /* Vynucená tmavá barva pro bílý podklad tabulky */
         td:active { background: #e3f2fd; }
-        .col-nl { color: var(--primary); font-weight: bold; }
 		.lesson-toast { position: fixed; left: 50%; top: 15%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.8); color: white; padding: 10px 20px; border-radius: 12px; font-size: 1rem; font-weight: bold; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 0.3s; text-align: center; max-width: 70%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid var(--primary); }
         [style*="display: none"] { pointer-events: none; }
 		.explosion-canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 100; }
@@ -805,8 +804,15 @@
 		const faces = document.querySelectorAll('.card-face div');
 		faces.forEach(f => f.style.opacity = '0');
 		document.getElementById('card').classList.remove('is-flipped');
+		
+		// RESET tlačítek do výchozího stavu (řeší chybu po stisku klávesy)
 		document.getElementById('flip-row').style.display = 'flex';
 		document.getElementById('action-row').style.display = 'none';
+		document.getElementById('action-row').innerHTML = `
+			<button class="btn-action btn-neumim" onclick="handleResult(false, event)">NEUMÍM</button>
+			<button class="btn-action btn-umim" onclick="handleResult(true, event)">UMÍM</button>
+		`;
+
 		const cur = words[currentIndex]; 
 		const pNL = splitP(cur.nl); const pCZ = splitP(cur.cz);
 		setTimeout(() => {
@@ -907,10 +913,12 @@
 			document.getElementById('back-face').classList.add('flash-red-back');
 			speak(cur.nl, true);
 			
-			// NÁHODNÉ VSUUTÍ: Vložíme slovo někam dál do balíčku, ne nutně na konec
+			// CHYTRÉ VLOŽENÍ: Snažíme se o odstup 3 slov
 			const remainingCount = words.length - (currentIndex + 1);
-			const offset = Math.floor(Math.random() * (remainingCount + 1));
-			words.splice(currentIndex + 1 + offset, 0, {...cur}); 
+            // Cílíme na index + 4 (tedy 3 slova mezi), ale nesmíme přetéct délku pole
+            const targetOffset = Math.min(4, remainingCount);
+            // Pokud zbývá hodně slov, vložíme to na 4. pozici, jinak na konec
+			words.splice(currentIndex + 1 + targetOffset, 0, {...cur}); 
 			
 			isProcessing = true;
 			setTimeout(() => {
@@ -1097,7 +1105,8 @@
 
                 main = main.replace(/, De$/g, ', <small>de</small>').replace(/, Het$/g, ', <small>het</small>');
 
-                let html = `<b>${main}</b>`;
+                // Hlavní slovo v <b> nyní přebírá barvu z <td> (tmavou), sub-word zůstává šedý
+                let html = `<b style="color: inherit;">${main}</b>`;
                 if (parts.s) {
                     html += `<br><span style="font-weight:normal; font-size:0.85em; color:#666;">${parts.s}</span>`;
                 }
@@ -1112,11 +1121,10 @@
 
 			// ČESKÝ SLOUPEC
 			const tdCZ = document.createElement('td');
-            tdCZ.style.position = 'relative'; // Nutné pro pozicování křížku
+            tdCZ.style.position = 'relative'; 
 			tdCZ.innerHTML = formatCell(w.cz);
 			
 			if (dictionaryScope) {
-                // Vytvoření křížku pro smazání (identický styl jako v hledání)
                 const delBtn = document.createElement('button');
                 delBtn.innerHTML = '×';
                 delBtn.className = 'clear-search';
@@ -1126,18 +1134,18 @@
                 delBtn.style.transform = 'translateY(-50%)';
                 delBtn.style.width = '24px';
                 delBtn.style.height = '24px';
-                delBtn.style.color = '#f44336'; // Červená barva
+                delBtn.style.color = '#f44336'; 
                 delBtn.style.fontSize = '14px';
                 delBtn.style.display = 'flex';
                 delBtn.style.alignItems = 'center';
                 delBtn.style.justifyContent = 'center';
                 
                 delBtn.onclick = (e) => {
-                    e.stopPropagation(); // Aby se nespustila výslovnost
+                    e.stopPropagation(); 
                     deleteWordFromLesson(w.nl, dictionaryScope);
                 };
                 tdCZ.appendChild(delBtn);
-                tdCZ.style.paddingRight = '35px'; // Prostor, aby text nekryl křížek
+                tdCZ.style.paddingRight = '35px'; 
 			}
 
 			tr.appendChild(tdCZ);
@@ -1192,7 +1200,13 @@
 		let parts = (readAllForms && !forceShort) ? t.split(';').map(p => p.trim()) : [splitP(t).m];
 		
 		parts.forEach((part) => {
+			// Odstranění členů, pokud je to nastaveno
 			let text = readArticles ? part : part.replace(/^de\s+|^het\s+/i, '');
+			
+			// OŠETŘENÍ ZNAKŮ PRO HLAS:
+			// Nahradíme lomítka mezerou, aby je hlas nečetl jako "slash"
+			text = text.replace(/\//g, ' ');
+			
 			const u = new SpeechSynthesisUtterance(text);
 			const v = window.speechSynthesis.getVoices();
 

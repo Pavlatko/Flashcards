@@ -428,8 +428,9 @@
     }
 
     function manageKeepAlive() {
-        // Podmínka: Chceme šum jen když je to zapnuté v nastavení A zároveň běží trénink
-        const shouldRun = keepAliveEnabled && trainingActive;
+        // Podmínka: Chceme šum, když je to zapnuté v nastavení A ZÁROVEŇ běží trénink NEBO je otevřený slovníček
+        const isDictionaryOpen = document.getElementById('dictionary-area').style.display === 'block';
+        const shouldRun = keepAliveEnabled && (trainingActive || isDictionaryOpen);
 
         if (shouldRun) {
             if (!oscillator) {
@@ -918,6 +919,7 @@
 			localStorage.setItem('pl_dict_scope', lessonId || 'all');
 		}
 		buildDictionary();
+		manageKeepAlive(); // Přidáno pro aktivaci spojení ve slovníčku
 	}
 
     function closeDictionary() {
@@ -934,6 +936,7 @@
             else { document.getElementById('menu-area').style.display = 'flex'; renderMenu(); }
         }
 		dictSortActive = false; // Resetování řazení pro příští otevření
+		manageKeepAlive(); // Přidáno pro deaktivaci spojení po zavření slovníčku
     }
 
     function buildDictionary() {

@@ -132,7 +132,8 @@
             transition: background-color 0.3s, box-shadow 0.4s ease; 
         }
 		.card-face div { transition: opacity 0.2s ease-in-out; }
-        .card-face-back { transform: rotateY(180deg); background: #e3f2fd; border: 3px solid var(--primary); }
+		.card-face-back { transform: rotateY(180deg); background: white; }
+		.card-flag { position: absolute; top: 15px; right: 15px; font-size: 1.2rem; opacity: 0.8; }
         
         .flash-red { animation: flashRedAnim 0.6s ease-in-out; }
         @keyframes flashRedAnim { 0% { background-color: white; } 50% { background-color: #ffcdd2; } 100% { background-color: white; } }
@@ -822,7 +823,7 @@
 		faces.forEach(f => f.style.opacity = '0');
 		document.getElementById('card').classList.remove('is-flipped');
 		
-		// RESET tlačítek do výchozího stavu (řeší chybu po stisku klávesy)
+		// RESET tlačítek do výchozího stavu
 		document.getElementById('flip-row').style.display = 'flex';
 		document.getElementById('action-row').style.display = 'none';
 		document.getElementById('action-row').innerHTML = `
@@ -832,14 +833,19 @@
 
 		const cur = words[currentIndex]; 
 		const pNL = splitP(cur.nl); const pCZ = splitP(cur.cz);
+        
+        // Definice vlaječek
+        const flagCZ = '<div class="card-flag">🇨🇿</div>';
+        const flagNL = '<div class="card-flag">🇳🇱</div>';
+
 		setTimeout(() => {
 			if (mode === 'CZ-NL') { 
-                updateF('front', pCZ.m, pCZ.s, "");
-                updateF('back', pNL.m, pNL.s, cur.ipa); 
+                updateF('front', flagCZ + pCZ.m, pCZ.s, "");
+                updateF('back', flagNL + pNL.m, pNL.s, cur.ipa); 
             } 
             else { 
-                updateF('front', pNL.m, pNL.s, cur.ipa); 
-                updateF('back', pCZ.m, pCZ.s, ""); 
+                updateF('front', flagNL + pNL.m, pNL.s, cur.ipa); 
+                updateF('back', flagCZ + pCZ.m, pCZ.s, ""); 
                 speak(cur.nl); 
             }
 			faces.forEach(f => f.style.opacity = '1');

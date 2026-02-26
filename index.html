@@ -135,18 +135,27 @@
 
     <div id="toast" class="lesson-toast"></div>
 
-    <div id="menu-area">
+	<div id="menu-area">
         <div id="resume-container"></div>
         <div id="problematic-container"></div>
         
         <div id="categories-container"></div>
         <div id="lessons-container"></div>
         
-        <div class="dict-btn-wrap">
-            <button class="btn-action btn-flip-big" style="background:var(--secondary);" onclick="openDictionary()">📖 SLOVNÍČEK</button>
+        <div class="dict-btn-wrap" style="display: flex; gap: 10px; margin-top: 30px;">
+            <button class="btn-action btn-flip-big" style="background:var(--secondary); flex: 1; font-size: 0.85rem; padding: 18px 5px;" onclick="openDictionary()">📖 SLOVNÍČEK</button>
+            <button class="btn-action btn-flip-big" style="background:var(--neutral); flex: 1; font-size: 0.85rem; padding: 18px 5px;" onclick="openSettings()">⚙️ NASTAVENÍ</button>
         </div>
 
-		<div class="settings-wrap">
+		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
+            <b>Pavlatko</b>Lab
+        </div>
+    </div>
+
+    <div id="settings-area" style="display:none; width: 100%; max-width: 360px; margin-top:20px;">
+        <button class="btn-action btn-flip-big" style="background:var(--neutral); margin-bottom: 20px;" onclick="closeSettings()">← ZPĚT DO MENU</button>
+        
+        <div class="settings-wrap" style="margin-top: 0;">
 			<label class="settings-label">Rychlost řeči: <span id="speed-val" class="speed-val">0.85</span></label>
 			<input type="range" id="speed-slider" class="speed-slider" min="0.1" max="1.2" step="0.05" value="0.85" oninput="updateSpeed(this.value)">
 			<label class="settings-label" style="margin-top: 15px;">Hlas nizozemštiny:</label>
@@ -161,13 +170,10 @@
 		</div>
 
         <center class="upload-wrap">
-            <label class="btn-load">📂 NAHRÁT LEKCI<input type="file" id="fIn" style="display:none" onchange="handleFile(this)" accept=".csv"></label>
-			<div class="btn-load" style="margin-top: 0px; background-color: #1976D2; text-align: center; cursor: pointer;" onclick="window.open('./importer.html', '_blank')">📂 HROMADNÝ IMPORT</div>
-            <button class="btn-cat-add" onclick="createNewCategory()">📁 VYTVOŘIT KATEGORII</button>
+            <label class="btn-load">📂 Nahrát lekci<input type="file" id="fIn" style="display:none" onchange="handleFile(this)" accept=".csv"></label>
+			<div class="btn-load" style="margin-top: 0px; background-color: #1976D2; text-align: center; cursor: pointer;" onclick="window.open('./importer.html', '_blank')">📂 Hromadný import lekcí</div>
+            <button class="btn-cat-add" onclick="createNewCategory()">📁 Vytvořit kategorii</button>
         </center>
-		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: -10px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Pavlatko</b>Lab
-        </div>
     </div>
 
     <div id="category-detail-area" style="display:none; width: 100%; max-width: 360px; margin-top:20px;">
@@ -175,7 +181,6 @@
         <div id="cat-lessons-container"></div>
         <center class="upload-wrap">
             <label class="btn-load">📂 NAHRÁT LEKCI<input type="file" id="fInCat" style="display:none" onchange="handleFile(this, true)" accept=".csv"></label>
-			<div class="btn-load" style="margin-top: 0px; background-color: #1976D2; text-align: center; cursor: pointer;" onclick="window.open('./importer.html', '_blank')">📂 HROMADNÝ IMPORT</div>
         </center>
     </div>
 
@@ -373,7 +378,13 @@
             return;
         }
 
-        // Priorita 3: Výběr módu lekce
+        // Priorita 3: Nastavení
+        if (lastView === 'settings') {
+            openSettings();
+            return;
+        }
+
+        // Priorita 4: Výběr módu lekce
         if (lastView === 'mode-area') {
             currentLessonId = localStorage.getItem('pl_current_lesson_id');
             if (currentLessonId && (allLessons[currentLessonId] || currentLessonId === 'problematic')) {
@@ -382,7 +393,7 @@
             }
         }
 
-        // Priorita 4: Otevřená kategorie
+        // Priorita 5: Otevřená kategorie
         if (savedCat) {
             openCategory(savedCat);
         }
@@ -393,29 +404,12 @@
 			setTimeout(() => {
 				const toast = document.getElementById('toast');
 				if (toast) {
-					toast.innerText = `Lekce hotova na ${lastScore}%! 🎉`;
-					toast.style.top = "20px";
-					toast.style.opacity = "1";
-					setTimeout(() => { 
-						toast.style.opacity = "0";
-						localStorage.removeItem('pl_last_score'); // Pak to smažeme z paměti
-					}, 4000);
-				}
-			}, 500);
-		}
-
-		// ... uvnitř checkAppPersistence ...
-		if (lastScore !== null) {
-			setTimeout(() => {
-				const toast = document.getElementById('toast');
-				if (toast) {
-					// Použijeme <br> pro nový řádek a přidáme emoji
 					toast.innerHTML = `Lekce dokončena!<br><span style="color:var(--primary)">Úspěšnost: ${lastScore}%</span>`;
 					toast.style.opacity = "1";
 					setTimeout(() => { 
 						toast.style.opacity = "0";
 						localStorage.removeItem('pl_last_score'); 
-					}, 5000); // Necháme ho tam o vteřinu déle (5s), ať si to Pavel užije
+					}, 5000);
 				}
 			}, 500);
 		}
@@ -549,6 +543,21 @@
         localStorage.removeItem('pl_current_cat');
         document.getElementById('category-detail-area').style.display = 'none';
         document.getElementById('menu-area').style.display = 'flex';
+        renderMenu();
+    }
+
+	function openSettings() {
+        document.getElementById('menu-area').style.display = 'none';
+        document.getElementById('settings-area').style.display = 'block';
+        document.getElementById('lesson-name-display').innerText = 'Nastavení';
+        localStorage.setItem('pl_app_view', 'settings');
+    }
+
+    function closeSettings() {
+        document.getElementById('settings-area').style.display = 'none';
+        document.getElementById('menu-area').style.display = 'flex';
+        document.getElementById('lesson-name-display').innerText = 'Flashcards';
+        localStorage.removeItem('pl_app_view');
         renderMenu();
     }
 
@@ -984,21 +993,17 @@
 				if (!dictionaryScope) showToast(e, w.lessons.join(', ')); 
 			};
 			
-            // Pomocná funkce pro formátování textu (Tučně první řádek, zmenšení členů)
             const formatCell = (rawText, isNl = false) => {
                 const parts = splitP(rawText);
                 let main = parts.m;
                 
-                // Pokud řadíme/upravujeme NL text pro zobrazení s členem na konci
                 if (isNl && (!dictionaryScope || dictSortActive)) {
                     if (main.toLowerCase().startsWith('de ')) main = main.substring(3) + ', De';
                     else if (main.toLowerCase().startsWith('het ')) main = main.substring(4) + ', Het';
                 }
 
-                // Zmenšení členů na konci
                 main = main.replace(/, De$/g, ', <small>de</small>').replace(/, Het$/g, ', <small>het</small>');
 
-                // Výsledek: Tučně hlavní slovo, zbytek normálně na nových řádcích
                 let html = `<b>${main}</b>`;
                 if (parts.s) {
                     html += `<br><span style="font-weight:normal; font-size:0.85em; color:#666;">${parts.s}</span>`;
@@ -1014,14 +1019,32 @@
 
 			// ČESKÝ SLOUPEC
 			const tdCZ = document.createElement('td');
+            tdCZ.style.position = 'relative'; // Nutné pro pozicování křížku
 			tdCZ.innerHTML = formatCell(w.cz);
 			
 			if (dictionaryScope) {
-				tdCZ.onclick = (e) => {
-					e.stopPropagation();
-					deleteWordFromLesson(w.nl, dictionaryScope);
-				};
-				tdCZ.style.cursor = 'pointer';
+                // Vytvoření křížku pro smazání (identický styl jako v hledání)
+                const delBtn = document.createElement('button');
+                delBtn.innerHTML = '×';
+                delBtn.className = 'clear-search';
+                delBtn.style.position = 'absolute';
+                delBtn.style.right = '8px';
+                delBtn.style.top = '50%';
+                delBtn.style.transform = 'translateY(-50%)';
+                delBtn.style.width = '24px';
+                delBtn.style.height = '24px';
+                delBtn.style.color = '#f44336'; // Červená barva
+                delBtn.style.fontSize = '14px';
+                delBtn.style.display = 'flex';
+                delBtn.style.alignItems = 'center';
+                delBtn.style.justifyContent = 'center';
+                
+                delBtn.onclick = (e) => {
+                    e.stopPropagation(); // Aby se nespustila výslovnost
+                    deleteWordFromLesson(w.nl, dictionaryScope);
+                };
+                tdCZ.appendChild(delBtn);
+                tdCZ.style.paddingRight = '35px'; // Prostor, aby text nekryl křížek
 			}
 
 			tr.appendChild(tdCZ);

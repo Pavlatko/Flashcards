@@ -221,7 +221,7 @@
 
 <script>
     let audioCtx;
-    let failedWords = []; // Přidáno pro statistiku
+    let failedWords = []; 
     let readArticles = localStorage.getItem('pl_read_articles') === 'true';
     let readAllForms = localStorage.getItem('pl_read_all_forms') === 'true';
     let speechRate = parseFloat(localStorage.getItem('pl_speech_rate') || '0.85');
@@ -230,21 +230,21 @@
     let problematic = JSON.parse(localStorage.getItem('pl_problematic') || '[]');
     let activeState = JSON.parse(localStorage.getItem('pl_active_state') || 'null');
     let finishedLessons = JSON.parse(localStorage.getItem('pl_finished_lessons') || '[]');
-	let dictSortActive = false; // Pomocná proměnná pro přepínání řazení
-	let selectedVoiceName = localStorage.getItem('pl_voice_name') || '';
+    let dictSortActive = false; 
+    let selectedVoiceName = localStorage.getItem('pl_voice_name') || '';
     
-	let words = []; let currentIndex = 0; let isFlipped = false; let mode = ''; 
+    let words = []; let currentIndex = 0; let isFlipped = false; let mode = ''; 
     let currentLessonId = ""; let trainingActive = false; let currentOpenCategory = null;
     let wasFlippedOnce = false; let isProcessing = false;
     let dictionaryScope = null;
-    let hintLevel = 0; // 0 = žádná, 1 = první písmeno, 2 = první a poslední
+    let hintLevel = 0; 
 
-	let keepAliveEnabled = localStorage.getItem('pl_keep_alive') === 'true';
+    let keepAliveEnabled = localStorage.getItem('pl_keep_alive') === 'true';
     let oscillator = null;
     let gainNode = null;
 
     // Inicializace nastavení UI
-	document.getElementById('keep-alive-enabled').checked = keepAliveEnabled;
+    document.getElementById('keep-alive-enabled').checked = keepAliveEnabled;
     document.getElementById('speed-slider').value = speechRate;
     document.getElementById('speed-val').innerText = speechRate;
     document.getElementById('read-articles').checked = readArticles;
@@ -257,52 +257,61 @@
         if (typeof speechSynthesis === 'undefined') return;
         
         const voices = speechSynthesis.getVoices();
-        // Širší filtr pro mobilní zařízení
-        const nlVoices = voices.filter(v => {
-            const lang = v.lang.toLowerCase();
-            const name = v.name.toLowerCase();
-            // Chceme cokoliv s 'nl', ale vyřadíme Belgii a Vlámsko
-            const isDutch = lang.startsWith('nl');
-            const isBelgian = lang.includes('be') || name.includes('belgi') || name.includes('flemish') || name.includes('vlaams');
-            return isDutch && !isBelgian;
-        });
-        
         const voiceSelect = document.getElementById('voice-select');
         if (!voiceSelect) return;
+
+        // Najdeme vše, co je holandština
+        let nlVoices = voices.filter(v => v.lang.toLowerCase().startsWith('nl'));
+        
+        // Odfiltrujeme Belgii, pokud máme na výběr i jiné (NL-NL)
+        if (nlVoices.some(v => v.lang.toLowerCase().includes('nl-nl'))) {
+            nlVoices = nlVoices.filter(v => !v.lang.toLowerCase().includes('be') && !v.name.toLowerCase().includes('belgi'));
+        }
 
         if (nlVoices.length > 0) {
             voiceSelect.innerHTML = nlVoices.map(v => 
                 `<option value="${v.name}" ${v.name === selectedVoiceName ? 'selected' : ''}>${v.name}</option>`
             ).join('');
             
+            // Automatický výběr prvního hlasu, pokud uložený neexistuje
             if (!selectedVoiceName || !nlVoices.find(v => v.name === selectedVoiceName)) {
                 selectedVoiceName = nlVoices[0].name;
                 localStorage.setItem('pl_voice_name', selectedVoiceName);
             }
         } else {
-            // Pokud ani tak nic nenajdeme, zkusíme vypsat aspoň všechno s 'nl', co v systému je
-            const anyNl = voices.filter(v => v.lang.toLowerCase().includes('nl'));
-            if (anyNl.length > 0) {
-                voiceSelect.innerHTML = anyNl.map(v => `<option value="${v.name}">${v.name}</option>`).join('');
-            } else {
-                voiceSelect.innerHTML = '<option value="">Hlasy nenalezeny</option>';
-            }
+            voiceSelect.innerHTML = '<option value="">Hlasy nenalezeny</option>';
         }
     }
 
-	// Zásadní oprava: Interval pro prohlížeče, které hlasy načítají pomalu (typicky Chrome/Edge lokálně)
-	let retryCount = 0;
-    const voiceRetryInterval = setInterval(() => {
-        const voices = speechSynthesis.getVoices();
-        retryCount++;
-        if (voices.length > 0 || retryCount > 30) { // Zkusí to 30x (cca 3 sekundy)
-            populateVoiceList();
-            clearInterval(voiceRetryInterval);
-        }
-    }, 100);
+	// Speciální ošetření pro mobilní Edge/Chrome
+	function forceVoiceInit() {
+		// Některé prohlížeče potřebují "probudit" getVoices voláním naprázdno
+		window.speechSynthesis.getVoices();
+		populateVoiceList();
+	}
 
-	// Standardní eventy
-	speechSynthesis.onvoiceschanged = populateVoiceList;
+	// Startovací sekvence pro hlasy
+    let voiceAttempts = 0;
+    const voiceInitInterval = setInterval(() => {
+        const voices = window.speechSynthesis.getVoices();
+        voiceAttempts++;
+        
+        if (voices.length > 0) {
+            populateVoiceList();
+            // Pokud už máme v seznamu Natural hlasy, můžeme interval vypnout dříve
+            if (voices.some(v => v.name.includes('Natural')) || voiceAttempts > 20) {
+                clearInterval(voiceInitInterval);
+            }
+        }
+        
+        if (voiceAttempts > 50) clearInterval(voiceInitInterval); // Max 10 vteřin
+    }, 200);
+
+    // Důležité: Reakce na systémovou změnu hlasů
+    window.speechSynthesis.onvoiceschanged = populateVoiceList;
+
+	// Vyvolat inicializaci i při kliknutí kamkoliv (uživatelská interakce často odblokuje API)
+	document.addEventListener('click', forceVoiceInit, { once: true });
 
 	function updateVoice(name) {
 		selectedVoiceName = name;

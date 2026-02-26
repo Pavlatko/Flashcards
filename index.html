@@ -257,14 +257,17 @@
         if (typeof speechSynthesis === 'undefined') return;
         
         const voices = speechSynthesis.getVoices();
-        // Hledáme pouze nizozemské hlasy (nl-NL) a vynecháváme belgické (nl-BE)
-        const nlVoices = voices.filter(v => 
-            v.lang.toLowerCase().includes('nl-nl') || 
-            (v.lang.toLowerCase() === 'nl' && !v.name.toLowerCase().includes('belgi'))
-        );
+        // Širší filtr pro mobilní zařízení
+        const nlVoices = voices.filter(v => {
+            const lang = v.lang.toLowerCase();
+            const name = v.name.toLowerCase();
+            // Chceme cokoliv s 'nl', ale vyřadíme Belgii a Vlámsko
+            const isDutch = lang.startsWith('nl');
+            const isBelgian = lang.includes('be') || name.includes('belgi') || name.includes('flemish') || name.includes('vlaams');
+            return isDutch && !isBelgian;
+        });
         
         const voiceSelect = document.getElementById('voice-select');
-        
         if (!voiceSelect) return;
 
         if (nlVoices.length > 0) {
@@ -272,24 +275,31 @@
                 `<option value="${v.name}" ${v.name === selectedVoiceName ? 'selected' : ''}>${v.name}</option>`
             ).join('');
             
-            // Pokud nemáme vybráno, nebo vybraný hlas v seznamu neexistuje, vezmeme první
             if (!selectedVoiceName || !nlVoices.find(v => v.name === selectedVoiceName)) {
                 selectedVoiceName = nlVoices[0].name;
                 localStorage.setItem('pl_voice_name', selectedVoiceName);
             }
         } else {
-            voiceSelect.innerHTML = '<option value="">Hlasy nl-NL nenalezeny...</option>';
+            // Pokud ani tak nic nenajdeme, zkusíme vypsat aspoň všechno s 'nl', co v systému je
+            const anyNl = voices.filter(v => v.lang.toLowerCase().includes('nl'));
+            if (anyNl.length > 0) {
+                voiceSelect.innerHTML = anyNl.map(v => `<option value="${v.name}">${v.name}</option>`).join('');
+            } else {
+                voiceSelect.innerHTML = '<option value="">Hlasy nenalezeny</option>';
+            }
         }
     }
 
 	// Zásadní oprava: Interval pro prohlížeče, které hlasy načítají pomalu (typicky Chrome/Edge lokálně)
-	const voiceRetryInterval = setInterval(() => {
-		const voices = speechSynthesis.getVoices();
-		if (voices.length > 0) {
-			populateVoiceList();
-			clearInterval(voiceRetryInterval);
-		}
-	}, 100);
+	let retryCount = 0;
+    const voiceRetryInterval = setInterval(() => {
+        const voices = speechSynthesis.getVoices();
+        retryCount++;
+        if (voices.length > 0 || retryCount > 30) { // Zkusí to 30x (cca 3 sekundy)
+            populateVoiceList();
+            clearInterval(voiceRetryInterval);
+        }
+    }, 100);
 
 	// Standardní eventy
 	speechSynthesis.onvoiceschanged = populateVoiceList;

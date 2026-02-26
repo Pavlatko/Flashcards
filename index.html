@@ -994,17 +994,43 @@
 	function speak(t, forceShort = false) {
 		window.speechSynthesis.cancel();
 		let parts = (readAllForms && !forceShort) ? t.split(';').map(p => p.trim()) : [splitP(t).m];
+		
 		parts.forEach((part, index) => {
 			let text = readArticles ? part : part.replace(/^de\s+|^het\s+/i, '');
 			const u = new SpeechSynthesisUtterance(text);
 			const v = window.speechSynthesis.getVoices();
-            // Upraveno na původní logiku výběru hlasu z tvé stabilní verze
-			let selectedVoice = v.find(voice => voice.name.includes('Colette')) || 
-				v.find(voice => voice.lang.includes('nl') && !voice.name.includes('Frank')) || 
-				v.find(voice => voice.lang.includes('nl'));
 
-			if (selectedVoice) u.voice = selectedVoice;
-			u.lang = 'nl-NL'; u.rate = speechRate;
+			// Definice preferovaných hlasů podle kvality (od nejlepšího "Natural" po základní)
+			const preferredVoices = [
+				'Microsoft Maarten Online (Natural)', // Špičkový hlas v Edge
+				'Microsoft Fenna Online (Natural)',   // Špičkový ženský v Edge
+				'Google Nederlands',                  // Standard v Chrome
+				'Colette',                            // macOS/iOS
+				'Dutch Netherlands'                   // Obecný pád zpět
+			];
+
+			let selectedVoice = null;
+			
+			// Projdeme seznam preferencí a zkusíme najít shodu
+			for (const pVoice of preferredVoices) {
+				selectedVoice = v.find(voice => voice.name.includes(pVoice));
+				if (selectedVoice) break;
+			}
+
+			// Pokud jsme nenašli nic z preferencí, vezmeme jakýkoliv holandský, co není Frank
+			if (!selectedVoice) {
+				selectedVoice = v.find(voice => voice.lang.includes('nl') && !voice.name.includes('Frank'));
+			}
+
+			if (selectedVoice) {
+				u.voice = selectedVoice;
+			}
+			
+			u.lang = 'nl-NL'; 
+			u.rate = speechRate;
+			
+			// Klíčová oprava pro "anglický" přízvuk:
+			// Některé prohlížeče ignorují u.lang, pokud není u.voice nastaven explicitně
 			window.speechSynthesis.speak(u);
 		});
 	}

@@ -735,12 +735,13 @@
     }
 
 	function showHint() {
+        if (hintLevel >= 2) return; // Zabrání zobrazení další nápovědy, pokud už byly obě vyčerpány
+
         const cur = words[currentIndex];
         const targetText = mode === 'CZ-NL' ? cur.nl : cur.cz;
         const mainPart = splitP(targetText).m;
         const hintEl = document.getElementById('hint-text');
         
-        // Odstranění členů pro nápovědu v NL
         let cleanText = mainPart;
         if (mode === 'CZ-NL') {
             cleanText = mainPart.replace(/^(de\s+|het\s+)/i, '');
@@ -754,16 +755,14 @@
             hintEl.style.fontSize = "2.5rem";
             hintEl.style.letterSpacing = "normal";
             document.getElementById('hint-btn').innerText = "ZOBRAZIT DRUHOU NÁPOVĚDU";
-        } else {
-            // Druhá nápověda: Zachováme první písmeno, poslední písmeno a všechny mezery.
-            // Ostatní znaky nahradíme tečkou.
+        } else if (hintLevel === 2) {
             const chars = cleanText.split('');
             const lastIdx = chars.length - 1;
             
             hintString = chars.map((char, index) => {
                 if (index === 0 || index === lastIdx) return char.toUpperCase();
-                if (char === ' ') return ' '; // Zachová mezeru
-                return '·'; // Vše ostatní je tečka
+                if (char === ' ') return ' ';
+                return '·';
             }).join('');
             
             hintEl.style.letterSpacing = "2px"; 

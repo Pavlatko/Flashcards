@@ -1116,9 +1116,21 @@
     function clearProgress() { if (confirm("Smazat uložený postup?")) { localStorage.removeItem('pl_active_state'); activeState = null; renderMenu(); } }
     function clearProblematic() { if (confirm("Vymazat problematická?")) { problematic = []; saveData(); renderMenu(); } }
 
-    document.addEventListener('keydown', e => {
+	document.addEventListener('keydown', e => {
         if (!trainingActive || isProcessing) return;
-        if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); toggleFlip(); }
+        
+        // Mezera nebo šipka nahoru = Otočení karty
+        if (e.code === 'Space' || e.code === 'ArrowUp') { 
+            e.preventDefault(); 
+            toggleFlip(); 
+        }
+        
+        // Šipka dolů = Nápověda (pouze pokud karta ještě nebyla otočena)
+        if (e.code === 'ArrowDown' && !isFlipped) {
+            e.preventDefault();
+            showHint();
+        }
+
         if (wasFlippedOnce) {
             if (e.code === 'KeyN' || e.code === 'ArrowLeft') handleResult(false);
             if (e.code === 'KeyU' || e.code === 'ArrowRight') handleResult(true);

@@ -657,7 +657,7 @@
         localStorage.setItem('pl_current_cat', name);
         document.getElementById('menu-area').style.display = 'none';
         document.getElementById('category-detail-area').style.display = 'block';
-        document.getElementById('lesson-name-display').innerText = `Kategorie: ${name}`;
+        document.getElementById('lesson-name-display').innerText = `${name}`;
         renderCategoryLessons();
     }
 
@@ -738,7 +738,9 @@
         document.getElementById('category-detail-area').style.display = 'none';
         document.getElementById('mode-area').style.display = 'flex'; 
         
-        const displayId = id === 'problematic' ? 'Problematické' : id;
+        // OPRAVA: Vždy nastavíme název konkrétní lekce, ne kategorie nebo výchozí text
+        const displayId = id === 'problematic' ? '🔥 Problematické' : id;
+        document.getElementById('lesson-name-display').innerText = displayId;
         document.getElementById('lesson-name-display').style.color = "var(--text-color)";
         
         // Zobrazení počtu slovíček hned pod názvem

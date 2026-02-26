@@ -260,12 +260,18 @@
         const voiceSelect = document.getElementById('voice-select');
         if (!voiceSelect) return;
 
-        // Najdeme vše, co je holandština
-        let nlVoices = voices.filter(v => v.lang.toLowerCase().startsWith('nl'));
+        // Najdeme pouze nizozemské hlasy (nl-nl) a vynecháme belgické (nl-be / vlaams)
+        let nlVoices = voices.filter(v => {
+            const lang = v.lang.toLowerCase();
+            const name = v.name.toLowerCase();
+            const isDutch = lang.includes('nl-nl') || (lang === 'nl' && !name.includes('belgi') && !name.includes('be '));
+            const isBelgian = lang.includes('nl-be') || name.includes('belgi') || name.includes('vlaams') || name.includes('flemish');
+            return isDutch && !isBelgian;
+        });
         
-        // Odfiltrujeme Belgii, pokud máme na výběr i jiné (NL-NL)
-        if (nlVoices.some(v => v.lang.toLowerCase().includes('nl-nl'))) {
-            nlVoices = nlVoices.filter(v => !v.lang.toLowerCase().includes('be') && !v.name.toLowerCase().includes('belgi'));
+        // Pokud jsme nic nenašli přes přísný filtr (stává se na Androidu), vezmeme jakékoliv NL kromě Belgie
+        if (nlVoices.length === 0) {
+            nlVoices = voices.filter(v => v.lang.toLowerCase().startsWith('nl') && !v.lang.toLowerCase().includes('be'));
         }
 
         if (nlVoices.length > 0) {
@@ -273,13 +279,12 @@
                 `<option value="${v.name}" ${v.name === selectedVoiceName ? 'selected' : ''}>${v.name}</option>`
             ).join('');
             
-            // Automatický výběr prvního hlasu, pokud uložený neexistuje
             if (!selectedVoiceName || !nlVoices.find(v => v.name === selectedVoiceName)) {
                 selectedVoiceName = nlVoices[0].name;
                 localStorage.setItem('pl_voice_name', selectedVoiceName);
             }
         } else {
-            voiceSelect.innerHTML = '<option value="">Hlasy nenalezeny</option>';
+            voiceSelect.innerHTML = '<option value="">Hlasy nl-NL nenalezeny</option>';
         }
     }
 
@@ -296,15 +301,16 @@
         const voices = window.speechSynthesis.getVoices();
         voiceAttempts++;
         
-        if (voices.length > 0) {
+        // Pokud prohlížeč vrátí hlasy, nebo už čekáme 2 sekundy, vykreslíme seznam
+        if (voices.length > 0 || voiceAttempts > 10) {
             populateVoiceList();
-            // Pokud už máme v seznamu Natural hlasy, můžeme interval vypnout dříve
-            if (voices.some(v => v.name.includes('Natural')) || voiceAttempts > 20) {
+            // Pokud už máme v seznamu Natural hlasy (ideální stav), vypneme interval
+            if (voices.some(v => v.name.includes('Natural')) || voiceAttempts > 15) {
                 clearInterval(voiceInitInterval);
             }
         }
         
-        if (voiceAttempts > 50) clearInterval(voiceInitInterval); // Max 10 vteřin
+        if (voiceAttempts > 30) clearInterval(voiceInitInterval); // Max 6 vteřin
     }, 200);
 
     // Důležité: Reakce na systémovou změnu hlasů

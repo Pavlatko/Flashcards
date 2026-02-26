@@ -31,8 +31,9 @@
         .training-mode #lesson-name-display { color: var(--neutral); font-weight: normal; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         #menu-area { width: 100%; max-width: 360px; display: flex; flex-direction: column; margin-top: 15px; }
-		.lesson-row { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 12px; position: relative; /* Přidáno pro správné pozicování křížku */ }
-		.lesson-btn {  flex-grow: 1; background: var(--gradient); color: white; padding: 18px; border-radius: 12px; font-weight: bold; border: none; text-align: left; box-shadow: 0 4px 8px rgba(0,0,0,0.1); font-size: 0.95rem; padding-right: 50px; /* Zvětšený prostor pro křížek a fajfku */ cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.lesson-row { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 12px; position: relative; }
+		.lesson-btn { flex-grow: 1; background: var(--gradient); color: white; padding: 18px; border-radius: 12px; font-weight: bold; border: none; text-align: left; box-shadow: 0 4px 8px rgba(0,0,0,0.1); font-size: 0.95rem; padding-right: 50px; /* Zvětšený prostor pro křížek a fajfku */ cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.lesson-btn small i { opacity: 0.50; font-weight: normal; }
         .category-btn { background: linear-gradient(135deg, #607d8b, #455a64) !important; }
         .category-btn::before { content: '📁 '; }
 

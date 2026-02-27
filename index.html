@@ -442,23 +442,33 @@
 		setTimeout(() => speak("Hoe klinkt deze stem?", true), 50);
 	}
 
-	function deleteWordFromLesson(nlWord, lessonId) {
-		if (confirm(`Opravdu chceš slovo "${nlWord}" trvale odstranit z této lekce?`)) {
-			if (lessonId === 'problematic') {
-				// Mazání z problematických
+	function deleteWordFromLesson(nlWord, scope) {
+		const isCategory = scope && scope.startsWith('category_');
+		const msg = isCategory 
+			? `Opravdu chceš slovo "${nlWord}" trvale odstranit ze VŠECH lekcí v této kategorii?`
+			: `Opravdu chceš slovo "${nlWord}" trvale odstranit z této lekce?`;
+
+		if (confirm(msg)) {
+			if (scope === 'problematic') {
 				problematic = problematic.filter(w => w.nl !== nlWord);
+			} else if (isCategory) {
+				const catName = scope.replace('category_', '');
+				const lessonNames = categories[catName] || [];
+				lessonNames.forEach(ln => {
+					if (allLessons[ln]) {
+						allLessons[ln] = allLessons[ln].filter(w => w.nl !== nlWord);
+					}
+				});
 			} else {
-				// Mazání z běžné lekce
-				allLessons[lessonId] = allLessons[lessonId].filter(w => w.nl !== nlWord);
+				allLessons[scope] = allLessons[scope].filter(w => w.nl !== nlWord);
 			}
 			
 			saveData();
-			buildDictionary(); // Refresh tabulky
+			buildDictionary(); 
 			
-			// Pokud bys náhodou smazal úplně všechno
-			if ((lessonId === 'problematic' && problematic.length === 0) || 
-				(allLessons[lessonId] && allLessons[lessonId].length === 0)) {
-				alert("Lekce je nyní prázdná.");
+			const tbody = document.getElementById('dict-body');
+			if (tbody.children.length === 0) {
+				alert("Slovníček je nyní prázdný.");
 				closeDictionary();
 			}
 		}
@@ -653,13 +663,28 @@
     }
 
     function openCategory(name) {
-        currentOpenCategory = name;
-        localStorage.setItem('pl_current_cat', name);
-        document.getElementById('menu-area').style.display = 'none';
-        document.getElementById('category-detail-area').style.display = 'block';
-        document.getElementById('lesson-name-display').innerText = `${name}`;
-        renderCategoryLessons();
-    }
+		currentOpenCategory = name;
+		localStorage.setItem('pl_current_cat', name);
+		document.getElementById('menu-area').style.display = 'none';
+		document.getElementById('category-detail-area').style.display = 'block';
+		document.getElementById('lesson-name-display').innerText = `${name}`;
+		
+		// Vykreslíme seznam lekcí
+		renderCategoryLessons();
+
+		// Přidání tlačítka slovníčku pod lekce, ale nad sekci "Nahrát lekci"
+		let catBtnWrap = document.getElementById('cat-dict-btn-wrap');
+		if (!catBtnWrap) {
+			catBtnWrap = document.createElement('div');
+			catBtnWrap.id = 'cat-dict-btn-wrap';
+			catBtnWrap.style.marginTop = '20px';
+			
+			// Najdeme kontejner lekcí a vložíme tlačítko hned za něj
+			const lessonsCont = document.getElementById('cat-lessons-container');
+			lessonsCont.insertAdjacentElement('afterend', catBtnWrap);
+		}
+		catBtnWrap.innerHTML = `<button class="btn-action btn-flip-big" style="background:var(--secondary);" onclick="openDictionary('category_${name}')">📖 SLOVNÍČEK KATEGORIE</button>`;
+	}
 
     function closeCategory() {
         currentOpenCategory = null;
@@ -1057,7 +1082,14 @@
 
 		let title = 'Slovníček';
 		if (lessonId) {
-			title = (lessonId === 'problematic') ? 'Problematické' : lessonId;
+			if (lessonId === 'problematic') {
+				title = 'Problematické';
+			} else if (lessonId.startsWith('category_')) {
+				const catName = lessonId.replace('category_', '');
+				title = `${catName}: Slovníček`;
+			} else {
+				title = lessonId;
+			}
 		}
 		document.getElementById('lesson-name-display').innerText = title;
 
@@ -1066,25 +1098,36 @@
 			localStorage.setItem('pl_dict_scope', lessonId || 'all');
 		}
 		buildDictionary();
-		manageKeepAlive(); // Přidáno pro aktivaci spojení ve slovníčku
+		manageKeepAlive();
 	}
 
     function closeDictionary() {
-        // Při zavření slovníčku smažeme jeho stav z paměti pro refresh
-        if (dictionaryScope) {
-            document.getElementById('dictionary-area').style.display = 'none';
-            document.getElementById('mode-area').style.display = 'flex';
-            localStorage.setItem('pl_app_view', 'mode-area');
-        } else {
-            document.getElementById('dictionary-area').style.display = 'none';
-            localStorage.removeItem('pl_app_view');
-            localStorage.removeItem('pl_dict_scope');
-            if (currentOpenCategory) openCategory(currentOpenCategory);
-            else { document.getElementById('menu-area').style.display = 'flex'; renderMenu(); }
-        }
-		dictSortActive = false; // Resetování řazení pro příští otevření
-		manageKeepAlive(); // Přidáno pro deaktivaci spojení po zavření slovníčku
-    }
+		document.getElementById('dictionary-area').style.display = 'none';
+		
+		if (trainingActive) {
+			document.getElementById('mode-area').style.display = 'block';
+		} else {
+			const isCategoryScope = dictionaryScope && dictionaryScope.startsWith('category_');
+
+			if (isCategoryScope && currentOpenCategory) {
+				// 1. Byl to slovníček KATEGORIE -> jdi do seznamu lekcí v kategorii
+				openCategory(currentOpenCategory);
+			} else if (dictionaryScope && (allLessons[dictionaryScope] || dictionaryScope === 'problematic')) {
+				// 2. Byl to slovníček konkrétní LEKCE -> jdi do výběru režimů té lekce
+				selectLesson(dictionaryScope);
+				document.getElementById('mode-area').style.display = 'flex';
+			} else {
+				// 3. Byl to globální slovníček -> jdi do menu
+				document.getElementById('menu-area').style.display = 'flex';
+				renderMenu();
+			}
+			
+			localStorage.removeItem('pl_dict_scope');
+			localStorage.removeItem('pl_app_view');
+		}
+		dictSortActive = false;
+		manageKeepAlive();
+	}
 
     function buildDictionary() {
         const tbody = document.getElementById('dict-body'); tbody.innerHTML = '';
@@ -1094,9 +1137,20 @@
         const nlHeaderStyle = dictionaryScope ? 'cursor:pointer; text-decoration:underline; color:var(--primary);' : '';
         thead.innerHTML = `<th width="50%" style="${nlHeaderStyle}" onclick="toggleDictSort()">Nizozemsky ${dictSortActive ? '↓' : ''}</th><th width="50%">Česky</th>`;
 
-        const targetLessons = dictionaryScope 
-            ? (dictionaryScope === 'problematic' ? {'problematic': problematic} : {[dictionaryScope]: allLessons[dictionaryScope]})
-            : allLessons;
+		let targetLessons = {};
+        if (dictionaryScope) {
+            if (dictionaryScope === 'problematic') {
+                targetLessons = {'problematic': problematic};
+            } else if (dictionaryScope.startsWith('category_')) {
+                const catName = dictionaryScope.replace('category_', '');
+                const lessonNames = categories[catName] || [];
+                lessonNames.forEach(ln => { if (allLessons[ln]) targetLessons[ln] = allLessons[ln]; });
+            } else {
+                targetLessons = {[dictionaryScope]: allLessons[dictionaryScope]};
+            }
+        } else {
+            targetLessons = allLessons;
+        }
 
         Object.entries(targetLessons).forEach(([lessonName, lessonWords]) => {
             lessonWords.forEach(w => {

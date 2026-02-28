@@ -1306,42 +1306,32 @@
 
 	function speak(t, forceShort = false) {
 		window.speechSynthesis.cancel();
-
-		// 1. Audio Ducking pomocí tichého MP3 (Base64 ticho)
-		// Tento krátký zvuk informuje Android, že hrajeme media, což ztlumí Spotify
-		const silentPlayer = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=");
-		silentPlayer.volume = 0.1;
-		silentPlayer.play().catch(e => console.log("Ducking playback blocked"));
-
-		// Ošetření textu
-		let textToSpeak = t;
-		if (forceShort) {
-			textToSpeak = t.split(';')[0].trim();
-		} else if (!readAllForms) {
-			textToSpeak = t.split(';')[0].trim();
-		}
-		if (!readArticles && !forceShort) {
-			textToSpeak = textToSpeak.replace(/^(de\s+|het\s+)/i, '');
-		}
-
-		const ut = new SpeechSynthesisUtterance(textToSpeak);
-		ut.lang = 'nl-NL';
-		ut.rate = speechRate;
+		let parts = (readAllForms && !forceShort) ? t.split(';').map(p => p.trim()) : [splitP(t).m];
 		
-		const voices = window.speechSynthesis.getVoices();
-		const selectedVoice = voices.find(v => v.name === selectedVoiceName);
-		if (selectedVoice) ut.voice = selectedVoice;
+		parts.forEach((part) => {
+			// Odstranění členů, pokud je to nastaveno
+			let text = readArticles ? part : part.replace(/^de\s+|^het\s+/i, '');
+			
+			// OŠETŘENÍ ZNAKŮ PRO HLAS:
+			// Nahradíme lomítka mezerou, aby je hlas nečetl jako "slash"
+			text = text.replace(/\//g, ' ');
+			
+			const u = new SpeechSynthesisUtterance(text);
+			const v = window.speechSynthesis.getVoices();
 
-		// Jakmile do mluví, zastavíme tichý přehrávač (hudba se vrátí)
-		ut.onend = function() {
-			silentPlayer.pause();
-			silentPlayer.src = "";
-		};
-		ut.onerror = function() {
-			silentPlayer.pause();
-		};
+			// Pokusíme se najít hlas podle jména z localStorage
+			let voice = v.find(voice => voice.name === selectedVoiceName);
+			
+			// Pokud ho nemáme (třeba na jiném zařízení), zkusíme aspoň jakoukoliv nizozemštinu
+			if (!voice) {
+				voice = v.find(voice => voice.lang.includes('nl') && !voice.name.includes('Frank'));
+			}
 
-		window.speechSynthesis.speak(ut);
+			if (voice) u.voice = voice;
+			u.lang = 'nl-NL'; 
+			u.rate = speechRate;
+			window.speechSynthesis.speak(u);
+		});
 	}
 
     function saveData() { 

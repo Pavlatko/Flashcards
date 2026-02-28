@@ -839,7 +839,7 @@
             const r = document.createElement('div'); r.className = 'lesson-row';
             const displayName = activeState.lessonId === 'problematic' ? 'Problematické' : activeState.lessonId;
             r.innerHTML = `
-                <button class="lesson-btn resume-btn" onclick="resumeTraining()">▶ &nbsp; Pokračování ${displayName}</button>
+                <button class="lesson-btn resume-btn" onclick="resumeTraining()">▶ &nbsp; ${displayName}</button>
                 <div class="lesson-del" onclick="clearProgress()">×</div>`;
             rc.appendChild(r);
         }

@@ -1318,12 +1318,35 @@
 		duckOsc.start();
 
 		window.speechSynthesis.cancel();
-		const ut = new SpeechSynthesisUtterance(t);
+
+		// Ošetření textu (členy de/het a tvary)
+		let textToSpeak = t;
+		if (forceShort) {
+			textToSpeak = t.split(';')[0].trim();
+		} else if (!readAllForms) {
+			textToSpeak = t.split(';')[0].trim();
+		}
+		if (!readArticles && !forceShort) {
+			textToSpeak = textToSpeak.replace(/^(de\s+|het\s+)/i, '');
+		}
+
+		const ut = new SpeechSynthesisUtterance(textToSpeak);
 		ut.lang = 'nl-NL';
-		ut.rate = 0.8;
+		
+		// Aplikace uživatelského nastavení rychlosti a hlasu
+		ut.rate = speechRate;
+		const voices = window.speechSynthesis.getVoices();
+		const selectedVoice = voices.find(v => v.name === selectedVoiceName);
+		if (selectedVoice) ut.voice = selectedVoice;
 
 		// 2. Jakmile mluvení skončí, zastavíme oscilátor, čímž se hudba zase vrátí do normálu
 		ut.onend = function() {
+			duckOsc.stop();
+			duckOsc.disconnect();
+		};
+
+		// Pro případ chyby (např. pád TTS engine), aby hudba nezůstala ztlumená navždy
+		ut.onerror = function() {
 			duckOsc.stop();
 			duckOsc.disconnect();
 		};

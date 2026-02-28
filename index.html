@@ -444,9 +444,11 @@
 
 	function deleteWordFromLesson(nlWord, scope) {
 		const isCategory = scope && scope.startsWith('category_');
-		const msg = isCategory 
-			? `Opravdu chceš slovo "${nlWord}" trvale odstranit ze VŠECH lekcí v této kategorii?`
-			: `Opravdu chceš slovo "${nlWord}" trvale odstranit z této lekce?`;
+        const isAll = scope === 'all';
+		
+        let msg = `Opravdu chceš slovo "${nlWord}" trvale odstranit?`;
+        if (isAll) msg = `Opravdu chceš slovo "${nlWord}" trvale odstranit ze VŠECH existujících lekcí (včetně kategorií)?`;
+        else if (isCategory) msg = `Opravdu chceš slovo "${nlWord}" trvale odstranit ze VŠECH lekcí v této kategorii?`;
 
 		if (confirm(msg)) {
 			if (scope === 'problematic') {
@@ -459,7 +461,15 @@
 						allLessons[ln] = allLessons[ln].filter(w => w.nl !== nlWord);
 					}
 				});
-			} else {
+			} else if (isAll) {
+                // Smazání úplně odevšad (všechny lekce v allLessons)
+                Object.keys(allLessons).forEach(ln => {
+                    allLessons[ln] = allLessons[ln].filter(w => w.nl !== nlWord);
+                });
+                // I z problematických
+                problematic = problematic.filter(w => w.nl !== nlWord);
+            } else {
+                // Smazání z jedné konkrétní lekce
 				allLessons[scope] = allLessons[scope].filter(w => w.nl !== nlWord);
 			}
 			
@@ -1134,7 +1144,7 @@
         const thead = document.querySelector('#dictionary-area thead tr');
         let dictMap = new Map();
         
-        const nlHeaderStyle = dictionaryScope ? 'cursor:pointer; text-decoration:underline; color:var(--primary);' : '';
+        const nlHeaderStyle = 'cursor:pointer; text-decoration:underline; color:var(--primary);';
         thead.innerHTML = `<th width="50%" style="${nlHeaderStyle}" onclick="toggleDictSort()">Nizozemsky ${dictSortActive ? '↓' : ''}</th><th width="50%">Česky</th>`;
 
 		let targetLessons = {};
@@ -1154,13 +1164,14 @@
 
         Object.entries(targetLessons).forEach(([lessonName, lessonWords]) => {
             lessonWords.forEach(w => {
+                // Klíč pro unifikaci: Malá písmena + ořezání mezer
                 const key = w.nl.toLowerCase().trim();
-                const uniqueKey = dictionaryScope ? `${key}_${dictMap.size}` : key;
                 
-                if (!dictMap.has(uniqueKey)) {
-                    dictMap.set(uniqueKey, { ...w, lessons: [lessonName] });
+                if (!dictMap.has(key)) {
+                    dictMap.set(key, { ...w, lessons: [lessonName] });
                 } else { 
-                    let ex = dictMap.get(uniqueKey); 
+                    let ex = dictMap.get(key); 
+                    // Pokud už slovo v mapě je, jen přidáme název lekce do seznamu (pokud tam ještě není)
                     if (!ex.lessons.includes(lessonName)) ex.lessons.push(lessonName); 
                 }
             });
@@ -1168,11 +1179,11 @@
 
         let uniqueWords = Array.from(dictMap.values());
         
-        if (!dictionaryScope || dictSortActive) {
+        if (dictSortActive) {
             const transformNL = (t) => { 
                 let m = splitP(t).m; 
-                if (m.toLowerCase().startsWith('de ')) return m.substring(3) + ', De'; 
-                if (m.toLowerCase().startsWith('het ')) return m.substring(4) + ', Het'; 
+                if (m.toLowerCase().startsWith('de ')) return m.substring(3).trim() + ', De'; 
+                if (m.toLowerCase().startsWith('het ')) return m.substring(4).trim() + ', Het'; 
                 return m; 
             };
             uniqueWords.sort((a, b) => transformNL(a.nl).localeCompare(transformNL(b.nl), 'nl'));
@@ -1183,62 +1194,44 @@
 			
 			tr.onclick = (e) => { 
 				speak(w.nl, true); 
-				if (!dictionaryScope) showToast(e, w.lessons.join(', ')); 
+                // Úprava pro bod 1: Lekce spojíme pomocí <br> pro zobrazení na nových řádcích
+				if (!dictionaryScope || dictionaryScope.startsWith('category_')) {
+                    showToast(e, w.lessons.join('<br>')); 
+                }
 			};
 			
             const formatCell = (rawText, isNl = false) => {
                 const parts = splitP(rawText);
                 let main = parts.m;
-                
-                if (isNl && (!dictionaryScope || dictSortActive)) {
-                    if (main.toLowerCase().startsWith('de ')) main = main.substring(3) + ', De';
-                    else if (main.toLowerCase().startsWith('het ')) main = main.substring(4) + ', Het';
+                if (isNl && dictSortActive) {
+                    if (main.toLowerCase().startsWith('de ')) main = main.substring(3).trim() + ', De';
+                    else if (main.toLowerCase().startsWith('het ')) main = main.substring(4).trim() + ', Het';
                 }
-
                 main = main.replace(/, De$/g, ', <small>de</small>').replace(/, Het$/g, ', <small>het</small>');
-
-                // Hlavní slovo v <b> nyní přebírá barvu z <td> (tmavou), sub-word zůstává šedý
                 let html = `<b style="color: inherit;">${main}</b>`;
-                if (parts.s) {
-                    html += `<br><span style="font-weight:normal; font-size:0.85em; color:#666;">${parts.s}</span>`;
-                }
+                if (parts.s) html += `<br><span style="font-weight:normal; font-size:0.85em; color:#666;">${parts.s}</span>`;
                 return html;
             };
 
-			// NIZOZEMSKÝ SLOUPEC
 			const tdNL = document.createElement('td');
-			tdNL.className = 'col-nl';
 			tdNL.innerHTML = formatCell(w.nl, true);
 			tr.appendChild(tdNL);
 
-			// ČESKÝ SLOUPEC
 			const tdCZ = document.createElement('td');
             tdCZ.style.position = 'relative'; 
 			tdCZ.innerHTML = formatCell(w.cz);
 			
-			if (dictionaryScope) {
-                const delBtn = document.createElement('button');
-                delBtn.innerHTML = '×';
-                delBtn.className = 'clear-search';
-                delBtn.style.position = 'absolute';
-                delBtn.style.right = '8px';
-                delBtn.style.top = '50%';
-                delBtn.style.transform = 'translateY(-50%)';
-                delBtn.style.width = '24px';
-                delBtn.style.height = '24px';
-                delBtn.style.color = '#f44336'; 
-                delBtn.style.fontSize = '14px';
-                delBtn.style.display = 'flex';
-                delBtn.style.alignItems = 'center';
-                delBtn.style.justifyContent = 'center';
-                
-                delBtn.onclick = (e) => {
-                    e.stopPropagation(); 
-                    deleteWordFromLesson(w.nl, dictionaryScope);
-                };
-                tdCZ.appendChild(delBtn);
-                tdCZ.style.paddingRight = '35px'; 
-			}
+            const delBtn = document.createElement('button');
+            delBtn.innerHTML = '×';
+            delBtn.className = 'clear-search';
+            delBtn.style.cssText = 'position:absolute; right:8px; top:50%; transform:translateY(-50%); width:24px; height:24px; color:#f44336; font-size:14px; display:flex; align-items:center; justify-content:center;';
+            
+            delBtn.onclick = (e) => {
+                e.stopPropagation(); 
+                deleteWordFromLesson(w.nl, dictionaryScope || 'all');
+            };
+            tdCZ.appendChild(delBtn);
+            tdCZ.style.paddingRight = '35px'; 
 
 			tr.appendChild(tdCZ);
 			tbody.appendChild(tr);
@@ -1246,9 +1239,7 @@
         updateDictStats();
     }
 
-    // Nová funkce pro přepnutí řazení
     function toggleDictSort() {
-        if (!dictionaryScope) return; // V globálním slovníčku je řazení fixní
         dictSortActive = !dictSortActive;
         buildDictionary();
     }
@@ -1268,10 +1259,11 @@
     function showToast(e, lessonName) {
         const toast = document.getElementById('toast');
         const rect = e.currentTarget.getBoundingClientRect();
-        toast.innerText = `Lekce: ${lessonName}`;
+        // Změněno na innerHTML, aby fungovalo zalamování pomocí <br>
+        toast.innerHTML = `<div style="font-size:0.7rem; opacity:0.7; margin-bottom:3px;">Lekce:</div>${lessonName}`;
         toast.style.top = (rect.top + window.scrollY - 30) + "px";
         toast.style.opacity = "1";
-        setTimeout(() => { toast.style.opacity = "0"; }, 2000);
+        setTimeout(() => { toast.style.opacity = "0"; }, 2500); // Mírně prodlouženo pro lepší přečtení více řádků
     }
 
     function splitP(t) { 

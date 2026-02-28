@@ -446,31 +446,56 @@
 		const isCategory = scope && scope.startsWith('category_');
         const isAll = scope === 'all';
 		
+        // Normalizace pro přesné porovnání (shodné s buildDictionary)
+        const normalizedTarget = nlWord.toLowerCase().trim();
+        let lessonsContainingWord = [];
+
+        // Zjistíme, v kolika lekcích se slovo nachází v rámci daného rozsahu
+        if (isAll) {
+            Object.keys(allLessons).forEach(ln => {
+                if (allLessons[ln].some(w => w.nl.toLowerCase().trim() === normalizedTarget)) {
+                    lessonsContainingWord.push(ln);
+                }
+            });
+        } else if (isCategory) {
+            const catName = scope.replace('category_', '');
+            const lessonNames = categories[catName] || [];
+            lessonNames.forEach(ln => {
+                if (allLessons[ln] && allLessons[ln].some(w => w.nl.toLowerCase().trim() === normalizedTarget)) {
+                    lessonsContainingWord.push(ln);
+                }
+            });
+        } else if (scope !== 'problematic') {
+            lessonsContainingWord.push(scope);
+        }
+
         let msg = `Opravdu chceš slovo "${nlWord}" trvale odstranit?`;
-        if (isAll) msg = `Opravdu chceš slovo "${nlWord}" trvale odstranit ze VŠECH existujících lekcí (včetně kategorií)?`;
-        else if (isCategory) msg = `Opravdu chceš slovo "${nlWord}" trvale odstranit ze VŠECH lekcí v této kategorii?`;
+        
+        // Dynamický alert podle tvého požadavku
+        if ((isAll || isCategory) && lessonsContainingWord.length > 1) {
+            msg = `Slovíčko "${nlWord}" bude smazáno z ${lessonsContainingWord.length} lekcí. Pokračovat?`;
+        } else if (scope === 'problematic') {
+            msg = `Opravdu chceš slovo "${nlWord}" odstranit ze seznamu problematických?`;
+        }
 
 		if (confirm(msg)) {
 			if (scope === 'problematic') {
-				problematic = problematic.filter(w => w.nl !== nlWord);
+				problematic = problematic.filter(w => w.nl.toLowerCase().trim() !== normalizedTarget);
 			} else if (isCategory) {
 				const catName = scope.replace('category_', '');
 				const lessonNames = categories[catName] || [];
 				lessonNames.forEach(ln => {
 					if (allLessons[ln]) {
-						allLessons[ln] = allLessons[ln].filter(w => w.nl !== nlWord);
+						allLessons[ln] = allLessons[ln].filter(w => w.nl.toLowerCase().trim() !== normalizedTarget);
 					}
 				});
 			} else if (isAll) {
-                // Smazání úplně odevšad (všechny lekce v allLessons)
                 Object.keys(allLessons).forEach(ln => {
-                    allLessons[ln] = allLessons[ln].filter(w => w.nl !== nlWord);
+                    allLessons[ln] = allLessons[ln].filter(w => w.nl.toLowerCase().trim() !== normalizedTarget);
                 });
-                // I z problematických
-                problematic = problematic.filter(w => w.nl !== nlWord);
+                problematic = problematic.filter(w => w.nl.toLowerCase().trim() !== normalizedTarget);
             } else {
-                // Smazání z jedné konkrétní lekce
-				allLessons[scope] = allLessons[scope].filter(w => w.nl !== nlWord);
+				allLessons[scope] = allLessons[scope].filter(w => w.nl.toLowerCase().trim() !== normalizedTarget);
 			}
 			
 			saveData();

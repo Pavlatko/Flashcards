@@ -1305,21 +1305,15 @@
     }
 
 	function speak(t, forceShort = false) {
-		// 1. Aktivujeme audio kontext a vytvoříme krátké ticho, které vynutí ducking (ztlumení hudby)
-		if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-		if (audioCtx.state === 'suspended') audioCtx.resume();
-
-		// Vytvoříme pomocný oscilátor (ticho), který běží na pozadí mluvení
-		const duckOsc = audioCtx.createOscillator();
-		const duckGain = audioCtx.createGain();
-		duckGain.gain.setValueAtTime(0.001, audioCtx.currentTime); // Téměř neslyšitelné
-		duckOsc.connect(duckGain);
-		duckGain.connect(audioCtx.destination);
-		duckOsc.start();
-
 		window.speechSynthesis.cancel();
 
-		// Ošetření textu (členy de/het a tvary)
+		// 1. Audio Ducking pomocí tichého MP3 (Base64 ticho)
+		// Tento krátký zvuk informuje Android, že hrajeme media, což ztlumí Spotify
+		const silentPlayer = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=");
+		silentPlayer.volume = 0.1;
+		silentPlayer.play().catch(e => console.log("Ducking playback blocked"));
+
+		// Ošetření textu
 		let textToSpeak = t;
 		if (forceShort) {
 			textToSpeak = t.split(';')[0].trim();
@@ -1332,23 +1326,19 @@
 
 		const ut = new SpeechSynthesisUtterance(textToSpeak);
 		ut.lang = 'nl-NL';
-		
-		// Aplikace uživatelského nastavení rychlosti a hlasu
 		ut.rate = speechRate;
+		
 		const voices = window.speechSynthesis.getVoices();
 		const selectedVoice = voices.find(v => v.name === selectedVoiceName);
 		if (selectedVoice) ut.voice = selectedVoice;
 
-		// 2. Jakmile mluvení skončí, zastavíme oscilátor, čímž se hudba zase vrátí do normálu
+		// Jakmile do mluví, zastavíme tichý přehrávač (hudba se vrátí)
 		ut.onend = function() {
-			duckOsc.stop();
-			duckOsc.disconnect();
+			silentPlayer.pause();
+			silentPlayer.src = "";
 		};
-
-		// Pro případ chyby (např. pád TTS engine), aby hudba nezůstala ztlumená navždy
 		ut.onerror = function() {
-			duckOsc.stop();
-			duckOsc.disconnect();
+			silentPlayer.pause();
 		};
 
 		window.speechSynthesis.speak(ut);

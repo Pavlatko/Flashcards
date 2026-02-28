@@ -11,17 +11,17 @@
 	<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Flashcards%22,%22short_name%22:%22Flashcards%22,%22start_url%22:%22index.html%22,%22display%22:%22standalone%22,%22orientation%22:%22portrait%22,%22background_color%22:%22%23f5f5f5%22,%22theme_color%22:%22%232196F3%22,%22icons%22:[{%22src%22:%22icon.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
 
     <style>
-		:root { 
-            --primary: #2196F3; 
-            --bg: #f5f5f5; 
-            --success: #4CAF50; 
-            --danger: #ff5252; 
-            --secondary: #9c27b0; 
-            --neutral: #757575; 
-            --category: #607d8b; 
-            --gradient: linear-gradient(135deg, #2196F3, #1976D2); 
-            --app-bg: #f5f5f5; 
-            --text-color: #333; /* Nová proměnná pro texty mimo karty */
+		:root {
+            --primary: #4a90e2;    /* Světlejší ocelová modř pro lekce - lépe čitelná a odlišená */
+            --bg: #f5f5f5;
+            --success: #4CAF50;
+            --danger: #ff5252;
+            --secondary: #9c27b0;
+            --neutral: #757575;    /* Pro tlačítka Nastavení/Slovníček */
+            --category: #546e7a;   /* Tmavší břidlicová pro hlavní kategorie */
+            --gradient: linear-gradient(135deg, var(--primary), #357abd);
+            --app-bg: #f5f5f5;
+            --text-color: #333;
         }
         body { 
             font-family: sans-serif; 
@@ -36,6 +36,137 @@
         }
 
 		h1, h2, #lesson-title, #lesson-info, .settings-label { color: var(--text-color); transition: color 0.4s ease; }
+
+		/* Sjednocený 3D Aero vzhled pro úplně všechna tlačítka */
+        .lesson-btn, .btn-action, .btn-exit, #hint-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 18px; 
+            border-radius: 12px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            text-decoration: none;
+            /* Vista Glassy Gradient */
+            background: linear-gradient(to bottom, 
+                rgba(255,255,255,0.4) 0%, 
+                rgba(255,255,255,0.1) 50%, 
+                rgba(0,0,0,0.05) 50%, 
+                rgba(0,0,0,0.2) 100%), 
+                var(--btn-color, var(--primary)) !important;
+            color: white !important;
+            border: 1px solid rgba(0,0,0,0.2) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.2) !important;
+            font-size: 0.95rem; 
+            transition: all 0.1s;
+            position: relative;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            font-family: sans-serif;
+            box-sizing: border-box;
+            width: 100%; /* Zajistí plnou šířku u všech samostatných tlačítek */
+        }
+
+		.btn-load, .btn-load2, .btn-cat-add { 
+			--btn-color: var(--success) !important; /* Vynucená zelená */
+			color: white !important; 
+			padding: 12px; 
+			border-radius: 12px; 
+			cursor: pointer; 
+			font-weight: bold; 
+			width: 90%; 
+			text-align: center; 
+			display: inline-block; 
+			border: none; 
+			box-sizing: border-box; 
+			font-family: sans-serif; 
+			font-size: 0.95rem;
+			/* Sjednocení Aero vzhledu */
+			background: linear-gradient(to bottom, 
+				rgba(255,255,255,0.4) 0%, 
+				rgba(255,255,255,0.1) 50%, 
+				rgba(0,0,0,0.05) 50%, 
+				rgba(0,0,0,0.2) 100%), 
+				var(--btn-color) !important;
+			border: 1px solid rgba(0,0,0,0.2) !important;
+			box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.2) !important;
+			text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+		}
+
+		.btn-load2 { width: 50%; } /* Zachování užšího tlačítka v detailu kategorie */
+
+		.lesson-btn {
+            --btn-color: var(--primary);
+            justify-content: flex-start !important;
+            text-align: left;
+            padding-left: 25px !important; /* Přidán prostor od levého kraje */
+            padding-right: 50px !important;
+        }
+
+		.category-btn { 
+            --btn-color: #607d8b !important; /* Původní šedomodrá barva */
+            justify-content: flex-start !important; 
+            padding-left: 45px !important; /* Prostor pro ikonu složky */
+            text-align: left;
+        }
+
+        /* Přidání ikony složky před text kategorie */
+        .category-btn::before {
+            content: "📁";
+            position: absolute;
+            left: 15px;
+            font-size: 1.2rem;
+        }
+
+        /* Specifické nastavení pro lekce, aby se nepletly s kategorií */
+        .lesson-btn { 
+            --btn-color: var(--primary); 
+            justify-content: flex-start !important; 
+            text-align: left; 
+            padding-right: 50px !important; 
+        }
+
+        /* Specifické úpravy pro kontejnery a řádky */
+        .lesson-row { 
+            display: flex; 
+            align-items: stretch; /* Aby křížek a tlačítko měly stejnou výšku, pokud jsou vedle sebe */
+            gap: 0; /* Zrušíme mezeru, křížek bude "plavat" nad tlačítkem */
+            width: 100%; 
+            margin-bottom: 12px; 
+            position: relative; 
+        }
+
+        .lesson-btn { 
+            justify-content: flex-start !important; 
+            text-align: left; 
+            padding-right: 50px !important; /* Prostor pro křížek, aby text nešel pod něj */
+            --btn-color: var(--primary); 
+        }
+
+        /* Oprava křížku pro smazání */
+        .lesson-del { 
+            position: absolute; 
+            right: 8px; /* Odsazení od pravého okraje tlačítka */
+            top: 50%;
+            transform: translateY(-50%); 
+            width: 34px; 
+            height: 34px; 
+            background: rgba(0, 0, 0, 0.2); 
+            color: white; 
+            border-radius: 8px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 1.2rem; 
+            cursor: pointer; 
+            border: 1px solid rgba(255,255,255,0.2); 
+            z-index: 10; 
+            transition: background 0.2s;
+        }
+        .lesson-del:hover { background: rgba(0, 0, 0, 0.4); }
+
+        /* Tlačítka, která mají být vedle sebe (např. UMÍM/NEUMÍM) */
+        .btn-neumim, .btn-umim, .btn-poslech-blue { width: 48% !important; }
+        .dict-btn-wrap .btn-action { width: auto !important; } /* Pro slovníček a nastavení zachováme flexibilitu */
 
         #counter-wrap { 
             width: 100%; 
@@ -83,11 +214,6 @@
 
         #menu-area { width: 100%; max-width: 360px; display: flex; flex-direction: column; margin-top: 15px; }
 		.lesson-row { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 12px; position: relative; }
-		.lesson-btn {  flex-grow: 1; background: var(--gradient); color: white; padding: 18px; border-radius: 12px; font-weight: bold; border: none; text-align: left; box-shadow: 0 3px 6px rgba(0,0,0,0.15), 0 0 4px var(--text-color); font-size: 0.95rem; padding-right: 50px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: transform 0.2s, box-shadow 0.4s ease; }
-		.lesson-btn small i { opacity: 0.50; font-weight: normal; }
-        .category-btn { background: linear-gradient(135deg, #607d8b, #455a64) !important; }
-        .category-btn::before { content: '📁 '; }
-
         .is-finished::after { 
             content: ''; 
             position: absolute; 
@@ -96,17 +222,51 @@
             transform: translateY(-50%); 
             width: 8px; 
             height: 8px; 
-            background-color: #4eff4e; 
+            background-color: #00ff00; /* Jasnější zelená pro kontrast na šedé */
             border-radius: 50%; 
-            box-shadow: 0 0 6px rgba(0,255,0,0.6); 
+            box-shadow: 0 0 8px rgba(0,255,0,0.8); 
             border: 1.5px solid white; 
         }
 
-		.lesson-del { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; background: rgba(255, 255, 255, 0.2); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; transition: all 0.2s; border: none; z-index: 5; }        
-		.lesson-del:hover { background: rgba(255, 255, 255, 0.3); color: #fff; }
-        .resume-btn { background: linear-gradient(135deg, #4CAF50, #388E3C) !important; }
-        .problematic-btn { background: linear-gradient(135deg, #FF7043, #F4511E) !important; }
-        
+		/* Aero / Glassy efekt pro tlačítka Pokračovat a Problematické */
+		.resume-btn, .problematic-btn {
+			position: relative;
+			overflow: hidden;
+			border: 1px solid rgba(0,0,0,0.2) !important; /* Sjednoceno s ostatními */
+			backdrop-filter: blur(8px);
+			-webkit-backdrop-filter: blur(8px);
+			
+			/* Přidán stejný 3D efekt jako u ostatních tlačítek */
+			background-image: linear-gradient(to bottom, 
+				rgba(255,255,255,0.4) 0%, 
+				rgba(255,255,255,0.1) 50%, 
+				rgba(0,0,0,0.05) 50%, 
+				rgba(0,0,0,0.2) 100%) !important;
+			
+			box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.2) !important;
+			text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+		}
+
+		/* Tlačítko Pokračovat - sytá "Go!" zelená na pozadí */
+		.resume-btn { 
+			background-color: rgba(27, 94, 32, 0.9) !important; 
+		}
+
+		/* Tlačítko Problematické - tmavší cihlová/vínová na pozadí */
+		.problematic-btn { 
+			background-color: rgba(136, 14, 79, 0.85) !important; 
+		}
+
+		/* Odstranění starého ::before lesku, který už není potřeba díky novému gradientu */
+		.resume-btn::before, .problematic-btn::before {
+			display: none !important;
+		}
+
+		/* Speciální barva pro tlačítko Nápovědy (Zelená jako v nastavení) */
+		#hint-btn {
+			--btn-color: var(--success) !important;
+		}
+
         .upload-wrap { margin-top: 20px; margin-bottom: 30px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
         .dict-btn-wrap { margin-top: 30px; }
 
@@ -159,11 +319,35 @@
 
         .controls { margin-top: 25px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 90%; max-width: 360px; }
         .btn-row { display: none; gap: 10px; width: 100%; justify-content: center; }
-		.btn-action { padding: 18px; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.15), 0 0 3px var(--text-color); transition: transform 0.2s, box-shadow 0.4s ease, background-color 0.3s; }
         .btn-flip-big { background: var(--primary); color: white; width: 100%; }
-        .btn-neumim { background: var(--danger); color: white; width: 48%; }
-        .btn-umim { background: var(--success); color: white; width: 48%; }
-		.btn-exit { background: var(--neutral); color: white; padding: 18px; border: none; border-radius: 15px; width: 100%; font-weight: bold; display: none; box-shadow: 0 3px 6px rgba(0,0,0,0.15), 0 0 3px var(--text-color); transition: transform 0.2s, box-shadow 0.4s ease; }
+
+		/* Barevné rozlišení pro tréninková tlačítka */
+		.btn-neumim { 
+			--btn-color: var(--danger) !important; 
+			color: white !important;
+			width: 48% !important; 
+		}
+		.btn-umim { 
+			--btn-color: var(--success) !important; 
+			color: white !important;
+			width: 48% !important; 
+		}
+
+		/* Specifické barvy pro tlačítka v nápovědě */
+		.btn-poslech-blue {
+			--btn-color: var(--primary) !important;
+			color: white !important;
+		}
+		.btn-pokracuj-green {
+			--btn-color: var(--success) !important;
+			color: white !important;
+		}
+
+		.btn-exit { 
+			--btn-color: var(--neutral) !important; 
+			display: block; 
+		}
+
         .btn-load { background: var(--success); color: white; padding: 12px; border-radius: 12px; cursor: pointer; font-weight: bold; width: 90%; text-align: center; display: inline-block; border:none; box-sizing: border-box; font-family: sans-serif; font-size: 0.95rem; }
         .btn-load2 { background: var(--success); color: white; padding: 12px; border-radius: 12px; cursor: pointer; font-weight: bold; width: 50%; text-align: center; display: inline-block; border:none; box-sizing: border-box; font-family: sans-serif; font-size: 0.95rem; }
         .btn-cat-add { background: var(--category); color: white; padding: 12px; border-radius: 12px; cursor: pointer; font-weight: bold; width: 90%; text-align: center; border:none; box-sizing: border-box; font-family: sans-serif; font-size: 0.95rem; }
@@ -230,10 +414,10 @@
         <div id="categories-container"></div>
         <div id="lessons-container"></div>
         
-        <div class="dict-btn-wrap" style="display: flex; gap: 10px; margin-top: 30px;">
-            <button class="btn-action btn-flip-big" style="background:var(--secondary); flex: 1; font-size: 0.85rem; padding: 18px 5px;" onclick="openDictionary()">📖 SLOVNÍČEK</button>
-            <button class="btn-action btn-flip-big" style="background:var(--neutral); flex: 1; font-size: 0.85rem; padding: 18px 5px;" onclick="openSettings()">⚙️ NASTAVENÍ</button>
-        </div>
+		<div class="dict-btn-wrap" style="display: flex; gap: 10px; margin-top: 30px;">
+			<button class="btn-action btn-flip-big" style="--btn-color:var(--secondary); flex: 1;" onclick="openDictionary()">📖 SLOVNÍČEK</button>
+			<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral); flex: 1;" onclick="openSettings()">⚙️ NASTAVENÍ</button>
+		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
             <b>Pavlatko</b>Lab
@@ -241,7 +425,7 @@
     </div>
 
     <div id="settings-area" style="display:none; width: 100%; max-width: 360px; margin-top:20px;">
-        <button class="btn-action btn-flip-big" style="background:var(--neutral); margin-bottom: 20px;" onclick="closeSettings()">← ZPĚT DO MENU</button>
+		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 20px;" onclick="closeSettings()">← ZPĚT DO MENU</button>
         
         <div class="settings-wrap" style="margin-top: 0;">
 			<label class="settings-label">Rychlost řeči: <span id="speed-val" class="speed-val">0.85</span></label>
@@ -277,31 +461,31 @@
 		</div>
 
         <center class="upload-wrap">
-            <button class="btn-cat-add" onclick="createNewCategory()">📁 Vytvořit novou kategorii</button>
-            <label class="btn-load">📂 Nahrát lekci do hlavní nabídky<input type="file" id="fIn" style="display:none" onchange="handleFile(this)" accept=".csv"></label>
-            <div class="btn-load" style="background-color: #1976D2;" onclick="window.open('./importer.html', '_blank')">📂 Hromadný import lekcí</div>
-        </center>
+			<button class="btn-cat-add" onclick="createNewCategory()">📁 Vytvořit novou kategorii</button>
+			<label class="btn-load">📂 Nahrát lekci do hlavní nabídky<input type="file" id="fIn" style="display:none" onchange="handleFile(this)" accept=".csv"></label>
+			<div class="btn-load" onclick="window.open('./importer.html', '_blank')">📂 Hromadný import lekcí</div>
+		</center>
     </div>
 
     <div id="category-detail-area" style="display:none; width: 100%; max-width: 360px; margin-top:20px;">
-        <button class="btn-action btn-flip-big" style="background:var(--neutral); margin-bottom: 20px;" onclick="closeCategory()">← ZPĚT DO MENU</button>
+		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 20px;" onclick="closeCategory()">← ZPĚT DO MENU</button>
         <div id="cat-lessons-container"></div>
         <center class="upload-wrap">
-            <label class="btn-load2">📂 Nahrát lekci<input type="file" id="fInCat" style="display:none" onchange="handleFile(this, true)" accept=".csv"></label>
-        </center>
+			<label class="btn-load2">📂 Nahrát lekci<input type="file" id="fInCat" style="display:none" onchange="handleFile(this, true)" accept=".csv"></label>
+		</center>
     </div>
 
     <div id="mode-area" class="controls" style="display:none">
 		<div id="lesson-info-sub"></div>
-		<button class="btn-action btn-flip-big" style="background:var(--neutral)" onclick="backFromModeSelection()">← ZPĚT DO MENU</button>
+		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral)" onclick="backFromModeSelection()">← ZPĚT DO MENU</button>
 		<button class="btn-action btn-flip-big" onclick="startTraining('CZ-NL')">ČESKY ➔ NIZOZEMSKY</button>
 		<button class="btn-action btn-flip-big" onclick="startTraining('NL-CZ')">NIZOZEMSKY ➔ ČESKY</button>
-		<button class="btn-action btn-flip-big" style="background:var(--secondary);" onclick="openDictionary(currentLessonId)">📖 SLOVNÍČEK LEKCE</button>
-		<button id="toggle-finished-btn" class="btn-action btn-flip-big" style="background:var(--category); margin-top: 10px;" onclick="toggleLessonFinished()"></button>
+		<button class="btn-action btn-flip-big" style="--btn-color:var(--secondary);" onclick="openDictionary(currentLessonId)">📖 SLOVNÍČEK LEKCE</button>
+		<button id="toggle-finished-btn" class="btn-action btn-flip-big" style="--btn-color:var(--category); margin-top: 10px;" onclick="toggleLessonFinished()"></button>
 	</div>
 
     <div id="dictionary-area">
-        <button id="dict-back-btn" class="btn-action btn-flip-big" style="background:var(--neutral); margin-bottom: 15px;" onclick="closeDictionary()">← ZPĚT DO MENU</button>
+        <button id="dict-back-btn" class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 15px;" onclick="closeDictionary()">← ZPĚT DO MENU</button>
         <div id="dict-stats">Celkem slov: 0</div>
         <div class="search-container">
             <input type="text" id="dict-filter" placeholder="Hledat výraz..." oninput="filterDictionary()">
@@ -326,9 +510,9 @@
         <div class="btn-row" id="flip-row"><button class="btn-action btn-flip-big" onclick="toggleFlip(event)">OTOČIT KARTU</button></div>
         <div class="btn-row" id="action-row"><button class="btn-action btn-neumim" onclick="handleResult(false, event)">NEUMÍM</button><button class="btn-action btn-umim" onclick="handleResult(true, event)">UMÍM</button></div>
 		<div class="btn-row" id="hint-row">
-            <button id="hint-btn" class="btn-action btn-flip-big" style="background:var(--category);" onclick="showHint()">ZOBRAZIT NÁPOVĚDU</button>
-        </div>
-        <button id="exit-btn" class="btn-exit" style="display:block" onclick="exitTraining()">UKONČIT TRÉNINK</button>
+			<button id="hint-btn" class="btn-action btn-flip-big" onclick="showHint()">ZOBRAZIT NÁPOVĚDU</button>
+		</div>
+		<button id="exit-btn" class="btn-exit" onclick="exitTraining()">UKONČIT TRÉNINK</button>
     </div>
 
 <script>
@@ -718,7 +902,7 @@
 			const lessonsCont = document.getElementById('cat-lessons-container');
 			lessonsCont.insertAdjacentElement('afterend', catBtnWrap);
 		}
-		catBtnWrap.innerHTML = `<button class="btn-action btn-flip-big" style="background:var(--secondary);" onclick="openDictionary('category_${name}')">📖 SLOVNÍČEK KATEGORIE</button>`;
+		catBtnWrap.innerHTML = `<button class="btn-action btn-flip-big" style="--btn-color:var(--secondary);" onclick="openDictionary('category_${name}')">📖 SLOVNÍČEK KATEGORIE</button>`;
 	}
 
     function closeCategory() {
@@ -1024,7 +1208,7 @@
 				document.getElementById('back-face').classList.remove('flash-red-back');
 				// Změna na dvě tlačítka: POSLECH a POKRAČUJ
 				document.getElementById('action-row').innerHTML = `
-					<button class="btn-action btn-neumim" style="background:var(--secondary)" onclick="replayCurrentWord(event)">POSLECH</button>
+					<button class="btn-action btn-poslech-blue" style="background:var(--secondary)" onclick="replayCurrentWord(event)">POSLECH</button>
 					<button class="btn-action btn-umim" onclick="forceNextAfterError()">POKRAČUJ</button>
 				`;
 				isProcessing = false;

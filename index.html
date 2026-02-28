@@ -597,20 +597,11 @@
         if (shouldRun) {
             if (!oscillator) {
                 if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                
-                // Audio Ducking: Pokusíme se "uzmout" audio focus
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-
                 oscillator = audioCtx.createOscillator();
                 gainNode = audioCtx.createGain();
                 oscillator.type = 'sine';
                 oscillator.frequency.setValueAtTime(35, audioCtx.currentTime);
-                
-                // Velmi nízká hlasitost, aby nebyla slyšet, ale systém ji registroval
                 gainNode.gain.setValueAtTime(0.002, audioCtx.currentTime);
-                
                 oscillator.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
                 oscillator.start();

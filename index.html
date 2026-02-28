@@ -425,7 +425,7 @@
     </div>
 
     <div id="settings-area" style="display:none; width: 100%; max-width: 360px; margin-top:20px;">
-		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 20px;" onclick="closeSettings()">🠘 &nbsp; ZPĚT DO MENU</button>
+		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 20px;" onclick="closeSettings()">⬅ &nbsp; ZPĚT DO MENU</button>
         
         <div class="settings-wrap" style="margin-top: 0;">
 			<label class="settings-label">Rychlost řeči: <span id="speed-val" class="speed-val">0.85</span></label>
@@ -468,7 +468,7 @@
     </div>
 
     <div id="category-detail-area" style="display:none; width: 100%; max-width: 360px; margin-top:20px;">
-		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 20px;" onclick="closeCategory()">🠘 &nbsp; ZPĚT DO MENU</button>
+		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 20px;" onclick="closeCategory()">⬅ &nbsp; ZPĚT DO MENU</button>
         <div id="cat-lessons-container"></div>
         <center class="upload-wrap">
 			<label class="btn-load2">📂 Nahrát lekci<input type="file" id="fInCat" style="display:none" onchange="handleFile(this, true)" accept=".csv"></label>
@@ -477,7 +477,7 @@
 
     <div id="mode-area" class="controls" style="display:none">
 		<div id="lesson-info-sub"></div>
-		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral)" onclick="backFromModeSelection()">🠘 &nbsp; ZPĚT DO MENU</button>
+		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral)" onclick="backFromModeSelection()">⬅ &nbsp; ZPĚT DO MENU</button>
 		<button class="btn-action btn-flip-big" onclick="startTraining('CZ-NL')">ČESKY ➔ NIZOZEMSKY</button>
 		<button class="btn-action btn-flip-big" onclick="startTraining('NL-CZ')">NIZOZEMSKY ➔ ČESKY</button>
 		<button class="btn-action btn-flip-big" style="--btn-color:var(--secondary);" onclick="openDictionary(currentLessonId)">📖 Slovníček lekce</button>
@@ -485,7 +485,7 @@
 	</div>
 
     <div id="dictionary-area">
-        <button id="dict-back-btn" class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 15px;" onclick="closeDictionary()">🠘 &nbsp; ZPĚT DO MENU</button>
+        <button id="dict-back-btn" class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 15px;" onclick="closeDictionary()">⬅ &nbsp; ZPĚT DO MENU</button>
         <div id="dict-stats">Celkem slov: 0</div>
         <div class="search-container">
             <input type="text" id="dict-filter" placeholder="Hledat výraz..." oninput="filterDictionary()">
@@ -507,12 +507,12 @@
     </div>
 
     <div class="controls" id="training-controls" style="display:none">
-        <div class="btn-row" id="flip-row"><button class="btn-action btn-flip-big" onclick="toggleFlip(event)">⭯ &nbsp; OTOČIT KARTU</button></div>
+        <div class="btn-row" id="flip-row"><button class="btn-action btn-flip-big" onclick="toggleFlip(event)">&#8635; &nbsp; OTOČIT KARTU</button></div>
         <div class="btn-row" id="action-row"><button class="btn-action btn-neumim" onclick="handleResult(false, event)">👎 NEUMÍM</button><button class="btn-action btn-umim" onclick="handleResult(true, event)">UMÍM 👍</button></div>
 		<div class="btn-row" id="hint-row">
 			<button id="hint-btn" class="btn-action btn-flip-big" onclick="showHint()">ZOBRAZIT NÁPOVĚDU</button>
 		</div>
-		<button id="exit-btn" class="btn-exit" onclick="exitTraining()">🠘 &nbsp; UKONČIT TRÉNINK</button>
+		<button id="exit-btn" class="btn-exit" onclick="exitTraining()">⬅ &nbsp; UKONČIT TRÉNINK</button>
     </div>
 
 <script>
@@ -1209,7 +1209,7 @@
 				// Změna na dvě tlačítka: POSLECH a POKRAČUJ
 				document.getElementById('action-row').innerHTML = `
 					<button class="btn-action btn-poslech-blue" style="background:var(--secondary)" onclick="replayCurrentWord(event)">🔊 POSLECH</button>
-					<button class="btn-action btn-umim" onclick="forceNextAfterError()">&nbsp;&nbsp; POKRAČUJ 🠚</button>
+					<button class="btn-action btn-umim" onclick="forceNextAfterError()">&nbsp;&nbsp; POKRAČUJ ➔</button>
 				`;
 				isProcessing = false;
 			}, 800);

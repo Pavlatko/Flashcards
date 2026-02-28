@@ -1305,34 +1305,30 @@
     }
 
 	function speak(t, forceShort = false) {
-        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); // Aktivuje audio focus pro prohlížeč
-        window.speechSynthesis.cancel();
-		let parts = (readAllForms && !forceShort) ? t.split(';').map(p => p.trim()) : [splitP(t).m];
-		
-		parts.forEach((part) => {
-			// Odstranění členů, pokud je to nastaveno
-			let text = readArticles ? part : part.replace(/^de\s+|^het\s+/i, '');
-			
-			// OŠETŘENÍ ZNAKŮ PRO HLAS:
-			// Nahradíme lomítka mezerou, aby je hlas nečetl jako "slash"
-			text = text.replace(/\//g, ' ');
-			
-			const u = new SpeechSynthesisUtterance(text);
-			const v = window.speechSynthesis.getVoices();
+		// 1. Aktivujeme audio kontext a vytvoříme krátké ticho, které vynutí ducking (ztlumení hudby)
+		if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+		if (audioCtx.state === 'suspended') audioCtx.resume();
 
-			// Pokusíme se najít hlas podle jména z localStorage
-			let voice = v.find(voice => voice.name === selectedVoiceName);
-			
-			// Pokud ho nemáme (třeba na jiném zařízení), zkusíme aspoň jakoukoliv nizozemštinu
-			if (!voice) {
-				voice = v.find(voice => voice.lang.includes('nl') && !voice.name.includes('Frank'));
-			}
+		// Vytvoříme pomocný oscilátor (ticho), který běží na pozadí mluvení
+		const duckOsc = audioCtx.createOscillator();
+		const duckGain = audioCtx.createGain();
+		duckGain.gain.setValueAtTime(0.001, audioCtx.currentTime); // Téměř neslyšitelné
+		duckOsc.connect(duckGain);
+		duckGain.connect(audioCtx.destination);
+		duckOsc.start();
 
-			if (voice) u.voice = voice;
-			u.lang = 'nl-NL'; 
-			u.rate = speechRate;
-			window.speechSynthesis.speak(u);
-		});
+		window.speechSynthesis.cancel();
+		const ut = new SpeechSynthesisUtterance(t);
+		ut.lang = 'nl-NL';
+		ut.rate = 0.8;
+
+		// 2. Jakmile mluvení skončí, zastavíme oscilátor, čímž se hudba zase vrátí do normálu
+		ut.onend = function() {
+			duckOsc.stop();
+			duckOsc.disconnect();
+		};
+
+		window.speechSynthesis.speak(ut);
 	}
 
     function saveData() { 

@@ -544,6 +544,13 @@
 		"totalTime": 0,
 		"problematicLearnCounts": []
 	}`);
+
+	// Oprava starých verzí statistik (mobilní Chrome fallback)
+	if (!stats || typeof stats !== 'object') stats = {};
+	if (!Array.isArray(stats.sessions)) stats.sessions = [];
+	if (typeof stats.totalTime !== 'number') stats.totalTime = 0;
+	if (!Array.isArray(stats.problematicLearnCounts)) stats.problematicLearnCounts = [];
+
 	let sessionStartTime = null;
 
     let words = []; let currentIndex = 0; let isFlipped = false; let mode = ''; 

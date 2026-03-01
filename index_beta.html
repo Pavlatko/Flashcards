@@ -295,18 +295,14 @@
 		.card-face div { transition: opacity 0.2s ease-in-out; }
 		.card-face-back { transform: rotateY(180deg); background: white; }
 		.card-flag {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 28px;
-            height: auto;
-            border-radius: 3px;
-            /* Tmavý glowing efekt: 0 posun X, 0 posun Y, 4px rozostření, černá barva */
-            filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.8));
-            opacity: 1;
-            z-index: 10;
-            transform: none;
-        }
+			position: absolute;
+			top: 12px;
+			right: 15px;
+			font-size: 1.6rem;
+			line-height: 1;
+			filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.8));
+			z-index: 10;
+		}
         
         .flash-red { animation: flashRedAnim 0.6s ease-in-out; }
         @keyframes flashRedAnim { 0% { background-color: white; } 50% { background-color: #ffcdd2; } 100% { background-color: white; } }
@@ -1106,10 +1102,10 @@
 
 		const cur = words[currentIndex]; 
 		const pNL = splitP(cur.nl); const pCZ = splitP(cur.cz);
-        
-        // Definice vlaječek jako obrázků pro maximální kompatibilitu
-        const flagCZ = '<img src="https://flagcdn.com/w40/cz.png" class="card-flag" alt="CZ">';
-        const flagNL = '<img src="https://flagcdn.com/w40/nl.png" class="card-flag" alt="NL">';
+
+		// Emoji vlajky (offline řešení)
+		const flagCZ = '<div class="card-flag">🇨🇿</div>';
+		const flagNL = '<div class="card-flag">🇳🇱</div>';
 
 		setTimeout(() => {
 			if (mode === 'CZ-NL') { 

@@ -728,6 +728,10 @@
 
         // Priorita 3: Nastavení
         if (lastView === 'settings') {
+			if (lastView === 'stats') {
+				openStats();
+				return;
+			}
             openSettings();
             return;
         }
@@ -1745,6 +1749,7 @@
 		document.getElementById('menu-area').style.display = 'none';
 		document.getElementById('stats-area').style.display = 'block';
 		document.getElementById('lesson-name-display').innerText = 'Statistiky';
+		localStorage.setItem('pl_app_view', 'stats');
 		renderStats();
 	}
 
@@ -1752,6 +1757,7 @@
 		document.getElementById('stats-area').style.display = 'none';
 		document.getElementById('menu-area').style.display = 'flex';
 		document.getElementById('lesson-name-display').innerText = 'Flashcards';
+		localStorage.removeItem('pl_app_view');
 	}
 
 	function renderStats() {

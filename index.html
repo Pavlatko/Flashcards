@@ -834,15 +834,29 @@
         c.innerHTML = ''; rc.innerHTML = ''; pc.innerHTML = ''; cc.innerHTML = '';
         document.getElementById('lesson-name-display').innerText = 'Flashcards';
         document.getElementById('remaining-count').innerText = '';
+		const lastFinishedLesson = localStorage.getItem('pl_last_finished_lesson');
 
 		if (activeState) {
-            const r = document.createElement('div'); r.className = 'lesson-row';
-            const displayName = activeState.lessonId === 'problematic' ? 'Problematické' : activeState.lessonId;
-            r.innerHTML = `
-                <button class="lesson-btn resume-btn" onclick="resumeTraining()">▶ &nbsp; ${displayName}</button>
-                <div class="lesson-del" onclick="clearProgress()">×</div>`;
-            rc.appendChild(r);
-        }
+			const r = document.createElement('div');
+			r.className = 'lesson-row';
+			const displayName = activeState.lessonId === 'problematic'
+				? 'Problematické'
+				: activeState.lessonId;
+			r.innerHTML = `
+				<button class="lesson-btn resume-btn" onclick="resumeTraining()">▶ &nbsp; ${displayName}</button>
+				<div class="lesson-del" onclick="clearProgress()">×</div>`;
+			rc.appendChild(r);
+		} else if (lastFinishedLesson && allLessons[lastFinishedLesson]) {
+			const r = document.createElement('div');
+			r.className = 'lesson-row';
+			r.innerHTML = `
+				<button class="lesson-btn resume-btn"
+					onclick="selectLesson('${lastFinishedLesson}')">
+					🔁 &nbsp; Opakovat: ${lastFinishedLesson}
+				</button>`;
+			rc.appendChild(r);
+		}
+
         if (problematic.length > 0) {
             const r = document.createElement('div'); r.className = 'lesson-row';
             r.innerHTML = `
@@ -1265,6 +1279,7 @@
 
 			failedWords = []; 
 			localStorage.setItem('pl_last_score', successRate);
+			localStorage.setItem('pl_last_finished_lesson', currentLessonId);
 
 			if (currentLessonId !== 'problematic' && !finishedLessons.includes(currentLessonId)) {
 				finishedLessons.push(currentLessonId);

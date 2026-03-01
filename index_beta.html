@@ -541,7 +541,8 @@
 
 	let stats = JSON.parse(localStorage.getItem('pl_stats') || `{
 		"sessions": [],
-		"totalTime": 0
+		"totalTime": 0,
+		"problematicLearnCounts": []
 	}`);
 	let sessionStartTime = null;
 
@@ -1215,8 +1216,9 @@
 			// RESET SÉRIE: Pokud uděláš chybu kdekoliv, skóre jde na 0
 			if (pIdx !== -1) {
 				problematic[pIdx].score = 0;
+				problematic[pIdx].failCount = (problematic[pIdx].failCount || 0) + 1;
 			} else {
-				problematic.push({...cur, score: 0});
+				problematic.push({...cur, score: 0, failCount: 1});
 			}
 			
 			saveData(); 
@@ -1251,6 +1253,16 @@
 				
 				// Pokud dosáhl 4 úspěšných (tzn. 3x v řadě + první přidání)
 				if (problematic[pIdx].score >= 4) {
+
+					const learnedWord = problematic[pIdx];
+					if (learnedWord.failCount) {
+						stats.problematicLearnCounts.push({
+							word: learnedWord.nl,
+							fails: learnedWord.failCount
+						});
+						localStorage.setItem('pl_stats', JSON.stringify(stats));
+					}
+
 					problematic.splice(pIdx, 1);
 					
 					// --- VIZUÁLNÍ A ZVUKOVÝ EFEKT ---
@@ -1768,6 +1780,20 @@
 		const totalWords = Object.values(allLessons).flat().length;
 		const uniqueWords = new Set(Object.values(allLessons).flat().map(w=>w.nl)).size;
 
+		const learnedCount = stats.problematicLearnCounts.length;
+
+		let avgFails = 0;
+		let worstWord = null;
+
+		if (learnedCount > 0) {
+			const totalFails = stats.problematicLearnCounts.reduce((sum, w) => sum + w.fails, 0);
+			avgFails = (totalFails / learnedCount).toFixed(1);
+
+			worstWord = stats.problematicLearnCounts.reduce((max, w) => 
+				w.fails > max.fails ? w : max
+			);
+		}
+
 		document.getElementById('stats-content').innerHTML = `
 			<div class="settings-label">📚 Slovní zásoba</div>
 			Celkem slov: ${totalWords}<br>
@@ -1786,6 +1812,13 @@
 			Včera: ${formatTime(yesterday)}<br>
 			7 dní: ${formatTime(week)}<br>
 			Celkem: ${formatTime(stats.totalTime)}
+
+			<hr style="margin:15px 0;">
+
+			<div class="settings-label">🧠 Problematická slova</div>
+			Naučeno problematických: ${learnedCount}<br>
+			Průměr pokusů: ${learnedCount > 0 ? avgFails : "-"}<br>
+			Nejhorší slovo: ${worstWord ? `"${worstWord.word}" (${worstWord.fails} pokusů)` : "-"}
 		`;
 	}
 
@@ -1798,7 +1831,11 @@
 
 	function resetStats() {
 		if (!confirm("Opravdu chceš smazat všechny statistiky?")) return;
-		stats = { sessions: [], totalTime: 0 };
+		stats = { 
+			sessions: [], 
+			totalTime: 0,
+			problematicLearnCounts: []
+		};
 		localStorage.setItem('pl_stats', JSON.stringify(stats));
 		renderStats();
 	}

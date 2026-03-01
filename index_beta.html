@@ -1294,14 +1294,27 @@
 	}
 
     function resetAppView() { 
-        localStorage.removeItem('pl_app_view'); 
-        localStorage.removeItem('pl_dict_scope');
-        localStorage.removeItem('pl_current_lesson_id');
-        localStorage.removeItem('pl_current_cat');
+		localStorage.removeItem('pl_app_view'); 
+		localStorage.removeItem('pl_dict_scope');
+		localStorage.removeItem('pl_current_lesson_id');
+		localStorage.removeItem('pl_current_cat');
+
 		trainingActive = false;
 		manageKeepAlive();
-		location.reload();
-    }
+
+		// Reset UI bez reloadu
+		document.getElementById('main-scene').style.display = 'none';
+		document.getElementById('training-controls').style.display = 'none';
+		document.getElementById('dictionary-area').style.display = 'none';
+		document.getElementById('mode-area').style.display = 'none';
+		document.getElementById('category-detail-area').style.display = 'none';
+
+		document.getElementById('menu-area').style.display = 'flex';
+		document.getElementById('lesson-name-display').innerText = 'Flashcards';
+		document.getElementById('remaining-count').innerText = '';
+
+		renderMenu();
+	}
 
 	function openDictionary(lessonId = null) {
 		dictionaryScope = lessonId;

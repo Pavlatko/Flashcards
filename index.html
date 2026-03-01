@@ -1808,6 +1808,7 @@
 			.filter(s => now - s.date < 7 * oneDay)
 			.reduce((sum, s) => sum + s.duration, 0);
 
+		const lastScore = localStorage.getItem('pl_last_score');
 		const learnedCount = stats.problematicLearnCounts.length;
 
 		let avgFails = 0;
@@ -1832,6 +1833,7 @@
 			<hr style="margin:15px 0;">
 
 			<div class="settings-label">📈 Úspěšnost</div>
+			Poslední lekce: ${lastScore !== null ? lastScore + ' %' : '—'}<br>
 			Průměrná úspěšnost: ${avgSuccess}%
 
 			<hr style="margin:15px 0;">

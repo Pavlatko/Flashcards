@@ -1063,6 +1063,9 @@
 			mode = m; 
 			currentIndex = 0; 
 			words.sort(() => Math.random() - 0.5); 
+
+			// Nový trénink = zapomenout poslední dokončenou lekci
+			localStorage.removeItem('pl_last_finished_lesson');
 		} 
 		
 		trainingActive = true; 
@@ -1560,7 +1563,7 @@
     }
 
 	function exitTraining() { trainingActive = false; manageKeepAlive(); resetAppView(); }
-    function clearProgress() { if (confirm("Smazat uložený postup?")) { localStorage.removeItem('pl_active_state'); activeState = null; renderMenu(); } }
+    function clearProgress() { if (confirm("Smazat uložený postup?")) { localStorage.removeItem('pl_active_state'); activeState = null; renderMenu(); localStorage.removeItem('pl_last_finished_lesson'); } }
     function clearProblematic() { if (confirm("Vymazat problematická?")) { problematic = []; saveData(); renderMenu(); } }
 
 	document.addEventListener('keydown', e => {

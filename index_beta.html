@@ -1278,8 +1278,20 @@
 			const successRate = originalLength > 0 ? Math.round((correctOnFirstTry / originalLength) * 100) : 100;
 
 			failedWords = []; 
+			// Uložit výsledek
 			localStorage.setItem('pl_last_score', successRate);
 			localStorage.setItem('pl_last_finished_lesson', currentLessonId);
+
+			// Okamžitě zobrazit toast
+			const toast = document.getElementById('toast');
+			if (toast) {
+				toast.innerHTML = `Lekce dokončena!<br><span style="color:var(--primary)">Úspěšnost: ${successRate}%</span>`;
+				toast.style.opacity = "1";
+				setTimeout(() => {
+					toast.style.opacity = "0";
+					localStorage.removeItem('pl_last_score');
+				}, 5000);
+			}
 
 			if (currentLessonId !== 'problematic' && !finishedLessons.includes(currentLessonId)) {
 				finishedLessons.push(currentLessonId);
@@ -1562,7 +1574,20 @@
         } 
     }
 
-	function exitTraining() { trainingActive = false; manageKeepAlive(); resetAppView(); }
+	function exitTraining() {
+		trainingActive = false;
+		manageKeepAlive();
+
+		saveProgress(); // uloží activeState
+
+		document.getElementById('main-scene').style.display = 'none';
+		document.getElementById('training-controls').style.display = 'none';
+		document.getElementById('menu-area').style.display = 'flex';
+
+		localStorage.removeItem('pl_app_view');
+
+		renderMenu(); // DŮLEŽITÉ – okamžitě překreslit menu
+	}
     function clearProgress() { if (confirm("Smazat uložený postup?")) { localStorage.removeItem('pl_active_state'); activeState = null; renderMenu(); localStorage.removeItem('pl_last_finished_lesson'); } }
     function clearProblematic() { if (confirm("Vymazat problematická?")) { problematic = []; saveData(); renderMenu(); } }
 

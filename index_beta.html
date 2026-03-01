@@ -560,33 +560,36 @@
 		const voiceSelect = document.getElementById('voice-select');
 		if (!voiceSelect) return;
 
-		// Filtrovat pouze NL hlasy (bez Belgie)
 		let nlVoices = voices.filter(v => {
 			const lang = v.lang.toLowerCase();
 			const name = v.name.toLowerCase();
-			const isDutch = lang.includes('nl-nl') || lang === 'nl';
-			const isBelgian = lang.includes('nl-be') || 
-							  name.includes('belgi') || 
-							  name.includes('vlaams') || 
-							  name.includes('flemish');
-			return isDutch && !isBelgian;
+
+			// Povolit pouze čisté nizozemské NL-NL
+			const isDutchNL = lang === 'nl-nl' || lang === 'nl';
+
+			// Tvrdě zakázat Belgii
+			const isBelgian =
+				lang.includes('be') ||
+				name.includes('belg') ||
+				name.includes('vlaams') ||
+				name.includes('flemish');
+
+			return isDutchNL && !isBelgian;
 		});
 
-		// Fallback: jakýkoliv NL
+		// Pokud žádný čistý NL-NL neexistuje, vezmeme první dostupný NL
 		if (nlVoices.length === 0) {
 			nlVoices = voices.filter(v => v.lang.toLowerCase().startsWith('nl'));
 		}
 
-		// Pokud je jen 1 hlas (typicky Android), schováme výběr
 		if (nlVoices.length <= 1) {
-			voiceSelect.innerHTML = `<option value="">Systémový hlas</option>`;
+			voiceSelect.innerHTML = `<option value="">Systémový hlas (NL)</option>`;
 			voiceSelect.disabled = true;
 			selectedVoiceName = nlVoices[0]?.name || '';
 			localStorage.setItem('pl_voice_name', selectedVoiceName);
 			return;
 		}
 
-		// Desktop situace – víc hlasů
 		voiceSelect.disabled = false;
 		voiceSelect.innerHTML = nlVoices.map(v =>
 			`<option value="${v.name}" ${v.name === selectedVoiceName ? 'selected' : ''}>${v.name}</option>`

@@ -295,18 +295,14 @@
 		.card-face div { transition: opacity 0.2s ease-in-out; }
 		.card-face-back { transform: rotateY(180deg); background: white; }
 		.card-flag {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 28px;
-            height: auto;
-            border-radius: 3px;
-            /* Tmavý glowing efekt: 0 posun X, 0 posun Y, 4px rozostření, černá barva */
-            filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.8));
-            opacity: 1;
-            z-index: 10;
-            transform: none;
-        }
+			position: absolute;
+			top: 12px;
+			right: 15px;
+			font-size: 1.6rem;
+			line-height: 1;
+			filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.8));
+			z-index: 10;
+		}
         
         .flash-red { animation: flashRedAnim 0.6s ease-in-out; }
         @keyframes flashRedAnim { 0% { background-color: white; } 50% { background-color: #ffcdd2; } 100% { background-color: white; } }
@@ -419,6 +415,8 @@
 			<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral); flex: 1;" onclick="openSettings()">⚙️ Nastavení</button>
 		</div>
 
+		<button class="btn-action btn-flip-big" style="--btn-color:var(--category); margin-top:15px;" onclick="openStats()">📊 Statistiky</button>
+
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
             <b>Pavlatko</b>Lab
         </div>
@@ -466,6 +464,14 @@
 			<div class="btn-load" onclick="window.open('./importer.html', '_blank')">📂 Hromadný import lekcí</div>
 		</center>
     </div>
+	<div id="stats-area" style="display:none; width: 100%; max-width: 360px; margin-top:20px;">
+		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 20px;" onclick="closeStats()">⬅ &nbsp; ZPĚT DO MENU</button>
+
+		<div class="settings-wrap" id="stats-content">
+		</div>
+
+		<button class="btn-action btn-flip-big" style="--btn-color:var(--danger); margin-top:15px;" onclick="resetStats()">🗑 Resetovat statistiky</button>
+	</div>
 
     <div id="category-detail-area" style="display:none; width: 100%; max-width: 360px; margin-top:20px;">
 		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 20px;" onclick="closeCategory()">⬅ &nbsp; ZPĚT DO MENU</button>
@@ -532,7 +538,14 @@
     let finishedLessons = JSON.parse(localStorage.getItem('pl_finished_lessons') || '[]');
     let dictSortActive = false; 
     let selectedVoiceName = localStorage.getItem('pl_voice_name') || '';
-    
+
+	let stats = JSON.parse(localStorage.getItem('pl_stats') || `{
+		"sessions": [],
+		"totalTime": 0,
+		"problematicLearnCounts": []
+	}`);
+	let sessionStartTime = null;
+
     let words = []; let currentIndex = 0; let isFlipped = false; let mode = ''; 
     let currentLessonId = ""; let trainingActive = false; let currentOpenCategory = null;
     let wasFlippedOnce = false; let isProcessing = false;
@@ -554,39 +567,66 @@
     checkAppPersistence();
 
 	function populateVoiceList() {
-        if (typeof speechSynthesis === 'undefined') return;
-        
-        const voices = speechSynthesis.getVoices();
-        const voiceSelect = document.getElementById('voice-select');
-        if (!voiceSelect) return;
+		if (typeof speechSynthesis === 'undefined') return;
 
-        // Najdeme pouze nizozemské hlasy (nl-nl) a vynecháme belgické (nl-be / vlaams)
-        let nlVoices = voices.filter(v => {
-            const lang = v.lang.toLowerCase();
-            const name = v.name.toLowerCase();
-            const isDutch = lang.includes('nl-nl') || (lang === 'nl' && !name.includes('belgi') && !name.includes('be '));
-            const isBelgian = lang.includes('nl-be') || name.includes('belgi') || name.includes('vlaams') || name.includes('flemish');
-            return isDutch && !isBelgian;
-        });
-        
-        // Pokud jsme nic nenašli přes přísný filtr (stává se na Androidu), vezmeme jakékoliv NL kromě Belgie
-        if (nlVoices.length === 0) {
-            nlVoices = voices.filter(v => v.lang.toLowerCase().startsWith('nl') && !v.lang.toLowerCase().includes('be'));
-        }
+		const voices = speechSynthesis.getVoices();
+		const voiceSelect = document.getElementById('voice-select');
+		if (!voiceSelect) return;
 
-        if (nlVoices.length > 0) {
-            voiceSelect.innerHTML = nlVoices.map(v => 
-                `<option value="${v.name}" ${v.name === selectedVoiceName ? 'selected' : ''}>${v.name}</option>`
-            ).join('');
-            
-            if (!selectedVoiceName || !nlVoices.find(v => v.name === selectedVoiceName)) {
-                selectedVoiceName = nlVoices[0].name;
-                localStorage.setItem('pl_voice_name', selectedVoiceName);
-            }
-        } else {
-            voiceSelect.innerHTML = '<option value="">Hlasy nl-NL nenalezeny</option>';
-        }
-    }
+		// Povolit pouze skutečné NL-NL
+		let nlVoices = voices.filter(v => {
+			const lang = v.lang.toLowerCase();
+			const name = v.name.toLowerCase();
+
+			// MUSÍ být nizozemské Nizozemsko
+			const isNetherlands = lang === 'nl-nl';
+
+			// Tvrdý zákaz Belgie podle jazyka i názvu
+			const isBelgian =
+				lang.includes('be') ||
+				name.includes('belg') ||
+				name.includes('vlaams') ||
+				name.includes('flemish');
+
+			return isNetherlands && !isBelgian;
+		});
+
+		// Pokud NL-NL není dostupné (některé Androidy vrací jen "nl")
+		if (nlVoices.length === 0) {
+			nlVoices = voices.filter(v => {
+				const lang = v.lang.toLowerCase();
+				const name = v.name.toLowerCase();
+
+				const isGenericNL = lang === 'nl';
+				const isBelgian =
+					name.includes('belg') ||
+					name.includes('vlaams') ||
+					name.includes('flemish');
+
+				return isGenericNL && !isBelgian;
+			});
+		}
+
+		// Pokud je jen jeden hlas (typicky Android)
+		if (nlVoices.length <= 1) {
+			voiceSelect.innerHTML = `<option value="">Systémový hlas (NL)</option>`;
+			voiceSelect.disabled = true;
+			selectedVoiceName = nlVoices[0]?.name || '';
+			localStorage.setItem('pl_voice_name', selectedVoiceName);
+			return;
+		}
+
+		// Desktop situace – více NL-NL hlasů
+		voiceSelect.disabled = false;
+		voiceSelect.innerHTML = nlVoices.map(v =>
+			`<option value="${v.name}" ${v.name === selectedVoiceName ? 'selected' : ''}>${v.name}</option>`
+		).join('');
+
+		if (!selectedVoiceName || !nlVoices.find(v => v.name === selectedVoiceName)) {
+			selectedVoiceName = nlVoices[0].name;
+			localStorage.setItem('pl_voice_name', selectedVoiceName);
+		}
+	}
 
 	// Speciální ošetření pro mobilní Edge/Chrome
 	function forceVoiceInit() {
@@ -594,30 +634,6 @@
 		window.speechSynthesis.getVoices();
 		populateVoiceList();
 	}
-
-	// Startovací sekvence pro hlasy
-    let voiceAttempts = 0;
-    const voiceInitInterval = setInterval(() => {
-        const voices = window.speechSynthesis.getVoices();
-        voiceAttempts++;
-        
-        // Pokud prohlížeč vrátí hlasy, nebo už čekáme 2 sekundy, vykreslíme seznam
-        if (voices.length > 0 || voiceAttempts > 10) {
-            populateVoiceList();
-            // Pokud už máme v seznamu Natural hlasy (ideální stav), vypneme interval
-            if (voices.some(v => v.name.includes('Natural')) || voiceAttempts > 15) {
-                clearInterval(voiceInitInterval);
-            }
-        }
-        
-        if (voiceAttempts > 30) clearInterval(voiceInitInterval); // Max 6 vteřin
-    }, 200);
-
-    // Důležité: Reakce na systémovou změnu hlasů
-    window.speechSynthesis.onvoiceschanged = populateVoiceList;
-
-	// Vyvolat inicializaci i při kliknutí kamkoliv (uživatelská interakce často odblokuje API)
-	document.addEventListener('click', forceVoiceInit, { once: true });
 
 	function updateVoice(name) {
 		selectedVoiceName = name;
@@ -693,14 +709,6 @@
 		}
 	}
 
-	function preloadVoices() {
-		window.speechSynthesis.getVoices();
-		if (speechSynthesis.onvoiceschanged !== undefined) {
-			speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
-		}
-	}
-	preloadVoices();
-
 	function checkAppPersistence() {
         const lastView = localStorage.getItem('pl_app_view');
         const savedCat = localStorage.getItem('pl_current_cat');
@@ -718,11 +726,17 @@
             return;
         }
 
-        // Priorita 3: Nastavení
-        if (lastView === 'settings') {
-            openSettings();
-            return;
-        }
+		// Priorita 3: Statistiky
+		if (lastView === 'stats') {
+			openStats();
+			return;
+		}
+
+		// Priorita 4: Nastavení
+		if (lastView === 'settings') {
+			openSettings();
+			return;
+		}
 
         // Priorita 4: Výběr módu lekce
         if (lastView === 'mode-area') {
@@ -823,6 +837,11 @@
         if (curF !== "" || curR.length > 0) { curR.push(curF.trim()); rows.push(curR); }
         return rows.slice(1).filter(r => r.length >= 3).map(r => ({ nl: r[0], ipa: r[1], cz: r[2] }));
     }
+
+	if (typeof speechSynthesis !== 'undefined') {
+		speechSynthesis.onvoiceschanged = populateVoiceList;
+		populateVoiceList();
+	}
 
     function renderMenu() {
         document.getElementById('app-body').classList.remove('training-mode');
@@ -1067,9 +1086,13 @@
 			mode = m; 
 			currentIndex = 0; 
 			words.sort(() => Math.random() - 0.5); 
+
+			// Nový trénink = zapomenout poslední dokončenou lekci
+			localStorage.removeItem('pl_last_finished_lesson');
 		} 
 		
 		trainingActive = true; 
+		sessionStartTime = Date.now();
 		document.getElementById('app-body').classList.add('training-mode');
 		document.getElementById('menu-area').style.display = 'none'; 
 		document.getElementById('category-detail-area').style.display = 'none';
@@ -1106,10 +1129,10 @@
 
 		const cur = words[currentIndex]; 
 		const pNL = splitP(cur.nl); const pCZ = splitP(cur.cz);
-        
-        // Definice vlaječek jako obrázků pro maximální kompatibilitu
-        const flagCZ = '<img src="https://flagcdn.com/w40/cz.png" class="card-flag" alt="CZ">';
-        const flagNL = '<img src="https://flagcdn.com/w40/nl.png" class="card-flag" alt="NL">';
+
+		// Emoji vlajky (offline řešení)
+		const flagCZ = '<div class="card-flag">🇨🇿</div>';
+		const flagNL = '<div class="card-flag">🇳🇱</div>';
 
 		setTimeout(() => {
 			if (mode === 'CZ-NL') { 
@@ -1199,8 +1222,9 @@
 			// RESET SÉRIE: Pokud uděláš chybu kdekoliv, skóre jde na 0
 			if (pIdx !== -1) {
 				problematic[pIdx].score = 0;
+				problematic[pIdx].failCount = (problematic[pIdx].failCount || 0) + 1;
 			} else {
-				problematic.push({...cur, score: 0});
+				problematic.push({...cur, score: 0, failCount: 1});
 			}
 			
 			saveData(); 
@@ -1235,6 +1259,16 @@
 				
 				// Pokud dosáhl 4 úspěšných (tzn. 3x v řadě + první přidání)
 				if (problematic[pIdx].score >= 4) {
+
+					const learnedWord = problematic[pIdx];
+					if (learnedWord.failCount) {
+						stats.problematicLearnCounts.push({
+							word: learnedWord.nl,
+							fails: learnedWord.failCount
+						});
+						localStorage.setItem('pl_stats', JSON.stringify(stats));
+					}
+
 					problematic.splice(pIdx, 1);
 					
 					// --- VIZUÁLNÍ A ZVUKOVÝ EFEKT ---
@@ -1263,11 +1297,12 @@
 		currentIndex++;
 		
 		if (currentIndex < words.length) { 
+			saveProgress();  // Uložit NOVÝ index
 			showWord(); 
-			saveProgress(); 
 		} else { 
 			// KONEC LEKCE
-			localStorage.removeItem('pl_active_state'); 
+			localStorage.removeItem('pl_active_state');
+			activeState = null;
 
 			// Výpočet úspěšnosti
 			let originalLength = (currentLessonId === 'problematic') 
@@ -1278,12 +1313,35 @@
 			const successRate = originalLength > 0 ? Math.round((correctOnFirstTry / originalLength) * 100) : 100;
 
 			failedWords = []; 
+			// Uložit výsledek
 			localStorage.setItem('pl_last_score', successRate);
 			localStorage.setItem('pl_last_finished_lesson', currentLessonId);
+
+			// Okamžitě zobrazit toast
+			const toast = document.getElementById('toast');
+			if (toast) {
+				toast.innerHTML = `Lekce dokončena!<br><span style="color:var(--primary)">Úspěšnost: ${successRate}%</span>`;
+				toast.style.opacity = "1";
+				setTimeout(() => {
+					toast.style.opacity = "0";
+					localStorage.removeItem('pl_last_score');
+				}, 5000);
+			}
 
 			if (currentLessonId !== 'problematic' && !finishedLessons.includes(currentLessonId)) {
 				finishedLessons.push(currentLessonId);
 				localStorage.setItem('pl_finished_lessons', JSON.stringify(finishedLessons));
+			}
+			if (sessionStartTime) {
+				const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
+				stats.totalTime += duration;
+				stats.sessions.push({
+					date: Date.now(),
+					duration: duration,
+					success: successRate
+				});
+				localStorage.setItem('pl_stats', JSON.stringify(stats));
+				sessionStartTime = null;
 			}
 			resetAppView(); 
 		}
@@ -1298,14 +1356,27 @@
 	}
 
     function resetAppView() { 
-        localStorage.removeItem('pl_app_view'); 
-        localStorage.removeItem('pl_dict_scope');
-        localStorage.removeItem('pl_current_lesson_id');
-        localStorage.removeItem('pl_current_cat');
+		localStorage.removeItem('pl_app_view'); 
+		localStorage.removeItem('pl_dict_scope');
+		localStorage.removeItem('pl_current_lesson_id');
+		localStorage.removeItem('pl_current_cat');
+
 		trainingActive = false;
 		manageKeepAlive();
-		location.reload();
-    }
+
+		// Reset UI bez reloadu
+		document.getElementById('main-scene').style.display = 'none';
+		document.getElementById('training-controls').style.display = 'none';
+		document.getElementById('dictionary-area').style.display = 'none';
+		document.getElementById('mode-area').style.display = 'none';
+		document.getElementById('category-detail-area').style.display = 'none';
+
+		document.getElementById('menu-area').style.display = 'flex';
+		document.getElementById('lesson-name-display').innerText = 'Flashcards';
+		document.getElementById('remaining-count').innerText = '';
+
+		renderMenu();
+	}
 
 	function openDictionary(lessonId = null) {
 		dictionaryScope = lessonId;
@@ -1549,8 +1620,36 @@
         } 
     }
 
-	function exitTraining() { trainingActive = false; manageKeepAlive(); resetAppView(); }
-    function clearProgress() { if (confirm("Smazat uložený postup?")) { localStorage.removeItem('pl_active_state'); activeState = null; renderMenu(); } }
+	function exitTraining() {
+		if (sessionStartTime) {
+			const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
+			stats.totalTime += duration;
+			stats.sessions.push({
+				date: Date.now(),
+				duration: duration,
+				success: null
+			});
+			localStorage.setItem('pl_stats', JSON.stringify(stats));
+			sessionStartTime = null;
+		}
+		trainingActive = false;
+		manageKeepAlive();
+
+		saveProgress(); // uložit aktuální stav
+
+		// Aktualizovat globální activeState z localStorage
+		activeState = JSON.parse(localStorage.getItem('pl_active_state'));
+
+		document.getElementById('main-scene').style.display = 'none';
+		document.getElementById('training-controls').style.display = 'none';
+		document.getElementById('menu-area').style.display = 'flex';
+
+		localStorage.removeItem('pl_app_view');
+		localStorage.removeItem('pl_current_cat');
+
+		renderMenu();
+	}
+    function clearProgress() { if (confirm("Smazat uložený postup?")) { localStorage.removeItem('pl_active_state'); activeState = null; renderMenu(); localStorage.removeItem('pl_last_finished_lesson'); } }
     function clearProblematic() { if (confirm("Vymazat problematická?")) { problematic = []; saveData(); renderMenu(); } }
 
 	document.addEventListener('keydown', e => {
@@ -1646,6 +1745,107 @@
 			osc.start(now + i * 0.1);
 			osc.stop(now + i * 0.1 + 0.5);
 		});
+	}
+
+	function openStats() {
+		document.getElementById('menu-area').style.display = 'none';
+		document.getElementById('stats-area').style.display = 'block';
+		document.getElementById('lesson-name-display').innerText = 'Statistiky';
+		localStorage.setItem('pl_app_view', 'stats');
+		renderStats();
+	}
+
+	function closeStats() {
+		document.getElementById('stats-area').style.display = 'none';
+		document.getElementById('menu-area').style.display = 'flex';
+		document.getElementById('lesson-name-display').innerText = 'Flashcards';
+		localStorage.removeItem('pl_app_view');
+	}
+
+	function renderStats() {
+		const now = Date.now();
+		const oneDay = 86400000;
+		const sevenDays = oneDay * 7;
+
+		let today = 0;
+		let yesterday = 0;
+		let week = 0;
+		let totalSuccess = [];
+		
+		stats.sessions.forEach(s => {
+			if (!s.duration) return;
+
+			if (now - s.date < oneDay) today += s.duration;
+			if (now - s.date >= oneDay && now - s.date < oneDay*2) yesterday += s.duration;
+			if (now - s.date < sevenDays) week += s.duration;
+			if (s.success !== null) totalSuccess.push(s.success);
+		});
+
+		const avgSuccess = totalSuccess.length > 0
+			? Math.round(totalSuccess.reduce((a,b)=>a+b,0) / totalSuccess.length)
+			: 0;
+
+		const totalWords = Object.values(allLessons).flat().length;
+		const uniqueWords = new Set(Object.values(allLessons).flat().map(w=>w.nl)).size;
+
+		const learnedCount = stats.problematicLearnCounts.length;
+
+		let avgFails = 0;
+		let worstWord = null;
+
+		if (learnedCount > 0) {
+			const totalFails = stats.problematicLearnCounts.reduce((sum, w) => sum + w.fails, 0);
+			avgFails = (totalFails / learnedCount).toFixed(1);
+
+			worstWord = stats.problematicLearnCounts.reduce((max, w) => 
+				w.fails > max.fails ? w : max
+			);
+		}
+
+		document.getElementById('stats-content').innerHTML = `
+			<div class="settings-label">📚 Slovní zásoba</div>
+			Celkem slov: ${totalWords}<br>
+			Unikátních slov: ${uniqueWords}<br>
+			Problematických: ${problematic.length}
+
+			<hr style="margin:15px 0;">
+
+			<div class="settings-label">📈 Úspěšnost</div>
+			Průměrná úspěšnost: ${avgSuccess}%
+
+			<hr style="margin:15px 0;">
+
+			<div class="settings-label">⏱ Čas učení</div>
+			Dnes: ${formatTime(today)}<br>
+			Včera: ${formatTime(yesterday)}<br>
+			7 dní: ${formatTime(week)}<br>
+			Celkem: ${formatTime(stats.totalTime)}
+
+			<hr style="margin:15px 0;">
+
+			<div class="settings-label">🧠 Problematická slova</div>
+			Naučeno problematických: ${learnedCount}<br>
+			Průměr pokusů: ${learnedCount > 0 ? avgFails : "-"}<br>
+			Nejhorší slovo: ${worstWord ? `"${worstWord.word}" (${worstWord.fails} pokusů)` : "-"}
+		`;
+	}
+
+	function formatTime(sec) {
+		const h = Math.floor(sec / 3600);
+		const m = Math.floor((sec % 3600) / 60);
+		const s = sec % 60;
+		return `${h}h ${m}m ${s}s`;
+	}
+
+	function resetStats() {
+		if (!confirm("Opravdu chceš smazat všechny statistiky?")) return;
+		stats = { 
+			sessions: [], 
+			totalTime: 0,
+			problematicLearnCounts: []
+		};
+		localStorage.setItem('pl_stats', JSON.stringify(stats));
+		renderStats();
 	}
 </script>
 

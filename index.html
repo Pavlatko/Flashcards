@@ -1763,30 +1763,33 @@
 	}
 
 	function renderStats() {
-		const now = Date.now();
-		const oneDay = 86400000;
-		const sevenDays = oneDay * 7;
+		// Bezpečné výpočty (aby mobil nespadl)
+		const totalWords = Object.values(allLessons).flat().length;
 
-		let today = 0;
-		let yesterday = 0;
-		let week = 0;
-		let totalSuccess = [];
-		
-		stats.sessions.forEach(s => {
-			if (!s.duration) return;
+		const uniqueWords = new Set(
+			Object.values(allLessons)
+				.flat()
+				.map(w => w.nl.trim().toLowerCase())
+		).size;
 
-			if (now - s.date < oneDay) today += s.duration;
-			if (now - s.date >= oneDay && now - s.date < oneDay*2) yesterday += s.duration;
-			if (now - s.date < sevenDays) week += s.duration;
-			if (s.success !== null) totalSuccess.push(s.success);
-		});
-
-		const avgSuccess = totalSuccess.length > 0
-			? Math.round(totalSuccess.reduce((a,b)=>a+b,0) / totalSuccess.length)
+		const avgSuccess = stats.sessions.length > 0
+			? Math.round(stats.sessions.reduce((sum, s) => sum + s.success, 0) / stats.sessions.length)
 			: 0;
 
-		const totalWords = Object.values(allLessons).flat().length;
-		const uniqueWords = new Set(Object.values(allLessons).flat().map(w=>w.nl)).size;
+		const now = Date.now();
+		const oneDay = 86400000;
+
+		const today = stats.sessions
+			.filter(s => now - s.date < oneDay)
+			.reduce((sum, s) => sum + s.duration, 0);
+
+		const yesterday = stats.sessions
+			.filter(s => now - s.date >= oneDay && now - s.date < 2 * oneDay)
+			.reduce((sum, s) => sum + s.duration, 0);
+
+		const week = stats.sessions
+			.filter(s => now - s.date < 7 * oneDay)
+			.reduce((sum, s) => sum + s.duration, 0);
 
 		const learnedCount = stats.problematicLearnCounts.length;
 

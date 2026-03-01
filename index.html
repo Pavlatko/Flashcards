@@ -542,12 +542,14 @@
 	let stats = JSON.parse(localStorage.getItem('pl_stats') || `{
 		"sessions": [],
 		"totalTime": 0,
-		"problematicLearnCounts": []
+		"problematicLearnCounts": [],
+		"knownWords": []
 	}`);
 
 	// Oprava starých verzí statistik (mobilní Chrome fallback)
 	if (!stats || typeof stats !== 'object') stats = {};
 	if (!Array.isArray(stats.sessions)) stats.sessions = [];
+	if (!Array.isArray(stats.knownWords)) stats.knownWords = [];
 	if (typeof stats.totalTime !== 'number') stats.totalTime = 0;
 	if (!Array.isArray(stats.problematicLearnCounts)) stats.problematicLearnCounts = [];
 
@@ -1261,6 +1263,13 @@
 		} else {
 			isProcessing = true;
 
+			// Uložit unikátní "UMÍM"
+			const wordKey = cur.nl.trim().toLowerCase();
+			if (!stats.knownWords.includes(wordKey)) {
+				stats.knownWords.push(wordKey);
+				localStorage.setItem('pl_stats', JSON.stringify(stats));
+			}
+
 			if (pIdx !== -1) {
 				problematic[pIdx].score++;
 				
@@ -1772,6 +1781,7 @@
 	function renderStats() {
 		// Bezpečné výpočty (aby mobil nespadl)
 		const totalWords = Object.values(allLessons).flat().length;
+		const knownCount = stats.knownWords.length;
 
 		const uniqueWords = new Set(
 			Object.values(allLessons)
@@ -1816,6 +1826,7 @@
 			<div class="settings-label">📚 Slovní zásoba</div>
 			Celkem slov: ${totalWords}<br>
 			Unikátních slov: ${uniqueWords}<br>
+			Umím <b>${knownCount}</b> unikátních slov<br>
 			Problematických: ${problematic.length}
 
 			<hr style="margin:15px 0;">
@@ -1852,7 +1863,8 @@
 		stats = { 
 			sessions: [], 
 			totalTime: 0,
-			problematicLearnCounts: []
+			problematicLearnCounts: [],
+			knownWords: []
 		};
 		localStorage.setItem('pl_stats', JSON.stringify(stats));
 		renderStats();

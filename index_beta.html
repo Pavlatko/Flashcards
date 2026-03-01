@@ -726,15 +726,17 @@
             return;
         }
 
-        // Priorita 3: Nastavení
-        if (lastView === 'settings') {
-			if (lastView === 'stats') {
-				openStats();
-				return;
-			}
-            openSettings();
-            return;
-        }
+		// Priorita 3: Statistiky
+		if (lastView === 'stats') {
+			openStats();
+			return;
+		}
+
+		// Priorita 4: Nastavení
+		if (lastView === 'settings') {
+			openSettings();
+			return;
+		}
 
         // Priorita 4: Výběr módu lekce
         if (lastView === 'mode-area') {

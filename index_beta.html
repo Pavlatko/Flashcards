@@ -1262,8 +1262,8 @@
 		currentIndex++;
 		
 		if (currentIndex < words.length) { 
+			saveProgress();  // Uložit NOVÝ index
 			showWord(); 
-			saveProgress(); 
 		} else { 
 			// KONEC LEKCE
 			localStorage.removeItem('pl_active_state');
@@ -1578,7 +1578,10 @@
 		trainingActive = false;
 		manageKeepAlive();
 
-		saveProgress(); // uloží activeState
+		saveProgress(); // uložit aktuální stav
+
+		// Aktualizovat globální activeState z localStorage
+		activeState = JSON.parse(localStorage.getItem('pl_active_state'));
 
 		document.getElementById('main-scene').style.display = 'none';
 		document.getElementById('training-controls').style.display = 'none';
@@ -1586,7 +1589,7 @@
 
 		localStorage.removeItem('pl_app_view');
 
-		renderMenu(); // DŮLEŽITÉ – okamžitě překreslit menu
+		renderMenu();
 	}
     function clearProgress() { if (confirm("Smazat uložený postup?")) { localStorage.removeItem('pl_active_state'); activeState = null; renderMenu(); localStorage.removeItem('pl_last_finished_lesson'); } }
     function clearProblematic() { if (confirm("Vymazat problematická?")) { problematic = []; saveData(); renderMenu(); } }

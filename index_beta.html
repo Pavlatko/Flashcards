@@ -1263,7 +1263,8 @@
 			saveProgress(); 
 		} else { 
 			// KONEC LEKCE
-			localStorage.removeItem('pl_active_state'); 
+			localStorage.removeItem('pl_active_state');
+			activeState = null;
 
 			// Výpočet úspěšnosti
 			let originalLength = (currentLessonId === 'problematic') 

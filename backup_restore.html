@@ -13,7 +13,6 @@ h2 { margin-top:0; text-align:center; color:var(--primary); }
 button { width:100%; padding:16px; border:none; border-radius:12px; font-weight:bold; font-size:1rem; cursor:pointer; margin-top:15px; }
 .btn-export { background:var(--success); color:white; }
 .btn-import { background:var(--primary); color:white; }
-.btn-danger { background:var(--danger); color:white; }
 .btn-close { background:none; border:none; color:#666; font-weight:bold; cursor:pointer; float:right; }
 #log { margin-top:20px; font-size:0.85rem; white-space:pre-wrap; }
 .info { background:#f8f8f8; padding:12px; border-radius:10px; font-size:0.85rem; margin-top:15px; }
@@ -30,7 +29,7 @@ button { width:100%; padding:16px; border:none; border-radius:12px; font-weight:
 
 <input type="file" id="fileInput" style="display:none" accept=".json" onchange="importBackup(this)">
 <button class="btn-import" onclick="document.getElementById('fileInput').click()">📤 Obnovit ze zálohy</button>
-<button class="btn-danger" onclick="factoryReset()">🗑 Tovární nastavení (vymazat vše)</button>
+
 <div class="info">
 Záloha obsahuje:
 • Všechny lekce a kategorie  
@@ -45,14 +44,18 @@ Záloha obsahuje:
 </div>
 
 <script>
+
 function exportBackup() {
+
     const backupData = {
         app: "Flashcards",
         version: 1,
         created: new Date().toISOString(),
+        device: navigator.userAgent,
         data: {}
     };
 
+    // vezmeme všechny pl_ klíče
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key.startsWith("pl_")) {
@@ -71,20 +74,21 @@ function exportBackup() {
 
     URL.revokeObjectURL(url);
 
-	document.getElementById("log").innerText =
-		"✅ Data byla úspěšně obnovena.\nAplikace se nyní restartuje...";
-
-	setTimeout(() => {
-		window.location.href = "./index.html";
-	}, 1500);
+    document.getElementById("log").innerText =
+        "✅ Záloha byla úspěšně vytvořena.\nSoubor byl uložen do zařízení.";
 }
 
+
+
 function importBackup(input) {
+
     const file = input.files[0];
     if (!file) return;
 
     const reader = new FileReader();
+
     reader.onload = function(e) {
+
         try {
             const parsed = JSON.parse(e.target.result);
 
@@ -93,14 +97,43 @@ function importBackup(input) {
                 return;
             }
 
-            if (!confirm("Obnovením přepíšeš aktuální data aplikace. Pokračovat?")) return;
+            const confirmImport = confirm(
+                "POZOR!\n\n" +
+                "Import přepíše VŠECHNA aktuální data aplikace:\n" +
+                "- lekce\n" +
+                "- statistiky\n" +
+                "- problematická slovíčka\n" +
+                "- dokončené lekce\n" +
+                "- nastavení\n\n" +
+                "Pokračovat?"
+            );
 
+            if (!confirmImport) return;
+
+            // 1️⃣ Smažeme všechny pl_ klíče
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith("pl_")) {
+                    keysToRemove.push(key);
+                }
+            }
+
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+
+            // 2️⃣ Nahrajeme nová data
             Object.keys(parsed.data).forEach(key => {
                 localStorage.setItem(key, parsed.data[key]);
             });
 
             document.getElementById("log").innerText =
-                "✅ Data byla úspěšně obnovena.\nNyní zavři aplikaci Flashcards a znovu ji otevři.";
+                "✅ Data byla úspěšně obnovena.\nAplikace se nyní restartuje...";
+
+            // 3️⃣ Restart aplikace
+            setTimeout(() => {
+                window.location.href = "./index.html";
+            }, 1500);
+
         } catch (err) {
             alert("Chyba při načítání zálohy.");
         }
@@ -109,42 +142,6 @@ function importBackup(input) {
     reader.readAsText(file, "UTF-8");
 }
 
-function factoryReset() {
-
-    const confirm1 = confirm(
-        "POZOR!\n\nTato akce nenávratně smaže:\n" +
-        "- všechny lekce\n" +
-        "- statistiky\n" +
-        "- problematická slovíčka\n" +
-        "- dokončené lekce\n" +
-        "- nastavení\n\nPokračovat?"
-    );
-
-    if (!confirm1) return;
-
-    const text = prompt("Pro potvrzení napiš přesně: SMAZAT");
-
-    if (text !== "SMAZAT") {
-        alert("Text nesouhlasí. Mazání zrušeno.");
-        return;
-    }
-
-    // smažeme jen pl_ klíče
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith("pl_")) {
-            keysToRemove.push(key);
-        }
-    }
-
-    keysToRemove.forEach(k => localStorage.removeItem(k));
-
-    document.getElementById("log").innerText =
-        "🗑 Všechna data byla vymazána.\n" +
-        "Nyní zavři Flashcards a znovu ji otevři.";
-
-}
 </script>
 
 </body>

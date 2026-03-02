@@ -30,7 +30,7 @@ button { width:100%; padding:16px; border:none; border-radius:12px; font-weight:
 
 <input type="file" id="fileInput" style="display:none" accept=".json" onchange="importBackup(this)">
 <button class="btn-import" onclick="document.getElementById('fileInput').click()">📤 Obnovit ze zálohy</button>
-
+<button class="btn-danger" onclick="factoryReset()">🗑 Tovární nastavení (vymazat vše)</button>
 <div class="info">
 Záloha obsahuje:
 • Všechny lekce a kategorie  
@@ -103,6 +103,43 @@ function importBackup(input) {
     };
 
     reader.readAsText(file, "UTF-8");
+}
+
+function factoryReset() {
+
+    const confirm1 = confirm(
+        "POZOR!\n\nTato akce nenávratně smaže:\n" +
+        "- všechny lekce\n" +
+        "- statistiky\n" +
+        "- problematická slovíčka\n" +
+        "- dokončené lekce\n" +
+        "- nastavení\n\nPokračovat?"
+    );
+
+    if (!confirm1) return;
+
+    const text = prompt("Pro potvrzení napiš přesně: SMAZAT");
+
+    if (text !== "SMAZAT") {
+        alert("Text nesouhlasí. Mazání zrušeno.");
+        return;
+    }
+
+    // smažeme jen pl_ klíče
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith("pl_")) {
+            keysToRemove.push(key);
+        }
+    }
+
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+
+    document.getElementById("log").innerText =
+        "🗑 Všechna data byla vymazána.\n" +
+        "Nyní zavři Flashcards a znovu ji otevři.";
+
 }
 </script>
 

@@ -1,0 +1,110 @@
+﻿<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Záloha Flashcards (PavlatkoLabs)</title>
+
+<style>
+:root { --primary:#2196F3; --success:#4CAF50; --danger:#ff5252; --neutral:#757575; --bg:#f5f5f5; }
+body { font-family:sans-serif; background:var(--bg); margin:0; padding:20px; display:flex; justify-content:center; }
+.card { background:white; max-width:450px; width:100%; padding:25px; border-radius:20px; box-shadow:0 10px 25px rgba(0,0,0,0.1); box-sizing:border-box; }
+h2 { margin-top:0; text-align:center; color:var(--primary); }
+button { width:100%; padding:16px; border:none; border-radius:12px; font-weight:bold; font-size:1rem; cursor:pointer; margin-top:15px; }
+.btn-export { background:var(--success); color:white; }
+.btn-import { background:var(--primary); color:white; }
+.btn-danger { background:var(--danger); color:white; }
+.btn-close { background:none; border:none; color:#666; font-weight:bold; cursor:pointer; float:right; }
+#log { margin-top:20px; font-size:0.85rem; white-space:pre-wrap; }
+.info { background:#f8f8f8; padding:12px; border-radius:10px; font-size:0.85rem; margin-top:15px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+<button class="btn-close" onclick="window.close()">ZAVŘÍT ❌</button>
+
+<h2>💾 Záloha Flashcards</h2>
+
+<button class="btn-export" onclick="exportBackup()">📥 Vytvořit kompletní zálohu</button>
+
+<input type="file" id="fileInput" style="display:none" accept=".json" onchange="importBackup(this)">
+<button class="btn-import" onclick="document.getElementById('fileInput').click()">📤 Obnovit ze zálohy</button>
+
+<div class="info">
+Záloha obsahuje:
+• Všechny lekce a kategorie  
+• Statistiky a problematická slovíčka  
+• Dokončené lekce  
+• Aktivní trénink  
+• Nastavení aplikace  
+</div>
+
+<div id="log"></div>
+
+</div>
+
+<script>
+function exportBackup() {
+    const backupData = {
+        app: "Flashcards",
+        version: 1,
+        created: new Date().toISOString(),
+        data: {}
+    };
+
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith("pl_")) {
+            backupData.data[key] = localStorage.getItem(key);
+        }
+    }
+
+    const json = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "flashcards-backup-" + new Date().toISOString().slice(0,10) + ".json";
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+    document.getElementById("log").innerText =
+        "✅ Záloha vytvořena.\nSoubor byl stažen do zařízení.";
+}
+
+function importBackup(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const parsed = JSON.parse(e.target.result);
+
+            if (!parsed.app || parsed.app !== "Flashcards") {
+                alert("Toto není platná záloha Flashcards.");
+                return;
+            }
+
+            if (!confirm("Obnovením přepíšeš aktuální data aplikace. Pokračovat?")) return;
+
+            Object.keys(parsed.data).forEach(key => {
+                localStorage.setItem(key, parsed.data[key]);
+            });
+
+            document.getElementById("log").innerText =
+                "✅ Data byla úspěšně obnovena.\nNyní zavři aplikaci Flashcards a znovu ji otevři.";
+        } catch (err) {
+            alert("Chyba při načítání zálohy.");
+        }
+    };
+
+    reader.readAsText(file, "UTF-8");
+}
+</script>
+
+</body>
+</html>

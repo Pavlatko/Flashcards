@@ -1235,8 +1235,22 @@
 			if (pIdx !== -1) {
 				problematic[pIdx].score = 0;
 				problematic[pIdx].failCount = (problematic[pIdx].failCount || 0) + 1;
+
+				// ADAPTIVNÍ RESET
+				problematic[pIdx].repetition = 0;
+				problematic[pIdx].interval = 1;
+				problematic[pIdx].ease = 2.5;
+				problematic[pIdx].nextReview = Date.now();
 			} else {
-				problematic.push({...cur, score: 0, failCount: 1});
+				problematic.push({
+					...cur,
+					score: 0,
+					failCount: 1,
+					repetition: 0,
+					interval: 1,
+					ease: 2.5,
+					nextReview: Date.now()
+				});
 			}
 			
 			saveData(); 

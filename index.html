@@ -545,7 +545,8 @@
 		"totalTime": 0,
 		"problematicLearnCounts": [],
 		"knownWords": [],
-		"appTimeTotal": 0
+		"appTimeTotal": 0,
+		"wordFailClicks": {}
 	}`);
 
 	// Oprava starých verzí statistik (mobilní Chrome fallback)
@@ -555,6 +556,9 @@
 	if (typeof stats.totalTime !== 'number') stats.totalTime = 0;
 	if (!Array.isArray(stats.problematicLearnCounts)) stats.problematicLearnCounts = [];
 	if (typeof stats.appTimeTotal !== 'number') stats.appTimeTotal = 0;
+	if (!stats.wordFailClicks || typeof stats.wordFailClicks !== 'object') {
+		stats.wordFailClicks = {};
+	}
 
 	let sessionStartTime = null;
 
@@ -1229,6 +1233,15 @@
 		let pIdx = problematic.findIndex(w => w.nl === cur.nl);
 		
 		if (!ok) {
+
+			// 🔥 ZAPOČÍTAT SKUTEČNÉ KLIKNUTÍ NA NEUMÍM
+			const wordKey = cur.nl.trim().toLowerCase();
+			if (!stats.wordFailClicks[wordKey]) {
+				stats.wordFailClicks[wordKey] = 0;
+			}
+			stats.wordFailClicks[wordKey]++;
+			localStorage.setItem('pl_stats', JSON.stringify(stats));
+
 			if (!failedWords.includes(cur.nl)) failedWords.push(cur.nl);
 
 			// RESET SÉRIE: Pokud uděláš chybu kdekoliv, skóre jde na 0
@@ -1881,11 +1894,42 @@
 
 			<hr style="margin:15px 0;">
 
-			<div class="settings-label">🧠 Problematická slova</div>
-			Naučeno problematických: ${learnedCount}<br>
-			Průměr pokusů: ${learnedCount > 0 ? avgFails : "-"}<br>
-			Nejhorší slovo: ${worstWord ? `"${worstWord.word}" (${worstWord.fails} pokusů)` : "-"}
+			<div class="settings-label">🔥 Nejhorší slova (podle NEUMÍM)</div>
+			${renderWorstWordsTable()}
 		`;
+	}
+
+	function renderWorstWordsTable() {
+
+		const entries = Object.entries(stats.wordFailClicks);
+
+		if (entries.length === 0) {
+			return "Zatím žádná kliknutí na NEUMÍM.";
+		}
+
+		// Seřadit sestupně
+		entries.sort((a, b) => b[1] - a[1]);
+
+		const top10 = entries.slice(0, 10);
+
+		let html = `<table style="width:100%; font-size:0.85rem;">`;
+
+		top10.forEach(([word, count], index) => {
+
+			// 🔥 zobrazit jen základní tvar (před prvním středníkem)
+			const baseForm = word.split(';')[0].trim();
+
+			html += `
+				<tr>
+					<td style="padding: 4px 0;">${index + 1}. ${baseForm}</td>
+					<td style="text-align:right; padding: 0;"><b>${count}×</b></td>
+				</tr>
+			`;
+		});
+
+		html += `</table>`;
+
+		return html;
 	}
 
 	function formatTime(sec) {

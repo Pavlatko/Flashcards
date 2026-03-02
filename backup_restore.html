@@ -131,8 +131,8 @@ function importBackup(input) {
 
             // 3️⃣ Restart aplikace
             setTimeout(() => {
-                window.location.href = "./index.html";
-            }, 1500);
+				window.close();
+			}, 1500);
 
         } catch (err) {
             alert("Chyba při načítání zálohy.");

@@ -1331,6 +1331,7 @@
 			failedWords = []; 
 			// Uložit výsledek
 			localStorage.setItem('pl_last_score', successRate);
+			localStorage.setItem('pl_last_score_persistent', successRate);
 			localStorage.setItem('pl_last_finished_lesson', currentLessonId);
 
 			// Okamžitě zobrazit toast
@@ -1808,7 +1809,7 @@
 			.filter(s => now - s.date < 7 * oneDay)
 			.reduce((sum, s) => sum + s.duration, 0);
 
-		const lastScore = localStorage.getItem('pl_last_score');
+		const lastScore = localStorage.getItem('pl_last_score_persistent');
 		const learnedCount = stats.problematicLearnCounts.length;
 
 		let avgFails = 0;
@@ -1869,6 +1870,7 @@
 			knownWords: []
 		};
 		localStorage.setItem('pl_stats', JSON.stringify(stats));
+		localStorage.removeItem('pl_last_score_persistent');
 		renderStats();
 	}
 </script>

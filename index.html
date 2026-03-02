@@ -1909,12 +1909,30 @@
 	}
 
 	document.addEventListener("visibilitychange", function() {
+
+		const now = Date.now();
+
 		if (document.visibilityState === "hidden") {
-			const duration = Math.round((Date.now() - appVisibleSince) / 1000);
+
+			// ⏱ Přičíst čas aplikace
+			const duration = Math.round((now - appVisibleSince) / 1000);
 			stats.appTimeTotal += duration;
+
+			// ⏱ Pokud běží trénink, přičíst i čas učení
+			if (trainingActive && sessionStartTime) {
+				const lessonDuration = Math.round((now - sessionStartTime) / 1000);
+				stats.totalTime += lessonDuration;
+				sessionStartTime = now; // reset
+			}
+
 			localStorage.setItem('pl_stats', JSON.stringify(stats));
+
 		} else {
-			appVisibleSince = Date.now();
+
+			// Reset začátku měření
+			appVisibleSince = now;
+			sessionStartTime = now;
+
 		}
 	});
 

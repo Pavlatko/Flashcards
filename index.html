@@ -1786,6 +1786,17 @@
 	}
 
 	function openStats() {
+
+		// 🔥 DŮLEŽITÉ: aktualizovat běžící čas aplikace
+		const now = Date.now();
+		const duration = Math.round((now - appVisibleSince) / 1000);
+
+		if (duration > 0) {
+			stats.appTimeTotal += duration;
+			localStorage.setItem('pl_stats', JSON.stringify(stats));
+			appVisibleSince = now; // reset počítání
+		}
+
 		document.getElementById('menu-area').style.display = 'none';
 		document.getElementById('stats-area').style.display = 'block';
 		document.getElementById('lesson-name-display').innerText = 'Statistiky';

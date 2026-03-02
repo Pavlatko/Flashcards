@@ -528,6 +528,7 @@
     document.documentElement.style.setProperty('--text-color', currentTextColor);
     let audioCtx;
     let failedWords = []; 
+	let appVisibleSince = Date.now();
     let readArticles = localStorage.getItem('pl_read_articles') === 'true';
     let readAllForms = localStorage.getItem('pl_read_all_forms') === 'true';
     let speechRate = parseFloat(localStorage.getItem('pl_speech_rate') || '0.85');
@@ -543,7 +544,8 @@
 		"sessions": [],
 		"totalTime": 0,
 		"problematicLearnCounts": [],
-		"knownWords": []
+		"knownWords": [],
+		"appTimeTotal": 0
 	}`);
 
 	// Oprava starých verzí statistik (mobilní Chrome fallback)
@@ -552,6 +554,7 @@
 	if (!Array.isArray(stats.knownWords)) stats.knownWords = [];
 	if (typeof stats.totalTime !== 'number') stats.totalTime = 0;
 	if (!Array.isArray(stats.problematicLearnCounts)) stats.problematicLearnCounts = [];
+	if (typeof stats.appTimeTotal !== 'number') stats.appTimeTotal = 0;
 
 	let sessionStartTime = null;
 
@@ -1350,15 +1353,19 @@
 				localStorage.setItem('pl_finished_lessons', JSON.stringify(finishedLessons));
 			}
 			if (sessionStartTime) {
-				const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
-				stats.totalTime += duration;
-				stats.sessions.push({
-					date: Date.now(),
-					duration: duration,
-					success: successRate
-				});
-				localStorage.setItem('pl_stats', JSON.stringify(stats));
-				sessionStartTime = null;
+				const duration = Math.round((Date.now() - sessionStartTime) / 1000);
+
+				// Uložit statistiku pouze pokud lekce byla skutečně dokončena
+				if (originalLength > 0) {
+					stats.sessions.push({
+						date: Date.now(),
+						success: successRate,
+						duration: duration
+					});
+
+					stats.totalTime += duration;
+					localStorage.setItem('pl_stats', JSON.stringify(stats));
+				}
 			}
 			resetAppView(); 
 		}
@@ -1811,6 +1818,7 @@
 
 		const lastScore = localStorage.getItem('pl_last_score_persistent');
 		const learnedCount = stats.problematicLearnCounts.length;
+		const appTotal = stats.appTimeTotal;
 
 		let avgFails = 0;
 		let worstWord = null;
@@ -1834,8 +1842,8 @@
 			<hr style="margin:15px 0;">
 
 			<div class="settings-label">📈 Úspěšnost</div>
-			Poslední lekce: ${lastScore !== null ? lastScore + ' %' : '—'}<br>
-			Průměrná úspěšnost: ${avgSuccess}%
+			Poslední lekce: <b>${lastScore !== null ? lastScore + ' %' : '—'}</b><br>
+			Průměrná úspěšnost: <b>${avgSuccess}%</b>
 
 			<hr style="margin:15px 0;">
 
@@ -1843,7 +1851,8 @@
 			Dnes: ${formatTime(today)}<br>
 			Včera: ${formatTime(yesterday)}<br>
 			7 dní: ${formatTime(week)}<br>
-			Celkem: ${formatTime(stats.totalTime)}
+			Celkem: ${formatTime(stats.totalTime)}<br>
+			Celkový čas v aplikaci: ${formatTime(appTotal)}
 
 			<hr style="margin:15px 0;">
 
@@ -1873,6 +1882,17 @@
 		localStorage.removeItem('pl_last_score_persistent');
 		renderStats();
 	}
+
+	document.addEventListener("visibilitychange", function() {
+		if (document.visibilityState === "hidden") {
+			const duration = Math.round((Date.now() - appVisibleSince) / 1000);
+			stats.appTimeTotal += duration;
+			localStorage.setItem('pl_stats', JSON.stringify(stats));
+		} else {
+			appVisibleSince = Date.now();
+		}
+	});
+
 </script>
 
 <div id="hint-popup" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; justify-content:center; align-items:center;" onclick="this.style.display='none'">

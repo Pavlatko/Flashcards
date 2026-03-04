@@ -488,7 +488,11 @@
 			<button class="btn-cat-add" onclick="createNewCategory()">📁 Vytvořit novou kategorii</button>
 			<label class="btn-load">📂 Nahrát lekci do hlavní nabídky<input type="file" id="fIn" style="display:none" onchange="handleFile(this)" accept=".csv"></label>
 			<div class="btn-load" onclick="window.open('./importer.html', '_blank')">📂 Hromadný import lekcí</div>
-			<div class="btn-load" onclick="window.open('./backup_restore.html', '_blank')">💾 Záloha / Obnova dat</div>
+			<div class="btn-load" onclick="exportBackup()">💾 Vytvořit zálohu dat</div>
+			<label class="btn-load">
+			📂 Obnovit ze zálohy
+			<input type="file" id="backupFileInput" style="display:none" accept=".json" onchange="importBackup(this)">
+			</label>
 		</center>
     </div>
 	<div id="stats-area" style="display:none; width: 100%; max-width: 360px; margin-top:20px;">
@@ -2011,6 +2015,95 @@
 
 		}
 	});
+
+	function exportBackup() {
+
+		const backupData = {
+			app: "Flashcards",
+			version: 1,
+			created: new Date().toISOString(),
+			device: navigator.userAgent,
+			data: {}
+		};
+
+		for (let i = 0; i < localStorage.length; i++) {
+			const key = localStorage.key(i);
+			backupData.data[key] = localStorage.getItem(key);
+		}
+
+		const json = JSON.stringify(backupData, null, 2);
+		const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
+		const url = URL.createObjectURL(blob);
+
+		const now = new Date();
+
+		const timestamp =
+			now.getFullYear() + "-" +
+			String(now.getMonth()+1).padStart(2,'0') + "-" +
+			String(now.getDate()).padStart(2,'0') + "_" +
+			String(now.getHours()).padStart(2,'0') + "-" +
+			String(now.getMinutes()).padStart(2,'0') + "-" +
+			String(now.getSeconds()).padStart(2,'0');
+
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = "flashcards-backup-" + timestamp + ".json";
+		a.click();
+
+		URL.revokeObjectURL(url);
+
+		alert("Záloha byla vytvořena.");
+	}
+
+	function importBackup(input) {
+
+		const file = input.files[0];
+		if (!file) return;
+
+		const reader = new FileReader();
+
+		reader.onload = function(e) {
+
+			try {
+
+				const parsed = JSON.parse(e.target.result);
+
+				if (!parsed.app || parsed.app !== "Flashcards") {
+					alert("Toto není platná záloha Flashcards.");
+					return;
+				}
+
+				if (!confirm(
+					"POZOR!\n\n" +
+					"Import přepíše všechna aktuální data:\n" +
+					"- lekce\n" +
+					"- statistiky\n" +
+					"- problematická slovíčka\n" +
+					"- dokončené lekce\n" +
+					"- nastavení\n\n" +
+					"Pokračovat?"
+				)) return;
+
+				localStorage.clear();
+
+				Object.keys(parsed.data).forEach(key => {
+					localStorage.setItem(key, parsed.data[key]);
+				});
+
+				alert("Data byla obnovena. Aplikace se restartuje.");
+
+				location.reload();
+
+			} catch (err) {
+
+				alert("Chyba při načítání zálohy.");
+
+			}
+
+		};
+
+		reader.readAsText(file, "UTF-8");
+	}
 
 </script>
 

@@ -2141,7 +2141,7 @@
 		reader.readAsText(file, "UTF-8");
 	}
 
-	// ZÁLOHA
+	// ZÁLOHA UNIVERZAL
 	function buildBackupData(type = "manual") {
 
 		const BACKUP_VERSION = 3;
@@ -2176,7 +2176,11 @@
 		for (let i = 0; i < localStorage.length; i++) {
 			const key = localStorage.key(i);
 
-			if (key === "pl_last_autobackup") continue;
+			if (
+				key === "pl_last_autobackup" ||
+				key === "pl_app_view" ||
+				key === "pl_dict_scope"
+			) continue;
 
 			backupData.data[key] = localStorage.getItem(key);
 		}

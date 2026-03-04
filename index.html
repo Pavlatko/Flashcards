@@ -444,7 +444,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.09 by <b>Pavlatko</b>Lab
+            <b>Flashcards</b> 3.10 by <b>Pavlatko</b>Lab
         </div>
     </div>
 
@@ -2142,11 +2142,11 @@
 	}
 
 	// ZÁLOHA
-	function exportBackup() {
+	function buildBackupData(type = "manual") {
 
 		const BACKUP_VERSION = 3;
 
-		// 🔥 zajistit uložení statistik do localStorage
+		// zajistit uložení statistik
 		localStorage.setItem('pl_stats', JSON.stringify(stats));
 
 		const lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
@@ -2159,6 +2159,7 @@
 			app: "Flashcards",
 			appVersion: "1.0",
 			backupVersion: BACKUP_VERSION,
+			type: type,
 			created: new Date().toISOString(),
 			createdReadable: new Date().toLocaleString(),
 			device: navigator.userAgent,
@@ -2180,6 +2181,24 @@
 			backupData.data[key] = localStorage.getItem(key);
 		}
 
+		return backupData;
+	}
+
+	// ZÁLOHA MANUAL
+	function exportBackup() {
+
+		const BACKUP_VERSION = 3;
+
+		// 🔥 zajistit uložení statistik do localStorage
+		localStorage.setItem('pl_stats', JSON.stringify(stats));
+
+		const lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
+		const problematic = JSON.parse(localStorage.getItem('pl_problematic') || '[]');
+
+		let totalWords = 0;
+		Object.values(lessons).forEach(l => totalWords += l.length);
+
+		const backupData = buildBackupData("manual");
 		const json = JSON.stringify(backupData, null, 2);
 
 		const blob = new Blob(
@@ -2223,12 +2242,12 @@
 		if (restoredAt) {
 			const diff = Date.now() - parseInt(restoredAt);
 
-			// 24 hodin = 86400000 ms
-			if (diff < 86400000) {
+			// 1 hodina = 3600000 ms
+			if (diff < 3600000) {
 				return;
 			}
 
-			// po 24h flag smažeme
+			// po 1 hod flag smažeme
 			localStorage.removeItem('pl_backup_restored_at');
 		}
 
@@ -2237,19 +2256,7 @@
 
 		if (lastBackup === today) return;
 
-		const backupData = {
-			app: "Flashcards",
-			type: "autobackup",
-			created: new Date().toISOString(),
-			createdReadable: new Date().toLocaleString(),
-			data: {}
-		};
-
-		for (let i = 0; i < localStorage.length; i++) {
-			const key = localStorage.key(i);
-			backupData.data[key] = localStorage.getItem(key);
-		}
-
+		const backupData = buildBackupData("autobackup");
 		const json = JSON.stringify(backupData, null, 2);
 
 		const blob = new Blob(

@@ -612,6 +612,7 @@
 
     renderMenu();
     checkAppPersistence();
+	runAutoBackup();
 
 	function populateVoiceList() {
 		if (typeof speechSynthesis === 'undefined') return;
@@ -2016,13 +2017,31 @@
 		}
 	});
 
+	// EXPORT
 	function exportBackup() {
+
+		const BACKUP_VERSION = 3;
+
+		const lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
+		const problematic = JSON.parse(localStorage.getItem('pl_problematic') || '[]');
+
+		let totalWords = 0;
+		Object.values(lessons).forEach(l => totalWords += l.length);
 
 		const backupData = {
 			app: "Flashcards",
-			version: 1,
+			appVersion: "1.0",
+			backupVersion: BACKUP_VERSION,
 			created: new Date().toISOString(),
+			createdReadable: new Date().toLocaleString(),
 			device: navigator.userAgent,
+
+			stats: {
+				lessons: Object.keys(lessons).length,
+				words: totalWords,
+				problematic: problematic.length
+			},
+
 			data: {}
 		};
 
@@ -2032,7 +2051,12 @@
 		}
 
 		const json = JSON.stringify(backupData, null, 2);
-		const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
+
+		const blob = new Blob(
+			[json],
+			{ type: "application/json;charset=utf-8;" }
+		);
+
 		const url = URL.createObjectURL(blob);
 
 		const now = new Date();
@@ -2052,9 +2076,16 @@
 
 		URL.revokeObjectURL(url);
 
-		alert("Záloha byla vytvořena.");
+		alert(
+			"✅ Záloha vytvořena\n\n" +
+			"Verze backupu: " + BACKUP_VERSION + "\n" +
+			"Lekce: " + backupData.stats.lessons + "\n" +
+			"Slov: " + backupData.stats.words + "\n" +
+			"Problematických: " + backupData.stats.problematic
+		);
 	}
 
+	// IMPORT
 	function importBackup(input) {
 
 		const file = input.files[0];
@@ -2069,20 +2100,25 @@
 				const parsed = JSON.parse(e.target.result);
 
 				if (!parsed.app || parsed.app !== "Flashcards") {
-					alert("Toto není platná záloha Flashcards.");
+					alert("❌ Toto není platná záloha Flashcards.");
 					return;
 				}
 
-				if (!confirm(
-					"POZOR!\n\n" +
-					"Import přepíše všechna aktuální data:\n" +
-					"- lekce\n" +
-					"- statistiky\n" +
-					"- problematická slovíčka\n" +
-					"- dokončené lekce\n" +
-					"- nastavení\n\n" +
-					"Pokračovat?"
-				)) return;
+				let info =
+					"📦 Informace o záloze\n\n" +
+					"Backup verze: " + (parsed.backupVersion || "1") + "\n" +
+					"Vytvořeno: " + (parsed.createdReadable || parsed.created);
+
+				if (parsed.stats) {
+					info +=
+						"\n\nLekce: " + parsed.stats.lessons +
+						"\nSlov: " + parsed.stats.words +
+						"\nProblematických: " + parsed.stats.problematic;
+				}
+
+				info += "\n\nObnovit data?";
+
+				if (!confirm(info)) return;
 
 				localStorage.clear();
 
@@ -2090,19 +2126,59 @@
 					localStorage.setItem(key, parsed.data[key]);
 				});
 
-				alert("Data byla obnovena. Aplikace se restartuje.");
+				alert("✅ Data obnovena.\nAplikace se restartuje.");
 
 				location.reload();
 
 			} catch (err) {
 
-				alert("Chyba při načítání zálohy.");
+				alert("❌ Soubor je poškozený nebo neplatný.");
 
 			}
 
 		};
 
 		reader.readAsText(file, "UTF-8");
+	}
+
+	// AUTO BACKUP 1x DENNĚ
+	function runAutoBackup() {
+
+		const today = new Date().toISOString().slice(0,10);
+		const lastBackup = localStorage.getItem("pl_last_autobackup");
+
+		if (lastBackup === today) return;
+
+		const backupData = {
+			app: "Flashcards",
+			type: "autobackup",
+			created: new Date().toISOString(),
+			createdReadable: new Date().toLocaleString(),
+			data: {}
+		};
+
+		for (let i = 0; i < localStorage.length; i++) {
+			const key = localStorage.key(i);
+			backupData.data[key] = localStorage.getItem(key);
+		}
+
+		const json = JSON.stringify(backupData, null, 2);
+
+		const blob = new Blob(
+			[json],
+			{ type: "application/json;charset=utf-8;" }
+		);
+
+		const url = URL.createObjectURL(blob);
+
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = "flashcards-autobackup-" + today + ".json";
+		a.click();
+
+		URL.revokeObjectURL(url);
+
+		localStorage.setItem("pl_last_autobackup", today);
 	}
 
 </script>

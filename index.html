@@ -444,7 +444,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.06 by <b>Pavlatko</b>Lab
+            <b>Flashcards</b> 3.07 by <b>Pavlatko</b>Lab
         </div>
     </div>
 
@@ -2061,6 +2061,23 @@
 			sessionStartTime = now;
 
 		}
+	});
+
+	window.addEventListener("beforeunload", function() {
+
+		const now = Date.now();
+
+		// čas aplikace
+		const duration = Math.round((now - appVisibleSince) / 1000);
+		stats.appTimeTotal += duration;
+
+		// čas tréninku
+		if (trainingActive && sessionStartTime) {
+			const lessonDuration = Math.round((now - sessionStartTime) / 1000);
+			stats.totalTime += lessonDuration;
+		}
+
+		localStorage.setItem('pl_stats', JSON.stringify(stats));
 	});
 
 	// OBNOVA

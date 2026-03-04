@@ -444,7 +444,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.04 by <b>Pavlatko</b>Lab
+            <b>Flashcards</b> 3.05 by <b>Pavlatko</b>Lab
         </div>
     </div>
 
@@ -670,14 +670,41 @@
 
 		// Desktop situace – více NL-NL hlasů
 		voiceSelect.disabled = false;
+
+		// Preferované pořadí hlasů
+		const preferredOrder = ["colette", "fenna", "maarten", "frank"];
+
+		nlVoices.sort((a, b) => {
+
+			const getPriority = (name) => {
+				const lower = name.toLowerCase();
+				const idx = preferredOrder.findIndex(v => lower.includes(v));
+				return idx === -1 ? 999 : idx;
+			};
+
+			const pa = getPriority(a.name);
+			const pb = getPriority(b.name);
+
+			if (pa !== pb) return pa - pb;
+
+			return a.name.localeCompare(b.name);
+		});
+
+		// pokud je hlas uložený v localStorage a existuje → použij ho
+		const storedVoice = localStorage.getItem('pl_voice_name');
+
+		if (storedVoice && nlVoices.find(v => v.name === storedVoice)) {
+			selectedVoiceName = storedVoice;
+		} else {
+			// jinak nastav výchozí Colette
+			selectedVoiceName = nlVoices.find(v => v.name === "Colette")?.name || nlVoices[0].name;
+			localStorage.setItem('pl_voice_name', selectedVoiceName);
+		}
+
+		// vykreslení selectu
 		voiceSelect.innerHTML = nlVoices.map(v =>
 			`<option value="${v.name}" ${v.name === selectedVoiceName ? 'selected' : ''}>${v.name}</option>`
 		).join('');
-
-		if (!selectedVoiceName || !nlVoices.find(v => v.name === selectedVoiceName)) {
-			selectedVoiceName = nlVoices[0].name;
-			localStorage.setItem('pl_voice_name', selectedVoiceName);
-		}
 	}
 
 	// Speciální ošetření pro mobilní Edge/Chrome
@@ -891,8 +918,18 @@
     }
 
 	if (typeof speechSynthesis !== 'undefined') {
-		speechSynthesis.onvoiceschanged = populateVoiceList;
-		populateVoiceList();
+
+		speechSynthesis.onvoiceschanged = () => {
+			// znovu načteme uložený hlas
+			selectedVoiceName = localStorage.getItem('pl_voice_name') || '';
+			populateVoiceList();
+		};
+
+		// první pokus
+		setTimeout(() => {
+			selectedVoiceName = localStorage.getItem('pl_voice_name') || '';
+			populateVoiceList();
+		}, 100);
 	}
 
     function renderMenu() {

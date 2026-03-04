@@ -1968,14 +1968,19 @@
 
 	function resetStats() {
 		if (!confirm("Opravdu chceš smazat všechny statistiky?")) return;
-		stats = { 
-			sessions: [], 
+
+		stats = {
+			sessions: [],
 			totalTime: 0,
 			problematicLearnCounts: [],
-			knownWords: []
+			knownWords: [],
+			appTimeTotal: 0,
+			wordFailClicks: {}
 		};
+
 		localStorage.setItem('pl_stats', JSON.stringify(stats));
 		localStorage.removeItem('pl_last_score_persistent');
+
 		renderStats();
 	}
 

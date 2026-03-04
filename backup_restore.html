@@ -47,6 +47,8 @@ Záloha obsahuje:
 
 function exportBackup() {
 
+    const storage = window.opener ? window.opener.localStorage : localStorage;
+
     const backupData = {
         app: "Flashcards",
         version: 1,
@@ -55,11 +57,10 @@ function exportBackup() {
         data: {}
     };
 
-	// vezmeme celý localStorage (bez omezení)
-	for (let i = 0; i < localStorage.length; i++) {
-		const key = localStorage.key(i);
-		backupData.data[key] = localStorage.getItem(key);
-	}
+    for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        backupData.data[key] = storage.getItem(key);
+    }
 
     const json = JSON.stringify(backupData, null, 2);
     const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
@@ -67,7 +68,16 @@ function exportBackup() {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = "flashcards-backup-" + new Date().toISOString().slice(0,10) + ".json";
+    const now = new Date();
+	const timestamp =
+		now.getFullYear() + "-" +
+		String(now.getMonth()+1).padStart(2,'0') + "-" +
+		String(now.getDate()).padStart(2,'0') + "_" +
+		String(now.getHours()).padStart(2,'0') + "-" +
+		String(now.getMinutes()).padStart(2,'0') + "-" +
+		String(now.getSeconds()).padStart(2,'0');
+
+	a.download = "flashcards-backup-" + timestamp + ".json";
     a.click();
 
     URL.revokeObjectURL(url);
@@ -108,13 +118,13 @@ function importBackup(input) {
 
             if (!confirmImport) return;
 
-            // 1️⃣ Smažeme celý localStorage
-			localStorage.clear();
+			const storage = window.opener ? window.opener.localStorage : localStorage;
 
-            // 2️⃣ Nahrajeme nová data
-            Object.keys(parsed.data).forEach(key => {
-                localStorage.setItem(key, parsed.data[key]);
-            });
+			storage.clear();
+
+			Object.keys(parsed.data).forEach(key => {
+				storage.setItem(key, parsed.data[key]);
+			});
 
             document.getElementById("log").innerText =
                 "✅ Data byla úspěšně obnovena.\nAplikace se nyní restartuje...";

@@ -2023,7 +2023,65 @@
 		}
 	});
 
-	// EXPORT
+	// OBNOVA
+	function importBackup(input) {
+
+		restoringBackup = true;
+		const file = input.files[0];
+		if (!file) return;
+
+		const reader = new FileReader();
+
+		reader.onload = function(e) {
+
+			try {
+
+				const parsed = JSON.parse(e.target.result);
+
+				if (!parsed.app || parsed.app !== "Flashcards") {
+					alert("❌ Toto není platná záloha Flashcards.");
+					return;
+				}
+
+				let info =
+					"📦 Informace o záloze\n\n" +
+					"Backup verze: " + (parsed.backupVersion || "1") + "\n" +
+					"Vytvořeno: " + (parsed.createdReadable || parsed.created);
+
+				if (parsed.stats) {
+					info +=
+						"\n\nLekce: " + parsed.stats.lessons +
+						"\nSlov: " + parsed.stats.words +
+						"\nProblematických: " + parsed.stats.problematic;
+				}
+
+				info += "\n\nObnovit data?";
+
+				if (!confirm(info)) return;
+
+				localStorage.clear();
+
+				// obnovit všechna data přesně jak byla
+				Object.keys(parsed.data).forEach(key => {
+					localStorage.setItem(key, parsed.data[key]);
+				});
+
+				alert("✅ Data obnovena.\nAplikace se restartuje.");
+
+				location.reload();
+
+			} catch (err) {
+
+				alert("❌ Soubor je poškozený nebo neplatný.");
+
+			}
+
+		};
+
+		reader.readAsText(file, "UTF-8");
+	}
+
+	// ZÁLOHA
 	function exportBackup() {
 
 		const BACKUP_VERSION = 3;
@@ -2097,65 +2155,7 @@
 		);
 	}
 
-	// IMPORT
-	function importBackup(input) {
-
-		restoringBackup = true;
-		const file = input.files[0];
-		if (!file) return;
-
-		const reader = new FileReader();
-
-		reader.onload = function(e) {
-
-			try {
-
-				const parsed = JSON.parse(e.target.result);
-
-				if (!parsed.app || parsed.app !== "Flashcards") {
-					alert("❌ Toto není platná záloha Flashcards.");
-					return;
-				}
-
-				let info =
-					"📦 Informace o záloze\n\n" +
-					"Backup verze: " + (parsed.backupVersion || "1") + "\n" +
-					"Vytvořeno: " + (parsed.createdReadable || parsed.created);
-
-				if (parsed.stats) {
-					info +=
-						"\n\nLekce: " + parsed.stats.lessons +
-						"\nSlov: " + parsed.stats.words +
-						"\nProblematických: " + parsed.stats.problematic;
-				}
-
-				info += "\n\nObnovit data?";
-
-				if (!confirm(info)) return;
-
-				localStorage.clear();
-
-				// obnovit všechna data přesně jak byla
-				Object.keys(parsed.data).forEach(key => {
-					localStorage.setItem(key, parsed.data[key]);
-				});
-
-				alert("✅ Data obnovena.\nAplikace se restartuje.");
-
-				location.reload();
-
-			} catch (err) {
-
-				alert("❌ Soubor je poškozený nebo neplatný.");
-
-			}
-
-		};
-
-		reader.readAsText(file, "UTF-8");
-	}
-
-	// AUTO BACKUP 1x DENNĚ
+	// AUTO ZÁLOHA 1x DENNĚ
 	function runAutoBackup() {
 
 		// 🔥 zajistit uložení statistik

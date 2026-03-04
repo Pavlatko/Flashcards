@@ -444,7 +444,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.07 by <b>Pavlatko</b>Lab
+            <b>Flashcards</b> 3.08 by <b>Pavlatko</b>Lab
         </div>
     </div>
 
@@ -2139,11 +2139,12 @@
 	}
 
 	// ZÁLOHA
-	function exportBackup() {
+	function exportBackup() {function exportBackup() {
 
 		const BACKUP_VERSION = 3;
 
-		// 🔥 zajistit uložení statistik do localStorage
+		// 🔥 ULOŽIT aktuální data do localStorage
+		localStorage.setItem('pl_problematic', JSON.stringify(problematic));
 		localStorage.setItem('pl_stats', JSON.stringify(stats));
 
 		const lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
@@ -2215,8 +2216,11 @@
 	// AUTO ZÁLOHA 1x DENNĚ
 	function runAutoBackup() {
 
-		// 🔥 zajistit uložení statistik
+		const BACKUP_VERSION = 3;
+
+		// 🔥 ULOŽIT aktuální data do localStorage
 		localStorage.setItem('pl_stats', JSON.stringify(stats));
+		localStorage.setItem('pl_problematic', JSON.stringify(problematic));
 
 		const today = new Date().toISOString().slice(0,10);
 		const lastBackup = localStorage.getItem("pl_last_autobackup");

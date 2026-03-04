@@ -444,7 +444,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.05 by <b>Pavlatko</b>Lab
+            <b>Flashcards</b> 3.06 by <b>Pavlatko</b>Lab
         </div>
     </div>
 
@@ -630,17 +630,20 @@
 			const lang = v.lang.toLowerCase();
 			const name = v.name.toLowerCase();
 
-			// MUSÍ být nizozemské Nizozemsko
-			const isNetherlands = lang === 'nl-nl';
+			// povolit všechny nizozemské hlasy
+			const isDutch =
+				lang.startsWith('nl') || 
+				name.includes('dutch') ||
+				name.includes('nederlands');
 
-			// Tvrdý zákaz Belgie podle jazyka i názvu
+			// blokovat belgické varianty
 			const isBelgian =
 				lang.includes('be') ||
 				name.includes('belg') ||
 				name.includes('vlaams') ||
 				name.includes('flemish');
 
-			return isNetherlands && !isBelgian;
+			return isDutch && !isBelgian;
 		});
 
 		// Pokud NL-NL není dostupné (některé Androidy vrací jen "nl")

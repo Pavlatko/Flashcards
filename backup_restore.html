@@ -55,13 +55,11 @@ function exportBackup() {
         data: {}
     };
 
-    // vezmeme všechny pl_ klíče
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith("pl_")) {
-            backupData.data[key] = localStorage.getItem(key);
-        }
-    }
+	// vezmeme celý localStorage (bez omezení)
+	for (let i = 0; i < localStorage.length; i++) {
+		const key = localStorage.key(i);
+		backupData.data[key] = localStorage.getItem(key);
+	}
 
     const json = JSON.stringify(backupData, null, 2);
     const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
@@ -110,16 +108,8 @@ function importBackup(input) {
 
             if (!confirmImport) return;
 
-            // 1️⃣ Smažeme všechny pl_ klíče
-            const keysToRemove = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith("pl_")) {
-                    keysToRemove.push(key);
-                }
-            }
-
-            keysToRemove.forEach(k => localStorage.removeItem(k));
+            // 1️⃣ Smažeme celý localStorage
+			localStorage.clear();
 
             // 2️⃣ Nahrajeme nová data
             Object.keys(parsed.data).forEach(key => {
@@ -129,10 +119,16 @@ function importBackup(input) {
             document.getElementById("log").innerText =
                 "✅ Data byla úspěšně obnovena.\nAplikace se nyní restartuje...";
 
-            // 3️⃣ Restart aplikace
             setTimeout(() => {
+
+				// reload hlavní aplikace pokud existuje
+				if (window.opener) {
+					window.opener.location.reload();
+				}
+
 				window.close();
-			}, 1500);
+
+			}, 1200);
 
         } catch (err) {
             alert("Chyba při načítání zálohy.");

@@ -502,7 +502,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.23 by <b>Pavlatko</b>Lab
+            <b>Flashcards</b> 3.24 by <b>Pavlatko</b>Lab
         </div>
     </div>
 
@@ -1380,16 +1380,30 @@
     }
 
     function backFromModeSelection() {
-        document.getElementById('mode-area').style.display = 'none';
-        localStorage.removeItem('pl_app_view');
-        localStorage.removeItem('pl_current_lesson_id');
-        if (currentOpenCategory) {
-            openCategory(currentOpenCategory);
-        } else { 
-            document.getElementById('menu-area').style.display = 'flex'; 
-            renderMenu(); 
-        }
-    }
+
+		document.getElementById('mode-area').style.display = 'none';
+		localStorage.removeItem('pl_app_view');
+		localStorage.removeItem('pl_current_lesson_id');
+
+		let cat = currentOpenCategory;
+
+		// pokud nevíme kategorii, zkusíme ji dohledat podle lekce
+		if (!cat) {
+			for (const c in categories) {
+				if (categories[c].includes(currentLessonId)) {
+					cat = c;
+					break;
+				}
+			}
+		}
+
+		if (cat) {
+			openCategory(cat);
+		} else {
+			document.getElementById('menu-area').style.display = 'flex';
+			renderMenu();
+		}
+	}
 
 	function startTraining(m, isR = false) { 
 		// --- OCHRANA POSTUPU (PŘESUNUTO SEM) ---

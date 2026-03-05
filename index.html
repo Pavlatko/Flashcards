@@ -22,6 +22,7 @@
             --gradient: linear-gradient(135deg, var(--primary), #357abd);
             --app-bg: #f5f5f5;
             --text-color: #333;
+			--study:#2e7d32;
         }
         body { 
             font-family: sans-serif; 
@@ -402,6 +403,34 @@
 		#stats-area .settings-wrap * {
 			color: black;
 		}
+
+		/* STUDIUM */
+		.study-item{
+			background:white;
+			border-radius:15px;
+			padding:18px;
+			margin-bottom:12px;
+			border:1px solid #ddd;
+			cursor:pointer;
+			text-align:center;
+		}
+
+		.study-nl{
+			font-size:1.8rem;
+			font-weight:bold;
+		}
+
+		.study-cz{
+			font-size:1.4rem;
+			margin-top:6px;
+		}
+
+		.study-ipa{
+			font-size:1.2rem;
+			color:#d32f2f;
+			margin-top:6px;
+		}
+
 		</style>
 	<link rel="icon" type="image/png" href="icon.png">
 	<link rel="apple-touch-icon" href="icon.png">
@@ -514,10 +543,39 @@
 
     <div id="mode-area" class="controls" style="display:none">
 		<div id="lesson-info-sub"></div>
-		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral)" onclick="backFromModeSelection()">⬅ &nbsp; ZPĚT DO MENU</button>
+
+		<div style="display:flex; gap:10px; width:100%;">
+    
+			<button id="prev-lesson-btn"
+				class="btn-action btn-flip-big"
+				style="--btn-color:var(--neutral); width:60px; aspect-ratio:1/1;"
+				onclick="goPrevLesson()">
+				◀
+			</button>
+
+			<button class="btn-action btn-flip-big"
+				style="--btn-color:var(--neutral); flex:1;"
+				onclick="backFromModeSelection()">
+				⬅ &nbsp; ZPĚT DO MENU
+			</button>
+
+			<button id="next-lesson-btn"
+				class="btn-action btn-flip-big"
+				style="--btn-color:var(--neutral); width:60px; aspect-ratio:1/1;"
+				onclick="goNextLesson()">
+				▶
+			</button>
+
+		</div>
+
 		<button class="btn-action btn-flip-big" onclick="startTraining('CZ-NL')">ČESKY ➔ NIZOZEMSKY</button>
 		<button class="btn-action btn-flip-big" onclick="startTraining('NL-CZ')">NIZOZEMSKY ➔ ČESKY</button>
 		<button class="btn-action btn-flip-big" style="--btn-color:var(--secondary);" onclick="openDictionary(currentLessonId)">📖 Slovníček lekce</button>
+		<button class="btn-action btn-flip-big"
+				style="--btn-color:var(--study);"
+				onclick="openStudyMode()">
+			📚 STUDIUM
+		</button>
 		<button id="toggle-finished-btn" class="btn-action btn-flip-big" style="--btn-color:var(--category); margin-top: 10px;" onclick="toggleLessonFinished()"></button>
 	</div>
 
@@ -535,6 +593,18 @@
             </table>
         </div>
     </div>
+
+	<div id="study-area" style="display:none; width:100%; max-width:500px; margin-top:10px;">
+
+		<button class="btn-action btn-flip-big"
+			style="--btn-color:var(--neutral); margin-bottom:15px;"
+			onclick="closeStudyMode()">
+			⬅ &nbsp; ZPĚT
+		</button>
+
+		<div id="study-list"></div>
+
+	</div>
 
     <div class="scene" id="main-scene">
         <div class="card" id="card" onclick="toggleFlip(event)">
@@ -791,6 +861,91 @@
 		}
 	}
 
+	// **********************
+	// Další a předchozí lekce - tlačítka
+
+	function getLessonList() {
+
+		let cat = currentOpenCategory;
+
+		// pokud není otevřená kategorie, zkusíme zjistit,
+		// jestli aktuální lekce patří do nějaké kategorie
+		if (!cat) {
+			for (const c in categories) {
+				if (categories[c].includes(currentLessonId)) {
+					cat = c;
+					break;
+				}
+			}
+		}
+
+		// pokud jsme našli kategorii
+		if (cat) {
+			return [...categories[cat]]
+				.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+		}
+
+		// jinak hlavní menu (lekce bez kategorie)
+		const categorized = Object.values(categories).flat();
+
+		return Object.keys(allLessons)
+			.filter(l => !categorized.includes(l))
+			.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+	}
+
+	function goNextLesson() {
+
+		const list = getLessonList();
+		const index = list.indexOf(currentLessonId);
+
+		if (index < list.length - 1) {
+			selectLesson(list[index + 1]);
+		}
+	}
+
+	function goPrevLesson() {
+
+		const list = getLessonList();
+		const index = list.indexOf(currentLessonId);
+
+		if (index > 0) {
+			selectLesson(list[index - 1]);
+		}
+	}
+
+	// **********************
+
+	function updateLessonArrows() {
+
+		const list = getLessonList();
+		const index = list.indexOf(currentLessonId);
+
+		const prevBtn = document.getElementById("prev-lesson-btn");
+		const nextBtn = document.getElementById("next-lesson-btn");
+
+		if (!prevBtn || !nextBtn) return;
+
+		// první lekce
+		if (index <= 0) {
+			prevBtn.style.opacity = "0.35";
+			prevBtn.style.pointerEvents = "none";
+		} else {
+			prevBtn.style.opacity = "1";
+			prevBtn.style.pointerEvents = "auto";
+		}
+
+		// poslední lekce
+		if (index >= list.length - 1) {
+			nextBtn.style.opacity = "0.35";
+			nextBtn.style.pointerEvents = "none";
+		} else {
+			nextBtn.style.opacity = "1";
+			nextBtn.style.pointerEvents = "auto";
+		}
+	}
+
+	// **********************
+
 	function checkAppPersistence() {
         const lastView = localStorage.getItem('pl_app_view');
         const savedCat = localStorage.getItem('pl_current_cat');
@@ -935,6 +1090,20 @@
 		}, 100);
 	}
 
+	function getNextLessonName(currentLesson) {
+
+		const lessonNames = Object.keys(allLessons)
+			.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+		const index = lessonNames.indexOf(currentLesson);
+
+		if (index !== -1 && index < lessonNames.length - 1) {
+			return lessonNames[index + 1];
+		}
+
+		return null;
+	}
+
     function renderMenu() {
         document.getElementById('app-body').classList.remove('training-mode');
         const c = document.getElementById('lessons-container'); 
@@ -958,14 +1127,34 @@
 				<div class="lesson-del" onclick="clearProgress()">×</div>`;
 			rc.appendChild(r);
 		} else if (lastFinishedLesson && allLessons[lastFinishedLesson]) {
+
 			const r = document.createElement('div');
 			r.className = 'lesson-row';
+
 			r.innerHTML = `
 				<button class="lesson-btn resume-btn"
 					onclick="selectLesson('${lastFinishedLesson}')">
 					🔁 &nbsp; Opakovat: ${lastFinishedLesson}
 				</button>`;
+
 			rc.appendChild(r);
+
+
+			const nextLesson = getNextLessonName(lastFinishedLesson);
+
+			if (nextLesson) {
+
+				const r2 = document.createElement('div');
+				r2.className = 'lesson-row';
+
+				r2.innerHTML = `
+					<button class="lesson-btn"
+						onclick="selectLesson('${nextLesson}')">
+						➡ &nbsp; Následující: ${nextLesson}
+					</button>`;
+
+				rc.appendChild(r2);
+			}
 		}
 
         if (problematic.length > 0) {
@@ -1119,6 +1308,9 @@
         
         localStorage.setItem('pl_app_view', 'mode-area');
         localStorage.setItem('pl_current_lesson_id', id); 
+
+		updateLessonArrows();
+
         window.scrollTo(0, 0);
     }
 
@@ -2063,6 +2255,83 @@
 		}
 	});
 
+	// **************************************************************
+	// Svajpování
+	function getAdjacentLesson(direction) {
+
+		let lessonList;
+
+		if (currentOpenCategory) {
+			lessonList = [...categories[currentOpenCategory]];
+		} else {
+			const categorized = Object.values(categories).flat();
+
+			lessonList = Object.keys(allLessons)
+				.filter(l => !categorized.includes(l));
+		}
+
+		lessonList.sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
+
+		const index = lessonList.indexOf(currentLessonId);
+
+		if (direction === "next" && index < lessonList.length - 1) {
+			return lessonList[index + 1];
+		}
+
+		if (direction === "prev" && index > 0) {
+			return lessonList[index - 1];
+		}
+
+		return null;
+	}
+
+	// **************************************************************
+	// STUDIUM
+
+	function openStudyMode(){
+
+		const lesson = allLessons[currentLessonId];
+
+		const list = document.getElementById("study-list");
+		list.innerHTML = "";
+
+		lesson.forEach(w=>{
+
+			const div = document.createElement("div");
+			div.className = "study-item";
+
+			div.innerHTML = `
+				<div class="study-nl">${w.nl}</div>
+				<div class="study-cz">${w.cz}</div>
+				<div class="study-ipa">${w.ipa}</div>
+			`;
+
+			div.onclick = ()=> speak(w.nl);
+
+			list.appendChild(div);
+
+		});
+
+		document.getElementById("mode-area").style.display="none";
+		document.getElementById("study-area").style.display="block";
+
+		document.getElementById("lesson-name-display").innerText =
+			"Studium: " + currentLessonId;
+	}
+
+	// ZAVŘENÍ STUDIUM
+
+	function closeStudyMode(){
+
+		document.getElementById("study-area").style.display="none";
+		document.getElementById("mode-area").style.display="flex";
+
+		document.getElementById("lesson-name-display").innerText =
+			currentLessonId;
+	}
+
+	// **************************************************************
+
 	window.addEventListener("beforeunload", function() {
 
 		if (restoringBackup) return;
@@ -2288,6 +2557,37 @@
 		localStorage.setItem('pl_problematic', JSON.stringify(problematic));
 
 	});
+
+	// ********************
+	// Svajp detekce
+
+	let swipeStartX = 0;
+
+	const modeArea = document.getElementById("mode-area");
+
+	modeArea.addEventListener("touchstart", (e) => {
+		swipeStartX = e.changedTouches[0].clientX;
+	});
+
+	modeArea.addEventListener("touchend", (e) => {
+
+		const dx = e.changedTouches[0].clientX - swipeStartX;
+
+		if (Math.abs(dx) < 60) return;
+
+		if (dx < 0) {
+			const next = getAdjacentLesson("next");
+			if (next) selectLesson(next);
+		}
+
+		if (dx > 0) {
+			const prev = getAdjacentLesson("prev");
+			if (prev) selectLesson(prev);
+		}
+
+	});
+	
+	// ********************
 
 </script>
 

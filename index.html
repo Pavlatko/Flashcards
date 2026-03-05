@@ -2362,8 +2362,15 @@
 
 		localStorage.setItem('pl_app_view','mode-area');
 
-		document.getElementById("lesson-name-display").innerText =
-			currentLessonId;
+		// správný nadpis
+		document.getElementById("lesson-name-display").innerText = currentLessonId;
+
+		// přepočítat počet slov
+		const lesson = allLessons[currentLessonId];
+		if (lesson) {
+			document.getElementById("lesson-info-sub").innerText =
+				"Počet slovíček: " + lesson.length;
+		}
 	}
 
 	// **************************************************************

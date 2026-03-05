@@ -981,6 +981,12 @@
             return;
         }
 
+		// Priorita: STUDIUM
+		if (lastView === 'study') {
+			openStudyMode();
+			return;
+		}
+
 		// Priorita 3: Statistiky
 		if (lastView === 'stats') {
 			openStats();
@@ -2335,6 +2341,9 @@
 
 		document.getElementById("lesson-name-display").innerText =
 			"Studium: " + currentLessonId;
+
+		localStorage.setItem('pl_app_view', 'study');
+
 	}
 
 	// ZAVŘENÍ STUDIUM
@@ -2346,6 +2355,8 @@
 
 		document.getElementById("lesson-name-display").innerText =
 			currentLessonId;
+
+		localStorage.removeItem('pl_app_view');
 	}
 
 	// **************************************************************

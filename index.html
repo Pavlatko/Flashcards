@@ -439,14 +439,25 @@
 
 		.study-cz{
 			font-size:1.4rem;
-			margin-top:6px;
+			margin-top:10px;
+			padding-top:10px;
+			border-top:1px solid rgba(0,0,0,0.18);
 			color:#000;
+		}
+
+		.study-sub{
+			font-size:1.05rem;
+			margin-top:3px;
+			color:#000;
+			opacity:0.85;
 		}
 
 		.study-ipa{
 			font-size:1.2rem;
 			color:#c62828;
-			margin-top:6px;
+			margin-top:10px;
+			padding-top:8px;
+			border-top:1px solid rgba(0,0,0,0.18);
 		}
 
 		</style>
@@ -491,7 +502,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.22 by <b>Pavlatko</b>Lab
+            <b>Flashcards</b> 3.23 by <b>Pavlatko</b>Lab
         </div>
     </div>
 
@@ -2331,9 +2342,22 @@
 			const div = document.createElement("div");
 			div.className = "study-item";
 
+			const nlParts = w.nl.split(";").map(s => s.trim());
+			const czParts = w.cz.split(";").map(s => s.trim());
+
+			let nlHtml = `<div class="study-nl">${nlParts[0]}</div>`;
+			for(let i=1;i<nlParts.length;i++){
+				nlHtml += `<div class="study-sub">${nlParts[i]}</div>`;
+			}
+
+			let czHtml = `<div class="study-cz">${czParts[0]}</div>`;
+			for(let i=1;i<czParts.length;i++){
+				czHtml += `<div class="study-sub">${czParts[i]}</div>`;
+			}
+
 			div.innerHTML = `
-				<div class="study-nl">${w.nl}</div>
-				<div class="study-cz">${w.cz}</div>
+				${nlHtml}
+				${czHtml}
 				<div class="study-ipa">${w.ipa}</div>
 			`;
 

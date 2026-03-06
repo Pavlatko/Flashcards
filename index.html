@@ -502,7 +502,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.29 by <b>Pavlatko</b>Lab
+            <b>Flashcards</b> 3.30 by <b>Pavlatko</b>Lab
         </div>
     </div>
 
@@ -2199,18 +2199,26 @@
 			: 0;
 
 		const now = Date.now();
-		const oneDay = 86400000;
+
+		const startToday = new Date();
+		startToday.setHours(0,0,0,0);
+
+		const startYesterday = new Date(startToday);
+		startYesterday.setDate(startYesterday.getDate() - 1);
+
+		const startWeek = new Date(startToday);
+		startWeek.setDate(startWeek.getDate() - 6);
 
 		const today = stats.sessions
-			.filter(s => now - s.date < oneDay)
+			.filter(s => s.date >= startToday.getTime())
 			.reduce((sum, s) => sum + s.duration, 0);
 
 		const yesterday = stats.sessions
-			.filter(s => now - s.date >= oneDay && now - s.date < 2 * oneDay)
+			.filter(s => s.date >= startYesterday.getTime() && s.date < startToday.getTime())
 			.reduce((sum, s) => sum + s.duration, 0);
 
 		const week = stats.sessions
-			.filter(s => now - s.date < 7 * oneDay)
+			.filter(s => s.date >= startWeek.getTime())
 			.reduce((sum, s) => sum + s.duration, 0);
 
 		const lastScore = localStorage.getItem('pl_last_score_persistent');
@@ -2381,6 +2389,8 @@
 
 	function openStudyMode(){
 
+		sessionStartTime = Date.now();
+
 		document.getElementById('menu-area').style.display = 'none';
 		document.getElementById('category-detail-area').style.display = 'none';
 		document.getElementById('mode-area').style.display = 'none';
@@ -2434,6 +2444,24 @@
 	// ZAVŘENÍ STUDIUM
 
 	function closeStudyMode(){
+
+		if (sessionStartTime) {
+
+			const duration = Math.round((Date.now() - sessionStartTime) / 1000);
+
+			if (duration > 0) {
+
+				stats.sessions.push({
+					date: Date.now(),
+					success: 100,
+					duration: duration
+				});
+
+				stats.totalTime += duration;
+
+				localStorage.setItem('pl_stats', JSON.stringify(stats));
+			}
+		}
 
 		document.getElementById("study-area").style.display="none";
 		document.getElementById("mode-area").style.display="flex";

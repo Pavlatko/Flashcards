@@ -502,7 +502,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.30 by <b>Pavlatko</b>Lab
+            <b>Flashcards</b> 3.31 by <b>Pavlatko</b>Lab
         </div>
     </div>
 
@@ -625,18 +625,36 @@
 
 	<div id="study-area" style="display:none; width:100%; max-width:500px; margin-top:10px;">
 
-		<button class="btn-action btn-flip-big"
-			style="--btn-color:var(--neutral); margin-bottom:15px;"
-			onclick="closeStudyMode()">
-			⬅ &nbsp; ZPĚT DO MENU
-		</button>
+		<div style="display:flex; gap:10px; width:100%; margin-bottom:15px;">
+
+			<button id="prev-lesson-btn-study"
+				class="btn-action btn-flip-big"
+				style="--btn-color:var(--neutral); width:60px; aspect-ratio:1/1;"
+				onclick="goPrevLessonStudy()">
+				◀
+			</button>
+
+			<button class="btn-action btn-flip-big"
+				style="--btn-color:var(--neutral); flex:1;"
+				onclick="closeStudyMode()">
+				ZPĚT DO MENU
+			</button>
+
+			<button id="next-lesson-btn-study"
+				class="btn-action btn-flip-big"
+				style="--btn-color:var(--neutral); width:60px; aspect-ratio:1/1;"
+				onclick="goNextLessonStudy()">
+				▶
+			</button>
+
+		</div>
 
 		<div id="study-list"></div>
 
 		<button class="btn-action btn-flip-big"
 			style="--btn-color:var(--neutral); margin-top:15px;"
-			onclick="closeStudyMode()">
-			⬅ &nbsp; ZPĚT DO MENU
+			onclick="scrollStudyTop()">
+			⬆ &nbsp; ZPĚT NAHORU &nbsp; ⬆
 		</button>
 
 	</div>
@@ -948,6 +966,28 @@
 		}
 	}
 
+	function goNextLessonStudy() {
+
+		const list = getLessonList();
+		const index = list.indexOf(currentLessonId);
+
+		if (index < list.length - 1) {
+			currentLessonId = list[index + 1];
+			openStudyMode();
+		}
+	}
+
+	function goPrevLessonStudy() {
+
+		const list = getLessonList();
+		const index = list.indexOf(currentLessonId);
+
+		if (index > 0) {
+			currentLessonId = list[index - 1];
+			openStudyMode();
+		}
+	}
+
 	// **********************
 
 	function updateLessonArrows() {
@@ -956,9 +996,12 @@
 
 			const prevBtn = document.getElementById("prev-lesson-btn");
 			const nextBtn = document.getElementById("next-lesson-btn");
+			const prevBtnStudy = document.getElementById("prev-lesson-btn-study");
+			const nextBtnStudy = document.getElementById("next-lesson-btn-study");
 
-			if (prevBtn) prevBtn.style.display = "none";
-			if (nextBtn) nextBtn.style.display = "none";
+			[prevBtn, nextBtn, prevBtnStudy, nextBtnStudy].forEach(btn=>{
+				if (btn) btn.style.display = "none";
+			});
 
 			return;
 		}
@@ -966,28 +1009,37 @@
 		const list = getLessonList();
 		const index = list.indexOf(currentLessonId);
 
-		const prevBtn = document.getElementById("prev-lesson-btn");
-		const nextBtn = document.getElementById("next-lesson-btn");
+		const prevBtns = [
+			document.getElementById("prev-lesson-btn"),
+			document.getElementById("prev-lesson-btn-study")
+		];
 
-		if (!prevBtn || !nextBtn) return;
+		const nextBtns = [
+			document.getElementById("next-lesson-btn"),
+			document.getElementById("next-lesson-btn-study")
+		];
 
-		// první lekce
-		if (index <= 0) {
-			prevBtn.style.opacity = "0.35";
-			prevBtn.style.pointerEvents = "none";
-		} else {
-			prevBtn.style.opacity = "1";
-			prevBtn.style.pointerEvents = "auto";
-		}
+		prevBtns.forEach(btn=>{
+			if (!btn) return;
+			if (index <= 0) {
+				btn.style.opacity = "0.35";
+				btn.style.pointerEvents = "none";
+			} else {
+				btn.style.opacity = "1";
+				btn.style.pointerEvents = "auto";
+			}
+		});
 
-		// poslední lekce
-		if (index >= list.length - 1) {
-			nextBtn.style.opacity = "0.35";
-			nextBtn.style.pointerEvents = "none";
-		} else {
-			nextBtn.style.opacity = "1";
-			nextBtn.style.pointerEvents = "auto";
-		}
+		nextBtns.forEach(btn=>{
+			if (!btn) return;
+			if (index >= list.length - 1) {
+				btn.style.opacity = "0.35";
+				btn.style.pointerEvents = "none";
+			} else {
+				btn.style.opacity = "1";
+				btn.style.pointerEvents = "auto";
+			}
+		});
 	}
 
 	// **********************
@@ -2439,6 +2491,8 @@
 
 		localStorage.setItem('pl_app_view', 'study');
 		localStorage.setItem('pl_current_lesson_id', currentLessonId);
+
+		updateLessonArrows();
 	}
 
 	// ZAVŘENÍ STUDIUM
@@ -2740,6 +2794,13 @@
 	});
 	
 	// ********************
+
+	function scrollStudyTop() {
+		window.scrollTo({
+			top: 0,
+			behavior: "smooth"
+		});
+	}
 
 </script>
 

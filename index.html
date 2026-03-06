@@ -434,14 +434,15 @@
 		.study-nl{
 			font-size:1.6rem;
 			font-weight:bold;
+			margin-top:10px;
+			padding-top:10px;
+			border-top:1px solid rgba(0,0,0,0.18);
 			color:#000;
 		}
 
 		.study-cz{
 			font-size:1.4rem;
 			margin-top:10px;
-			padding-top:10px;
-			border-top:1px solid rgba(0,0,0,0.18);
 			color:#000;
 		}
 
@@ -502,7 +503,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.31 by <b>Pavlatko</b>Lab
+            <b>Flashcards</b> 3.32 by <b>Pavlatko</b>Lab
         </div>
     </div>
 
@@ -2472,8 +2473,8 @@
 			}
 
 			div.innerHTML = `
-				${nlHtml}
 				${czHtml}
+				${nlHtml}
 				<div class="study-ipa">${w.ipa}</div>
 			`;
 

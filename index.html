@@ -540,7 +540,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.41 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 3.42 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1717,7 +1717,8 @@
 				currentLessonId === 'problematic'
 					? (cur.lesson || 'Problematické')
 					: currentLessonId;
-			document.getElementById('lesson-name-display').innerText = displayId;
+			document.getElementById('lesson-name-display').innerText =
+				currentLessonId === "problematic" ? "🔥 " + displayId : displayId;
 			document.getElementById('remaining-count').innerText = `Zbývá: ${words.length - currentIndex}`;
 		}, 150);
 	}
@@ -2703,6 +2704,11 @@
 
 		updateToggleFinishedBtn();
 		updateLessonArrows();
+
+		const pinBtn = document.getElementById("pin-lesson-btn");
+		if(pinBtn){
+			pinBtn.style.display = currentLessonId === "problematic" ? "none" : "block";
+		}
 	}
 
 	// **************************************************************

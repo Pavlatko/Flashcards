@@ -540,7 +540,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.43 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 3.44 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1379,10 +1379,15 @@
 				const isFinished = finishedLessons.includes(name) ? ' is-finished' : '';
 
 				r.innerHTML = `
-				<button class="lesson-btn${isFinished}"
-				onclick="selectLesson('${name}')">
-				${name}
-				</button>
+					<button class="lesson-btn${isFinished}"
+					onclick="selectLesson('${name}')">
+					${name}
+					</button>
+
+					<div class="lesson-del"
+					onclick="togglePinLesson('${name}')">
+					📌
+					</div>
 				`;
 
 				pc.appendChild(r);
@@ -3013,7 +3018,10 @@
 			}
 		}
 
-		/* renderMenu();  ← SMAZAT */
+		/* menu překreslit jen pokud je otevřené */
+		if (document.getElementById('menu-area').style.display !== 'none') {
+			renderMenu();
+		}
 	}
 
 	function toggleRepeatNext(val){

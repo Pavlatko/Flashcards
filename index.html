@@ -2895,13 +2895,15 @@
 			const diff = Date.now() - parseInt(restoredAt);
 
 			// 1 hodina = 3600000 ms
-			if (diff < 3600000) {
-				return;
-			}
+			if (diff < 3600000) return;
 
-			// po 1 hod flag smažeme
 			localStorage.removeItem('pl_backup_restored_at');
 		}
+
+		const lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
+
+		// pokud nejsou žádné lekce → nedělat backup
+		if (Object.keys(lessons).length === 0) return;
 
 		const today = new Date().toISOString().slice(0,10);
 		const lastBackup = localStorage.getItem("pl_last_autobackup");

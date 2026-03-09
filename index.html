@@ -76,7 +76,7 @@
         }
 
 		.btn-load, .btn-load2, .btn-cat-add { 
-			--btn-color: var(--success) !important; /* Vynucená zelená */
+			--btn-color: var(--neutral) !important;
 			color: white !important; 
 			padding: 12px; 
 			border-radius: 12px; 
@@ -470,6 +470,38 @@
 			border-top:1px solid rgba(0,0,0,0.18);
 		}
 
+		.menu-section{
+			display:flex;
+			align-items:center;
+			justify-content:center;
+			gap:10px;
+			margin:14px 0 10px 0;
+			font-size:0.8rem;
+			font-weight:bold;
+			opacity:0.75;
+		}
+
+		.menu-section::before,
+		.menu-section::after{
+			content:"";
+			width:60px;            /* délka linky */
+			height:1px;
+			background:rgba(0,0,0,0.25);
+			border-radius:2px;
+		}
+
+		.pinned-btn{
+		--btn-color:#455a64;
+		}
+
+		.menu-section:first-child{
+		margin-top:0;
+		}
+
+		.mode-gap{
+			margin-top:25px;
+		}
+
 		</style>
 	<link rel="icon" type="image/png" href="icon.png">
 	<link rel="apple-touch-icon" href="icon.png">
@@ -512,7 +544,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.35 by <b>Pavlatko</b>Lab
+            <b>Flashcards</b> 3.4 by <b>Pavlatko</b>Lab
         </div>
     </div>
 
@@ -530,6 +562,7 @@
 				<label class="checkbox-row"><input type="checkbox" id="read-articles" onchange="toggleArticles(this.checked)"> Předčítat určité členy (de/het)</label>
                 <label class="checkbox-row"><input type="checkbox" id="read-all-forms" onchange="toggleAllForms(this.checked)"> Předčítat všechno</label>
 				<label class="checkbox-row"><input type="checkbox" id="keep-alive-enabled" onchange="toggleKeepAlive(this.checked)"> Udržovat spojení se sluchátkami</label>
+				<label class="checkbox-row"><input type="checkbox" id="show-repeat-next" onchange="toggleRepeatNext(this.checked)"> Zobrazovat &quot;Poslední dokončené&quot; tlačítka</label>
 			</div>
 			<div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
 				<label class="settings-label">Barva pozadí aplikace:</label>
@@ -561,6 +594,9 @@
 			📂 Obnovit ze zálohy
 			<input type="file" id="backupFileInput" style="display:none" accept=".json" onchange="importBackup(this)">
 			</label>
+			<div class="btn-load" style="background:#c62828;" onclick="factoryReset()">
+			🧨 Resetovat vše
+			</div>
 		</center>
     </div>
 	<div id="stats-area" style="display:none; width: 100%; max-width: 360px; margin-top:20px;">
@@ -615,7 +651,8 @@
 				onclick="openStudyMode()">
 			📚 STUDIUM
 		</button>
-		<button id="toggle-finished-btn" class="btn-action btn-flip-big" style="--btn-color:var(--category); margin-top: 10px;" onclick="toggleLessonFinished()"></button>
+		<button id="pin-lesson-btn" class="btn-action btn-flip-big mode-gap" style="--btn-color:var(--category);" onclick="togglePinLesson(currentLessonId)"> 📍 Připnout </button>
+		<button id="toggle-finished-btn" class="btn-action btn-flip-big" style="--btn-color:var(--category);" onclick="toggleLessonFinished()"></button>
 	</div>
 
     <div id="dictionary-area">
@@ -704,8 +741,17 @@
     let finishedLessons = JSON.parse(localStorage.getItem('pl_finished_lessons') || '[]');
     let dictSortActive = false; 
     let selectedVoiceName = localStorage.getItem('pl_voice_name') || '';
-
 	let stats = JSON.parse(localStorage.getItem('pl_stats') || 'null');
+	let pinnedLessons = JSON.parse(localStorage.getItem('pl_pinned_lessons') || '[]');
+	pinnedLessons = pinnedLessons.filter(name => allLessons[name]);
+	localStorage.setItem('pl_pinned_lessons', JSON.stringify(pinnedLessons));
+	let showRepeatNext = localStorage.getItem('pl_show_repeat_next');
+
+	if(showRepeatNext === null){
+		showRepeatNext = true;
+	} else {
+		showRepeatNext = showRepeatNext === 'true';
+	}
 
 	if (!stats) {
 		stats = {
@@ -1236,11 +1282,15 @@
     function renderMenu() {
         document.getElementById('app-body').classList.remove('training-mode');
         const c = document.getElementById('lessons-container'); 
-        const rc = document.getElementById('resume-container'); 
-        const pc = document.getElementById('problematic-container');
-        const cc = document.getElementById('categories-container');
-        
-        c.innerHTML = ''; rc.innerHTML = ''; pc.innerHTML = ''; cc.innerHTML = '';
+		const rc = document.getElementById('resume-container'); 
+		const pc = document.getElementById('problematic-container');
+		const cc = document.getElementById('categories-container');
+
+		c.innerHTML = '';
+		rc.innerHTML = '';
+		pc.innerHTML = '';
+		cc.innerHTML = '';
+
         document.getElementById('lesson-name-display').innerText = 'Flashcards';
         document.getElementById('remaining-count').innerText = '';
 		const lastFinishedLesson = localStorage.getItem('pl_last_finished_lesson');
@@ -1265,8 +1315,27 @@
 			rc.appendChild(r);
 		}
 
+		/* 🔥 Problematické – hned pod Pokračovat */
+
+		if (problematic.length > 0) {
+
+			const r = document.createElement('div');
+			r.className = 'lesson-row';
+
+			r.innerHTML = `
+				<button class="lesson-btn problematic-btn"
+					onclick="selectLesson('problematic')">
+					🔥 Problematické (${problematic.length})
+				</button>
+				<div class="lesson-del" onclick="clearProblematic()">×</div>`;
+
+			rc.appendChild(r);
+		}
+
 		/* 2️⃣ Opakovat poslední lekci */
-		if (lastFinishedLesson && lastFinishedLesson !== 'problematic' && allLessons[lastFinishedLesson]) {
+		if (showRepeatNext && lastFinishedLesson && lastFinishedLesson !== 'problematic' && allLessons[lastFinishedLesson]) {
+
+			addSection(rc,"📈 Poslední dokončené");
 
 			const r = document.createElement('div');
 			r.className = 'lesson-row';
@@ -1298,13 +1367,35 @@
 			}
 		}
 
-        if (problematic.length > 0) {
-            const r = document.createElement('div'); r.className = 'lesson-row';
-            r.innerHTML = `
-                <button class="lesson-btn problematic-btn" onclick="selectLesson('problematic')">🔥 Problematické (${problematic.length})</button>
-                <div class="lesson-del" onclick="clearProblematic()">×</div>`;
-            pc.appendChild(r);
-        }
+		if (pinnedLessons.length > 0){
+
+			addSection(pc,"📌 Připnuté lekce");
+
+			[...pinnedLessons]
+			.sort((a,b)=>a.localeCompare(b, undefined, {numeric:true}))
+			.forEach(name=>{
+
+				if(!allLessons[name]) return;
+
+				const r = document.createElement('div');
+				r.className = 'lesson-row';
+
+				r.innerHTML = `
+				<button class="lesson-btn pinned-btn"
+				onclick="selectLesson('${name}')">
+				📌 ${name}
+				</button>
+				`;
+
+				pc.appendChild(r);
+
+			});
+
+		}
+
+		if (Object.keys(categories).length > 0 || Object.keys(allLessons).length > 0){
+			addSection(cc,"📚 Kategorie a lekce");
+		}
 
         Object.keys(categories).sort().forEach(catName => {
             const r = document.createElement('div'); r.className = 'lesson-row';
@@ -1373,6 +1464,7 @@
         document.getElementById('settings-area').style.display = 'block';
         document.getElementById('lesson-name-display').innerText = 'Nastavení';
         localStorage.setItem('pl_app_view', 'settings');
+		document.getElementById('show-repeat-next').checked = showRepeatNext;
     }
 
     function closeSettings() {
@@ -1431,6 +1523,24 @@
 
 	function selectLesson(id) { 
         currentLessonId = id; 
+		const pinBtn = document.getElementById("pin-lesson-btn");
+
+		if (pinBtn){
+
+			// Problematické nelze připnout
+			if(id === "problematic"){
+				pinBtn.style.display = "none";
+			}else{
+				pinBtn.style.display = "block";
+
+				if(pinnedLessons.includes(id)){
+					pinBtn.innerText = "📌 Odepnout";
+				}else{
+					pinBtn.innerText = "📍 Připnout";
+				}
+			}
+
+		}
         words = id === 'problematic' ? [...problematic] : [...allLessons[id]]; 
         
         document.getElementById('menu-area').style.display = 'none'; 
@@ -1468,6 +1578,20 @@
         } else {
             btn.innerText = "✅ Označit jako SPLNĚNÉ";
         }
+
+		// Nové
+		const pinBtn = document.getElementById('pin-lesson-btn');
+
+		if(pinBtn){
+
+			if(pinnedLessons.includes(currentLessonId)){
+			pinBtn.innerText = "📌 Odepnout";
+			}else{
+			pinBtn.innerText = "📍 Připnout";
+			}
+
+		}
+
     }
 
 	function toggleLessonFinished() {
@@ -2664,10 +2788,14 @@
 	// ZÁLOHA UNIVERZAL
 	function buildBackupData(type = "manual") {
 
-		const BACKUP_VERSION = 3;
+		const BACKUP_VERSION = 4;
 
 		// zajistit uložení statistik
 		localStorage.setItem('pl_stats', JSON.stringify(stats));
+			
+		// zajistit uložení některých nastavení
+		localStorage.setItem('pl_show_repeat_next', showRepeatNext);
+		localStorage.setItem('pl_pinned_lessons', JSON.stringify(pinnedLessons));
 
 		const lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
 		const problematic = JSON.parse(localStorage.getItem('pl_problematic') || '[]');
@@ -2711,7 +2839,7 @@
 	// ZÁLOHA MANUAL
 	function exportBackup() {
 
-		const BACKUP_VERSION = 3;
+		const BACKUP_VERSION = 4;
 
 		// 🔥 zajistit uložení statistik do localStorage
 		localStorage.setItem('pl_stats', JSON.stringify(stats));
@@ -2845,6 +2973,88 @@
 			top: 0,
 			behavior: "smooth"
 		});
+	}
+
+	// ****************** Nové
+
+	function togglePinLesson(name){
+
+		const i = pinnedLessons.indexOf(name);
+
+		if(i === -1){
+			pinnedLessons.push(name);
+		}else{
+			pinnedLessons.splice(i,1);
+		}
+
+		localStorage.setItem(
+			'pl_pinned_lessons',
+			JSON.stringify(pinnedLessons)
+		);
+
+		/* okamžitá změna textu tlačítka */
+		const btn = document.getElementById("pin-lesson-btn");
+
+		if(btn){
+			if(pinnedLessons.includes(name)){
+				btn.innerText = "📌 Odepnout";
+			}else{
+				btn.innerText = "📍 Připnout";
+			}
+		}
+
+		/* renderMenu();  ← SMAZAT */
+	}
+
+	function toggleRepeatNext(val){
+
+		showRepeatNext = val;
+
+		localStorage.setItem(
+		'pl_show_repeat_next',
+		val
+		);
+
+		renderMenu();
+	}
+
+	function addSection(container,title){
+
+		const s=document.createElement('div');
+		s.className='menu-section';
+		s.textContent=title;
+
+		container.appendChild(s);
+
+	}
+
+	function factoryReset(){
+
+		if(!confirm("⚠️ FACTORY RESET\n\nTato akce SMAŽE úplně všechna data aplikace:\n\n• všechny lekce\n• statistiky\n• problematická slova\n• připnuté lekce\n• nastavení\n\nPokračovat?")){
+			return;
+		}
+
+		if(!confirm("Poslední potvrzení.\n\nOpravdu chceš kompletně vymazat aplikaci?")){
+			return;
+		}
+
+		// vymazat proměnné v paměti
+		allLessons = {};
+		categories = {};
+		problematic = [];
+		pinnedLessons = [];
+		finishedLessons = [];
+		stats = null;
+
+		// vymazat storage
+		localStorage.clear();
+
+		// zablokovat autobackup na 1 hodinu
+		localStorage.setItem('pl_backup_restored_at', Date.now());
+
+		alert("Aplikace byla resetována.");
+
+		location.reload();
 	}
 
 </script>

@@ -490,6 +490,10 @@
 			opacity:0;
 		}
 
+		.study-preview .study-timer{
+			display:none;
+		}
+
 		.study-cz{
 			font-size:1.4rem;
 			color:#000;
@@ -593,7 +597,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.47 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 3.48 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -2702,6 +2706,8 @@
 
 	function openStudyMode(preview=false){
 
+		document.body.classList.toggle("study-preview", preview);
+
 		studyPreviewMode = preview;
 
 		sessionStartTime = Date.now();
@@ -2761,9 +2767,11 @@
 				const ipa = div.querySelector(".study-ipa");
 				const timerBar = div.querySelector(".study-timer");
 
-				let revealTimer = null;
 				let revealed = false;
 				let hideTimer = null;
+
+				const revealTime = 4000; // jak dlouho je text vidět
+				const revealDelay = 1000; // prodleva audio → text
 
 				item.addEventListener("click", () => {
 
@@ -2772,27 +2780,31 @@
 					// pokud už je text vidět → jen přehraj audio
 					if(revealed) return;
 
-					nl.style.display = "block";
-					ipa.style.display = "block";
 					revealed = true;
 
-					timerBar.style.transition = "none";
-					timerBar.style.transform = "scaleX(1)";
-					timerBar.style.opacity = "1";
-
 					setTimeout(()=>{
-						timerBar.style.transition = "transform " + revealTime + "ms linear";
-						timerBar.style.transform = "scaleX(0)";
-					},10);
 
-					const revealTime = 3000; // Doba zobrazení slovíčka ve STUDIUM
+						nl.style.display = "block";
+						ipa.style.display = "block";
 
-					hideTimer = setTimeout(()=>{
-						nl.style.display = "none";
-						ipa.style.display = "none";
-						timerBar.style.opacity = "0";
-						revealed = false;
-					},revealTime);
+						// start progress baru
+						timerBar.style.transition = "none";
+						timerBar.style.transform = "scaleX(1)";
+						timerBar.style.opacity = "1";
+
+						setTimeout(()=>{
+							timerBar.style.transition = "transform " + revealTime + "ms linear";
+							timerBar.style.transform = "scaleX(0)";
+						},10);
+
+						hideTimer = setTimeout(()=>{
+							nl.style.display = "none";
+							ipa.style.display = "none";
+							timerBar.style.opacity = "0";
+							revealed = false;
+						},revealTime);
+
+					}, revealDelay);
 
 				});
 
@@ -2806,7 +2818,7 @@
 						ipa.style.display = "block";
 						revealed = true;
 
-					},600);
+					},600); // délka stisku před zobrazením textu
 
 				});
 

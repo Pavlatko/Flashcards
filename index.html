@@ -479,6 +479,17 @@
 			-webkit-user-select: none;
 		}
 
+		.study-timer{
+			height:5px;
+			width:100%;
+			background:#4CAF50;
+			border-radius:3px;
+			margin-top:12px;
+			transform-origin:left;
+			transform:scaleX(1);
+			opacity:0;
+		}
+
 		.study-cz{
 			font-size:1.4rem;
 			color:#000;
@@ -582,7 +593,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.46 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 3.47 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -684,11 +695,21 @@
 		<button class="btn-action btn-flip-big" onclick="startTraining('CZ-NL')">ČESKY ➔ NIZOZEMSKY</button>
 		<button class="btn-action btn-flip-big" onclick="startTraining('NL-CZ')">NIZOZEMSKY ➔ ČESKY</button>
 		<button class="btn-action btn-flip-big" style="--btn-color:var(--secondary);" onclick="openDictionary(currentLessonId)">📖 Slovníček lekce</button>
-		<button class="btn-action btn-flip-big"
-				style="--btn-color:var(--study);"
-				onclick="openStudyMode()">
-			📚 STUDIUM
-		</button>
+		<div style="display:flex; gap:10px; width:100%;">
+
+			<button class="btn-action btn-flip-big"
+					style="--btn-color:var(--primary); flex:1;"
+					onclick="openStudyPreview()">
+				👁 NÁHLED
+			</button>
+
+			<button class="btn-action btn-flip-big"
+					style="--btn-color:var(--study); flex:1;"
+					onclick="openStudyMode()">
+				🧠 STUDIUM
+			</button>
+
+		</div>
 		<button id="pin-lesson-btn" class="btn-action btn-flip-big mode-gap" style="--btn-color:var(--category);" onclick="togglePinLesson(currentLessonId)"> 📍 Připnout </button>
 		<button id="toggle-finished-btn" class="btn-action btn-flip-big" style="--btn-color:var(--category);" onclick="toggleLessonFinished()"></button>
 	</div>
@@ -819,6 +840,7 @@
     let wasFlippedOnce = false; let isProcessing = false;
     let dictionaryScope = null;
     let hintLevel = 0; 
+	let studyPreviewMode = false;
 
     let keepAliveEnabled = localStorage.getItem('pl_keep_alive') === 'true';
     let oscillator = null;
@@ -1067,7 +1089,7 @@
 
 		if (index < list.length - 1) {
 			currentLessonId = list[index + 1];
-			openStudyMode();
+			openStudyMode(studyPreviewMode);
 		}
 	}
 
@@ -1078,7 +1100,7 @@
 
 		if (index > 0) {
 			currentLessonId = list[index - 1];
-			openStudyMode();
+			openStudyMode(studyPreviewMode);
 		}
 	}
 
@@ -1168,10 +1190,18 @@
 			}
 		}
 
-		if (lastView === 'study') {
+		if (lastView === 'study' || lastView === 'study_preview') {
+
 			currentLessonId = localStorage.getItem('pl_current_lesson_id');
+
 			if (currentLessonId && (allLessons[currentLessonId] || currentLessonId === "problematic")) {
-				openStudyMode();
+
+				if (lastView === 'study_preview') {
+					openStudyMode(true);
+				} else {
+					openStudyMode(false);
+				}
+
 				return;
 			}
 		}
@@ -2246,7 +2276,7 @@
         toast.innerHTML = `<div style="font-size:0.7rem; opacity:0.7; margin-bottom:3px;">Lekce:</div>${lessonName}`;
         toast.style.top = (rect.top + window.scrollY - 30) + "px";
         toast.style.opacity = "1";
-        setTimeout(() => { toast.style.opacity = "0"; }, 4000); // Délka zobrazení popup okna
+        setTimeout(() => { toast.style.opacity = "0"; }, 3000); // Délka zobrazení popup okna
     }
 
     function splitP(t) { 
@@ -2664,8 +2694,15 @@
 
 	// **************************************************************
 	// STUDIUM
+	function openStudyPreview(){
+		studyPreviewMode = true;
+		openStudyMode(true);
+	}
+	// **************************************************************
 
-	function openStudyMode(){
+	function openStudyMode(preview=false){
+
+		studyPreviewMode = preview;
 
 		sessionStartTime = Date.now();
 
@@ -2706,11 +2743,78 @@
 				czHtml += `<div class="study-sub">${czParts[i]}</div>`;
 			}
 
+			const nlStyle = preview ? "" : "style='display:none'";
+			const ipaStyle = preview ? "" : "style='display:none'";
+
 			div.innerHTML = `
 				${czHtml}
-				${nlHtml}
-				<div class="study-ipa">${w.ipa}</div>
+				<div class="study-nl" ${nlStyle}>${nlParts[0]}</div>
+				${nlParts.slice(1).map(p => `<div class="study-sub" ${nlStyle}>${p}</div>`).join("")}
+				<div class="study-ipa" ${ipaStyle}>${w.ipa}</div>
+				<div class="study-timer"></div>
 			`;
+
+			if(!preview){
+
+				const item = div;
+				const nl = div.querySelector(".study-nl");
+				const ipa = div.querySelector(".study-ipa");
+				const timerBar = div.querySelector(".study-timer");
+
+				let revealTimer = null;
+				let revealed = false;
+				let hideTimer = null;
+
+				item.addEventListener("click", () => {
+
+					speak(w.nl);
+
+					// pokud už je text vidět → jen přehraj audio
+					if(revealed) return;
+
+					nl.style.display = "block";
+					ipa.style.display = "block";
+					revealed = true;
+
+					timerBar.style.transition = "none";
+					timerBar.style.transform = "scaleX(1)";
+					timerBar.style.opacity = "1";
+
+					setTimeout(()=>{
+						timerBar.style.transition = "transform " + revealTime + "ms linear";
+						timerBar.style.transform = "scaleX(0)";
+					},10);
+
+					const revealTime = 3000; // Doba zobrazení slovíčka ve STUDIUM
+
+					hideTimer = setTimeout(()=>{
+						nl.style.display = "none";
+						ipa.style.display = "none";
+						timerBar.style.opacity = "0";
+						revealed = false;
+					},revealTime);
+
+				});
+
+				let holdTimer;
+
+				item.addEventListener("touchstart", () => {
+
+					holdTimer = setTimeout(()=>{
+
+						nl.style.display = "block";
+						ipa.style.display = "block";
+						revealed = true;
+
+					},600);
+
+				});
+
+				item.addEventListener("touchend", () => {
+					clearTimeout(holdTimer);
+				});
+
+			}
 
 			div.onclick = ()=> speak(w.nl);
 
@@ -2723,7 +2827,11 @@
 				? "🔥 Problematické"
 				: currentLessonId;
 
-		localStorage.setItem('pl_app_view', 'study');
+		if(preview){
+			localStorage.setItem('pl_app_view','study_preview');
+		}else{
+			localStorage.setItem('pl_app_view','study');
+		}
 		localStorage.setItem('pl_current_lesson_id', currentLessonId);
 
 		updateLessonArrows();

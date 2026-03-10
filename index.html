@@ -173,6 +173,43 @@
         }
         .lesson-del:hover { background: rgba(0, 0, 0, 0.4); }
 
+		.lesson-pin {
+			position: absolute;
+			right: 8px;
+			top: 50%;
+			transform: translateY(-50%);
+			width: 34px;
+			height: 34px;
+
+			background: linear-gradient(
+				to bottom,
+				rgba(255,255,255,0.45),
+				rgba(0,0,0,0.15)
+			), #4a90e2;
+
+			color: white;
+			border-radius: 8px;
+
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			font-size: 1.1rem;
+			cursor: pointer;
+
+			border: 1px solid rgba(0,0,0,0.25);
+
+			box-shadow:
+				inset 0 1px 0 rgba(255,255,255,0.4),
+				0 2px 4px rgba(0,0,0,0.25);
+
+			z-index: 10;
+		}
+
+		.lesson-pin:hover{
+			filter: brightness(1.15);
+		}
+
         /* Tlačítka, která mají být vedle sebe (např. UMÍM/NEUMÍM) */
         .btn-neumim, .btn-umim, .btn-poslech-blue { width: 48% !important; }
         .dict-btn-wrap .btn-action { width: auto !important; } /* Pro slovníček a nastavení zachováme flexibilitu */
@@ -1406,7 +1443,7 @@
 					${name}
 					</button>
 
-					<div class="lesson-del"
+					<div class="lesson-pin"
 					onclick="togglePinLesson('${name}')">
 					📌
 					</div>

@@ -540,7 +540,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 3.44 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 3.45 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1263,8 +1263,30 @@
 
 	function getNextLessonName(currentLesson) {
 
-		const lessonNames = Object.keys(allLessons)
-			.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+		// zjistit kategorii aktuální lekce
+		let cat = null;
+
+		for (const c in categories) {
+			if (categories[c].includes(currentLesson)) {
+				cat = c;
+				break;
+			}
+		}
+
+		let lessonNames;
+
+		if (cat) {
+			// pouze lekce z té samé kategorie
+			lessonNames = [...categories[cat]]
+				.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+		} else {
+			// lekce bez kategorie
+			const categorized = Object.values(categories).flat();
+
+			lessonNames = Object.keys(allLessons)
+				.filter(l => !categorized.includes(l))
+				.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+		}
 
 		const index = lessonNames.indexOf(currentLesson);
 

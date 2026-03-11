@@ -361,7 +361,7 @@
         .ipa { font-size: 1.2rem; color: #d32f2f; margin-top: 12px; font-family: serif; }
 
         .controls { margin-top: 25px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 90%; max-width: 360px; }
-        .btn-row { display: none; gap: 12px; width: 100%; justify-content: center; height: 58px; }
+		.btn-row { display: none; gap: 12px; width: 100%; justify-content: center; min-height: 58px; }
         .btn-flip-big { background: var(--primary); color: white; width: 100%; }
 
 		/* Barevné rozlišení pro tréninková tlačítka */
@@ -566,6 +566,17 @@
 			margin-top:25px;
 		}
 
+		.card-pin{
+			position:absolute;
+			top:12px;
+			left:15px;
+			font-size:1.6rem;
+			line-height:1;
+			filter: drop-shadow(0 0 3px rgba(0,0,0,0.8));
+			z-index:10;
+			display:none;
+		}
+
 		</style>
 	<link rel="icon" type="image/png" href="icon.png">
 	<link rel="apple-touch-icon" href="icon.png">
@@ -608,7 +619,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260311.4 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260311.5 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -710,6 +721,7 @@
 		<button class="btn-action btn-flip-big" onclick="startTraining('CZ-NL')">ČESKY ➔ NIZOZEMSKY</button>
 		<button class="btn-action btn-flip-big" onclick="startTraining('NL-CZ')">NIZOZEMSKY ➔ ČESKY</button>
 		<button class="btn-action btn-flip-big" style="--btn-color:var(--secondary);" onclick="openDictionary(currentLessonId)">📖 Slovníček lekce</button>
+		<button id="pinned-preview-btn" class="btn-action btn-flip-big" style="--btn-color:var(--success);" onclick="openPinnedPreview()">⭐ Ukotvené</button>
 		<div style="display:flex; gap:10px; width:100%;">
 
 			<button class="btn-action btn-flip-big"
@@ -781,18 +793,24 @@
 	</div>
 
     <div class="scene" id="main-scene">
-        <div class="card" id="card" onclick="toggleFlip(event)">
-            <div class="card-face" id="front-face"><div class="main-word" id="front-main"></div><div class="sub-word" id="front-sub"></div><div class="ipa" id="front-ipa"></div></div>
-            <div class="card-face card-face-back" id="back-face"><div class="main-word" id="back-main"></div><div class="sub-word" id="back-sub"></div><div class="ipa" id="back-ipa"></div></div>
+
+		<div class="card" id="card" onclick="toggleFlip(event)">
+            <div class="card-face" id="front-face">
+				<div class="card-pin">⭐</div>
+				<div class="main-word" id="front-main"></div><div class="sub-word" id="front-sub"></div><div class="ipa" id="front-ipa"></div>
+			</div>
+            <div class="card-face card-face-back" id="back-face">
+				<div class="card-pin">⭐</div>
+				<div class="main-word" id="back-main"></div><div class="sub-word" id="back-sub"></div><div class="ipa" id="back-ipa"></div>
+			</div>
         </div>
     </div>
 
     <div class="controls" id="training-controls" style="display:none">
         <div class="btn-row" id="flip-row"><button class="btn-action btn-flip-big" onclick="toggleFlip(event)">&#8635; &nbsp; OTOČIT KARTU</button></div>
         <div class="btn-row" id="action-row"><button class="btn-action btn-neumim" onclick="handleResult(false, event)">👎 NEUMÍM</button><button class="btn-action btn-umim" onclick="handleResult(true, event)">UMÍM 👍</button></div>
-		<div class="btn-row" id="hint-row">
-			<button id="hint-btn" class="btn-action btn-flip-big" onclick="showHint()">ZOBRAZIT NÁPOVĚDU</button>
-		</div>
+		<div class="btn-row" id="pin-row"></div>
+		<div class="btn-row" id="hint-row"></div>
 		<button id="exit-btn" class="btn-exit" onclick="exitTraining()">⬅ &nbsp; UKONČIT TRÉNINK</button>
     </div>
 
@@ -1221,6 +1239,19 @@
 			}
 		}
 
+		if (lastView === 'pinned_preview') {
+
+			currentLessonId = "problematic";
+
+			const pinned = problematic.filter(w => w.pinned);
+
+			if (pinned.length > 0) {
+				openPinnedPreview();
+				return;
+			}
+
+		}
+
 		// Priorita 3: Statistiky
 		if (lastView === 'stats') {
 			openStats();
@@ -1435,6 +1466,7 @@
 				<div class="lesson-del" onclick="clearProblematic()">×</div>`;
 
 			rc.appendChild(r);
+
 		}
 
 		/* 2️⃣ Opakovat poslední lekci */
@@ -1636,6 +1668,11 @@
 	function selectLesson(id) { 
         currentLessonId = id; 
 		const pinBtn = document.getElementById("pin-lesson-btn");
+		const pinnedPreviewBtn = document.getElementById("pinned-preview-btn");
+
+		if(pinnedPreviewBtn){
+			pinnedPreviewBtn.style.display = (id === "problematic") ? "block" : "none";
+		}
 
 		if (pinBtn){
 
@@ -1796,10 +1833,13 @@
 	function showWord() {
 		isFlipped = false; wasFlippedOnce = false; isProcessing = false;
         hintLevel = 0;
-        document.getElementById('hint-btn').innerText = "ZOBRAZIT NÁPOVĚDU";
-        document.getElementById('hint-row').style.display = 'flex';
+		const hintBtn = document.getElementById('hint-btn');
+		if (hintBtn) hintBtn.innerText = "ZOBRAZIT NÁPOVĚDU";
+		// ⚓ PIN TLAČÍTKO PRO PROBLEMATICKÉ
 
-		const faces = document.querySelectorAll('.card-face div');
+		renderHintButton();
+
+        const faces = document.querySelectorAll('.card-face div');
 		faces.forEach(f => f.style.opacity = '0');
 		document.getElementById('card').classList.remove('is-flipped');
 		
@@ -1837,6 +1877,13 @@
 				currentLessonId === "problematic" ? "🔥 " + displayId : displayId;
 			document.getElementById('remaining-count').innerText = `Zbývá: ${words.length - currentIndex}`;
 		}, 150);
+
+		updatePinStar();
+		renderPinButton();
+	}
+
+	function hasPinnedWords(){
+		return problematic.some(w => w.pinned);
 	}
 
     function toggleFlip(e) {
@@ -1845,10 +1892,56 @@
         isFlipped = !isFlipped; wasFlippedOnce = true;
         document.getElementById('card').classList.toggle('is-flipped');
         document.getElementById('flip-row').style.display = 'none';
-        document.getElementById('hint-row').style.display = 'none'; // Schovat nápovědu po otočení
+        // po otočení karta → nápověda zmizí
+		if (currentLessonId === "problematic") {
+
+			// ponecháme pouze kotvu
+			const cur = words[currentIndex];
+			const pIdx = problematic.findIndex(w => w.nl === cur.nl);
+			const pinned = pIdx !== -1 && problematic[pIdx].pinned;
+
+			const hintRow = document.getElementById("hint-row");
+
+			hintRow.style.display = "flex";
+
+			hintRow.innerHTML = `
+				<button class="btn-action btn-flip-big"
+					style="--btn-color:${pinned ? 'var(--success)' : 'var(--danger)'};"
+					onclick="togglePinWord()">
+					${pinned ? "⭐ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
+				</button>
+			`;
+
+		} else {
+
+			// běžné lekce → nápověda úplně zmizí
+			document.getElementById('hint-row').style.display = 'none';
+
+		}
         document.getElementById('action-row').style.display = 'flex';
         if ((mode === 'CZ-NL' && isFlipped) || (mode === 'NL-CZ' && !isFlipped)) speak(words[currentIndex].nl);
     }
+
+	function updatePinStar(){
+
+		const stars = document.querySelectorAll(".card-pin");
+
+		stars.forEach(s => s.style.display = "none");
+
+		if(currentLessonId !== "problematic") return;
+
+		const cur = words[currentIndex];
+
+		const base = cur.nl.split(";")[0].trim().toLowerCase();
+
+		const pIdx = problematic.findIndex(w =>
+			w.nl.split(";")[0].trim().toLowerCase() === base
+		);
+
+		if(pIdx !== -1 && problematic[pIdx].pinned){
+			stars.forEach(s => s.style.display = "block");
+		}
+	}
 
 	// ===== DLOUHÝ STISK NA KARTĚ = OPAKOVAT AUDIO =====
 
@@ -1926,12 +2019,126 @@
                 hintEl.style.fontSize = "1.8rem";
             }
             
-            document.getElementById('hint-row').style.display = 'none';
+            renderHintButton();
+
+			if (currentLessonId === "problematic") {
+
+				const hintRow = document.getElementById("hint-row");
+
+				hintRow.innerHTML = `
+					<button class="btn-action btn-flip-big"
+					onclick="togglePinWord()">⚓ UKOTVIT SLOVÍČKO</button>
+				`;
+			}
         }
 
         hintEl.innerText = hintString;
         document.getElementById('hint-popup').style.display = 'flex';
+
+		if (hintLevel >= 2) {
+			renderHintButton();
+		}
     }
+
+	function togglePinWord(){
+
+		const cur = words[currentIndex];
+		const pIdx = problematic.findIndex(w => w.nl === cur.nl);
+
+		if(pIdx === -1) return;
+
+		problematic[pIdx].pinned = !problematic[pIdx].pinned;
+
+		saveData();
+
+		updatePinStar();
+
+		// pokud je karta otočená → nápovědu už nikdy nezobrazuj
+		if(isFlipped){
+
+			const hintRow = document.getElementById("hint-row");
+			const pinned = problematic[pIdx].pinned;
+
+			hintRow.innerHTML = `
+				<button class="btn-action btn-flip-big"
+					style="--btn-color:${pinned ? 'var(--success)' : 'var(--danger)'};"
+					onclick="togglePinWord()">
+					${pinned ? "⭐ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
+				</button>
+			`;
+
+		}else{
+			renderHintButton();
+		}
+
+		renderPinButton();
+	}
+
+	function renderHintButton() {
+
+		const hintRow = document.getElementById("hint-row");
+
+		// ===== PROBLEMATICKÉ =====
+		if (currentLessonId === "problematic") {
+
+			const cur = words[currentIndex];
+			const pIdx = problematic.findIndex(w => w.nl === cur.nl);
+			const pinned = pIdx !== -1 && problematic[pIdx].pinned === true;
+
+			// pokud jsou vyčerpané nápovědy → zobraz jen kotvu
+			if (hintLevel >= 2) {
+
+				hintRow.style.display = "flex";
+
+				hintRow.innerHTML = `
+					<button class="btn-action btn-flip-big"
+						style="--btn-color:${pinned ? 'var(--success)' : 'var(--danger)'};"
+						onclick="togglePinWord()">
+						${pinned ? "⭐ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
+					</button>
+				`;
+
+				return;
+			}
+
+			// normální stav v problematických
+			hintRow.style.display = "flex";
+
+			hintRow.innerHTML = `
+				<div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+
+					<button class="btn-action btn-flip-big"
+						style="--btn-color:${pinned ? 'var(--success)' : 'var(--danger)'};"
+						onclick="togglePinWord()">
+						${pinned ? "⭐ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
+					</button>
+
+					<button id="hint-btn"
+						class="btn-action btn-flip-big"
+						onclick="showHint()">ZOBRAZIT NÁPOVĚDU</button>
+
+				</div>
+			`;
+
+			return;
+		}
+
+		// ===== BĚŽNÉ LEKCE =====
+
+		if (hintLevel >= 2) {
+			hintRow.innerHTML = "";
+			hintRow.style.display = "none";
+			return;
+		}
+
+		hintRow.style.display = "flex";
+
+		hintRow.innerHTML = `
+			<button id="hint-btn"
+				class="btn-action btn-flip-big"
+				onclick="showHint()">ZOBRAZIT NÁPOVĚDU</button>
+		`;
+	}
 
 	function handleResult(ok, e) {
 		if (e) e.stopPropagation(); 
@@ -2014,6 +2221,13 @@
 				
 				// Pokud dosáhl 4 úspěšných (tzn. 3x v řadě + první přidání)
 				if (problematic[pIdx].score >= 4) {
+
+					// pokud je ukotvené → NEVYŘAZOVAT
+					if (problematic[pIdx].pinned) {
+						saveData();
+						finishResult();
+						return;
+					}
 
 					const learnedWord = problematic[pIdx];
 					if (learnedWord.failCount) {
@@ -2166,6 +2380,34 @@
 		}
 		buildDictionary();
 		manageKeepAlive();
+	}
+
+	function renderPinButton(){
+
+		const row = document.getElementById("pin-row");
+
+		if(currentLessonId !== "problematic"){
+			row.innerHTML = "";
+			return;
+		}
+
+		const cur = words[currentIndex];
+		const pIdx = problematic.findIndex(w => w.nl === cur.nl);
+
+		if(pIdx === -1){
+			row.innerHTML = "";
+			return;
+		}
+
+		const pinned = problematic[pIdx].pinned;
+
+		row.innerHTML = `
+			<button class="btn-action btn-flip-big"
+			style="--btn-color:var(--success);"
+			onclick="togglePinWord()">
+			${pinned ? "⭐ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
+			</button>
+		`;
 	}
 
     function closeDictionary() {
@@ -2748,6 +2990,71 @@
 	function openStudyPreview(){
 		studyPreviewMode = true;
 		openStudyMode(true);
+	}
+	// **************************************************************
+	function openPinnedPreview(){
+
+		const pinned = problematic.filter(w => w.pinned);
+
+		if(pinned.length === 0){
+			alert("Žádná ukotvená slovíčka.");
+			return;
+		}
+
+		studyPreviewMode = true;
+
+		document.body.classList.add("study-preview");
+
+		document.getElementById('menu-area').style.display = 'none';
+		document.getElementById('category-detail-area').style.display = 'none';
+		document.getElementById('mode-area').style.display = 'none';
+		document.getElementById('study-area').style.display = 'block';
+
+		const list = document.getElementById("study-list");
+		list.innerHTML = "";
+
+		pinned.forEach(w=>{
+
+			const div = document.createElement("div");
+			div.className = "study-item";
+
+			const nlParts = w.nl.split(";").map(s => s.trim());
+			const czParts = w.cz.split(";").map(s => s.trim());
+
+			let nlHtml = `<div class="study-nl">${nlParts[0]}</div>`;
+			for(let i=1;i<nlParts.length;i++){
+				nlHtml += `<div class="study-sub">${nlParts[i]}</div>`;
+			}
+
+			let czHtml = `<div class="study-cz">${czParts[0]}</div>`;
+			for(let i=1;i<czParts.length;i++){
+				czHtml += `<div class="study-sub">${czParts[i]}</div>`;
+			}
+
+			div.innerHTML = `
+				${czHtml}
+
+				<div class="study-sep"></div>
+
+				${nlHtml}
+
+				<div class="study-sep"></div>
+
+				<div class="study-ipa">${w.ipa}</div>
+			`;
+
+			div.onclick = ()=> speak(w.nl);
+
+			list.appendChild(div);
+
+		});
+
+		document.getElementById("lesson-name-display").innerText = "⭐ Ukotvené";
+
+		localStorage.setItem('pl_app_view','pinned_preview');
+		localStorage.setItem('pl_current_lesson_id','problematic');
+
+		updateLessonArrows();
 	}
 	// **************************************************************
 

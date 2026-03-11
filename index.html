@@ -619,7 +619,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260311.10 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260311.11 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -2059,26 +2059,8 @@
 
 		updatePinStar();
 
-		// pokud je karta otočená → nápovědu už nikdy nezobrazuj
-		if(isFlipped){
-
-			const hintRow = document.getElementById("hint-row");
-			const pinned = problematic[pIdx].pinned;
-
-			hintRow.innerHTML = `
-				<button class="btn-action btn-flip-big"
-					style="--btn-color:${pinned ? 'var(--success)' : 'var(--danger)'};"
-					onclick="togglePinWord()">
-					${pinned ? "⛓️‍💥 UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
-				</button>
-			`;
-
-		}else{
-			if(!wasFlippedOnce){
-				renderHintButton();
-			}
-		}
-
+		// vždy znovu překreslit tlačítko podle aktuálního stavu
+		renderHintButton();
 		renderPinButton();
 	}
 
@@ -2109,7 +2091,23 @@
 				return;
 			}
 
-			// normální stav v problematických
+			// pokud už byla karta otočena → zobraz pouze kotvu
+			if (wasFlippedOnce) {
+
+				hintRow.style.display = "flex";
+
+				hintRow.innerHTML = `
+					<button class="btn-action btn-flip-big"
+						style="--btn-color:${pinned ? 'var(--success)' : 'var(--danger)'};"
+						onclick="togglePinWord()">
+						${pinned ? "⛓️‍💥 UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
+					</button>
+				`;
+
+				return;
+			}
+
+			// normální stav (ještě před otočením)
 			hintRow.style.display = "flex";
 
 			hintRow.innerHTML = `

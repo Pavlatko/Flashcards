@@ -2824,7 +2824,7 @@
 
 				let pressTimer = null;
 
-				item.addEventListener("click", () => {
+				item.addEventListener("pointerdown", () => {
 
 					speak(w.nl);
 
@@ -2860,7 +2860,7 @@
 
 
 				// dlouhý stisk → znovu skrýt
-				item.addEventListener("touchstart", () => {
+				item.addEventListener("pointerdown", () => {
 
 					pressTimer = setTimeout(()=>{
 
@@ -2875,17 +2875,17 @@
 							revealed = false;
 						}
 
-					},600); // délka dlouhého stisku
+					},450); // délka dlouhého stisku
 
 				});
 
-				item.addEventListener("touchend", () => {
+				item.addEventListener("pointerup", () => {
 					clearTimeout(pressTimer);
 				});
 
 				let holdTimer;
 
-				item.addEventListener("touchstart", () => {
+				item.addEventListener("pointerdown", () => {
 
 					holdTimer = setTimeout(()=>{
 
@@ -2897,7 +2897,7 @@
 
 				});
 
-				item.addEventListener("touchend", () => {
+				item.addEventListener("pointerup", () => {
 					clearTimeout(holdTimer);
 				});
 

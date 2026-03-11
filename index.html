@@ -619,7 +619,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260311.8 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260311.9 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -721,7 +721,7 @@
 		<button class="btn-action btn-flip-big" onclick="startTraining('CZ-NL')">ČESKY ➔ NIZOZEMSKY</button>
 		<button class="btn-action btn-flip-big" onclick="startTraining('NL-CZ')">NIZOZEMSKY ➔ ČESKY</button>
 		<button class="btn-action btn-flip-big" style="--btn-color:var(--secondary);" onclick="openDictionary(currentLessonId)">📖 Slovníček lekce</button>
-		<button id="pinned-preview-btn" class="btn-action btn-flip-big" style="--btn-color:var(--success);" onclick="openPinnedPreview()">⭐ Ukotvené</button>
+		<button id="pinned-preview-btn" class="btn-action btn-flip-big" style="--btn-color:var(--success);" onclick="openPinnedPreview()">⚓ Ukotvené</button>
 		<div style="display:flex; gap:10px; width:100%;">
 
 			<button class="btn-action btn-flip-big"
@@ -796,11 +796,11 @@
 
 		<div class="card" id="card" onclick="toggleFlip(event)">
             <div class="card-face" id="front-face">
-				<div class="card-pin">⭐</div>
+				<div class="card-pin">⚓</div>
 				<div class="main-word" id="front-main"></div><div class="sub-word" id="front-sub"></div><div class="ipa" id="front-ipa"></div>
 			</div>
             <div class="card-face card-face-back" id="back-face">
-				<div class="card-pin">⭐</div>
+				<div class="card-pin">⚓</div>
 				<div class="main-word" id="back-main"></div><div class="sub-word" id="back-sub"></div><div class="ipa" id="back-ipa"></div>
 			</div>
         </div>
@@ -1914,7 +1914,7 @@
 				<button class="btn-action btn-flip-big"
 					style="--btn-color:${pinned ? 'var(--success)' : 'var(--danger)'};"
 					onclick="togglePinWord()">
-					${pinned ? "⭐ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
+					${pinned ? "⚓ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
 				</button>
 			`;
 
@@ -2069,7 +2069,7 @@
 				<button class="btn-action btn-flip-big"
 					style="--btn-color:${pinned ? 'var(--success)' : 'var(--danger)'};"
 					onclick="togglePinWord()">
-					${pinned ? "⭐ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
+					${pinned ? "⚓ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
 				</button>
 			`;
 
@@ -2100,7 +2100,7 @@
 					<button class="btn-action btn-flip-big"
 						style="--btn-color:${pinned ? 'var(--success)' : 'var(--danger)'};"
 						onclick="togglePinWord()">
-						${pinned ? "⭐ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
+						${pinned ? "⚓ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
 					</button>
 				`;
 
@@ -2116,7 +2116,7 @@
 					<button class="btn-action btn-flip-big"
 						style="--btn-color:${pinned ? 'var(--success)' : 'var(--danger)'};"
 						onclick="togglePinWord()">
-						${pinned ? "⭐ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
+						${pinned ? "⚓ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
 					</button>
 
 					<button id="hint-btn"
@@ -2411,7 +2411,7 @@
 			<button class="btn-action btn-flip-big"
 			style="--btn-color:var(--success);"
 			onclick="togglePinWord()">
-			${pinned ? "⭐ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
+			${pinned ? "⚓ UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
 			</button>
 		`;
 	}
@@ -3055,7 +3055,7 @@
 
 		});
 
-		document.getElementById("lesson-name-display").innerText = "⭐ Ukotvené";
+		document.getElementById("lesson-name-display").innerText = "⚓ Ukotvené";
 
 		localStorage.setItem('pl_app_view','pinned_preview');
 		localStorage.setItem('pl_current_lesson_id','problematic');

@@ -619,7 +619,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260311.7 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260311.8 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -3258,8 +3258,15 @@
 	function closeStudyMode(){
 
 		const pinnedPreviewBtn = document.getElementById("pinned-preview-btn");
+
 		if (pinnedPreviewBtn){
-			pinnedPreviewBtn.style.display = (currentLessonId === "problematic") ? "block" : "none";
+
+			if(currentLessonId === "problematic" && hasPinnedWords()){
+				pinnedPreviewBtn.style.display = "block";
+			}else{
+				pinnedPreviewBtn.style.display = "none";
+			}
+
 		}
 
 		if (sessionStartTime) {

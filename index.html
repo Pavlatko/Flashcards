@@ -619,7 +619,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260311.9 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260311.10 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -2074,7 +2074,9 @@
 			`;
 
 		}else{
-			renderHintButton();
+			if(!wasFlippedOnce){
+				renderHintButton();
+			}
 		}
 
 		renderPinButton();

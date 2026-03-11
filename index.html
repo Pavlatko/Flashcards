@@ -608,7 +608,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260311.2 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260311.3 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -2824,7 +2824,7 @@
 
 				let pressTimer = null;
 
-				item.addEventListener("pointerdown", () => {
+				item.addEventListener("click", () => {
 
 					speak(w.nl);
 
@@ -2858,14 +2858,20 @@
 
 				});
 
+				let holdTimer;
+				let startX = 0;
+				let startY = 0;
 
-				// dlouhý stisk → znovu skrýt
-				item.addEventListener("pointerdown", () => {
+				item.addEventListener("touchstart", (e) => {
 
-					pressTimer = setTimeout(()=>{
+					startX = e.touches[0].clientX;
+					startY = e.touches[0].clientY;
+
+					holdTimer = setTimeout(()=>{
 
 						if(revealed){
 
+							// skrýt
 							clearTimeout(hideTimer);
 
 							nl.forEach(e => e.style.visibility = "hidden");
@@ -2873,34 +2879,38 @@
 							timerBar.style.opacity = "0";
 
 							revealed = false;
+
+						}else{
+
+							// zobrazit
+							nl.forEach(e => e.style.visibility = "visible");
+							ipa.style.visibility = "visible";
+
+							revealed = true;
+
 						}
 
-					},450); // délka dlouhého stisku
+					},700); // délka longpress
 
 				});
 
-				item.addEventListener("pointerup", () => {
-					clearTimeout(pressTimer);
-				});
 
-				let holdTimer;
+				item.addEventListener("touchmove", (e) => {
 
-				item.addEventListener("pointerdown", () => {
+					const dx = Math.abs(e.touches[0].clientX - startX);
+					const dy = Math.abs(e.touches[0].clientY - startY);
 
-					holdTimer = setTimeout(()=>{
-
-						nl.forEach(e => e.style.visibility = "visible");
-						ipa.style.visibility = "visible";
-						revealed = true;
-
-					},1000); // délka stisku před zobrazením textu
+					// pokud se prst pohne → zrušit longpress (scroll)
+					if(dx > 10 || dy > 10){
+						clearTimeout(holdTimer);
+					}
 
 				});
 
-				item.addEventListener("pointerup", () => {
+
+				item.addEventListener("touchend", () => {
 					clearTimeout(holdTimer);
 				});
-
 			}
 
 			div.onclick = ()=> speak(w.nl);

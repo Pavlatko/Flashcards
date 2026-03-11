@@ -608,7 +608,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260311.3 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260311.4 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1874,6 +1874,11 @@
 
 	cardEl.addEventListener("touchend", () => {
 		clearTimeout(cardHoldTimer);
+
+		// reset long-press stavu, aby šlo kartu normálně otočit tlačítkem
+		setTimeout(() => {
+			cardHoldTriggered = false;
+		}, 50);
 	});
 
 	cardEl.addEventListener("touchmove", () => {

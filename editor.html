@@ -193,8 +193,8 @@ button{
     <button class="btn-green" onclick="showAddWord()">+ slovíčko</button>
     <button class="btn" onclick="newLesson()">+ lekce</button>
     <button class="btn-red" onclick="deleteLesson()">🗑 lekce</button>
-    <button class="btn-gray" onclick="sortWords()">A→Z</button>
-    <button class="btn-purple" onclick="findDuplicates()">🔎 duplicity</button>
+    <button id="sortBtn" class="btn-gray" onclick="sortWords()">A→Z</button>
+    <button id="dupBtn" class="btn-purple" onclick="findDuplicates()">🔎 duplicitní</button>
 </div>
 
 <div class="searchBox">
@@ -209,7 +209,7 @@ Počet záznamů: 0
 
 <div class="list" id="list"></div>
 
-<div class="toolbar" style="justify-content:flex-end">
+<div class="toolbar" id="deleteSelectedBar" style="justify-content:flex-end">
     <button class="btn-red" onclick="deleteSelected()">Smazat označené</button>
 </div>
 
@@ -234,6 +234,8 @@ Počet záznamů: 0
 
 let lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}')
 let categories = JSON.parse(localStorage.getItem('pl_categories') || '{}')
+let duplicatesMode = false
+let sortAZ = false
 
 let editIndex = null
 let selected = new Set()
@@ -318,6 +320,10 @@ function loadLessons(){
 }
 
 function renderWords(){
+
+	if(duplicatesMode){
+		closeDuplicates()
+	}
 
 	showWordList(true)
 	document.getElementById("dupResults").innerHTML = ""
@@ -580,10 +586,25 @@ function moveWord(lesson,i){
 function sortWords(){
 
     const lesson = document.getElementById("lesson").value
+    const btn = document.getElementById("sortBtn")
 
-    lessons[lesson].sort((a,b)=>a.nl.localeCompare(b.nl,"nl"))
+    if(!lesson || lesson === "all") return
 
-    save()
+    sortAZ = !sortAZ
+
+    if(sortAZ){
+
+        lessons[lesson].sort((a,b)=>a.nl.localeCompare(b.nl,"nl"))
+        btn.style.background = "#ff9800"
+
+    }else{
+
+        // znovu načte původní pořadí z localStorage
+        lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}')
+        btn.style.background = "#777"
+
+    }
+
     renderWords()
 }
 
@@ -647,7 +668,18 @@ async function autoIPA(){
 
 function findDuplicates(){
 
+	const btn = document.getElementById("dupBtn")
+
+    if(duplicatesMode){
+        closeDuplicates()
+        return
+    }
+
+    duplicatesMode = true
+	btn.style.background = "#ff9800"
+
 	showWordList(false)
+	document.getElementById("deleteSelectedBar").style.display = "none"
 
     const cat = document.getElementById("category").value
     const lessonFilter = document.getElementById("lesson").value
@@ -683,7 +715,8 @@ function findDuplicates(){
 
     const map = {}
     const dup = []
-	let count = 0
+	let wordCount = 0
+	let groupCount = 0
 
     Object.entries(source).forEach(([lesson,words])=>{
         words.forEach(w=>{
@@ -706,7 +739,8 @@ function findDuplicates(){
 
     dup.forEach(d=>{
 
-		count += d.list.length
+		wordCount += d.list.length
+		groupCount++
         const div = document.createElement("div")
         div.className = "dupBox"
 
@@ -729,7 +763,9 @@ ${item.lesson} — ${item.word.cz}
 
     })
 
-	document.getElementById("resultCount").innerText = "Počet výsledků: " + count
+	document.getElementById("resultCount").innerHTML =
+	"Počet slovíček: " + wordCount +
+	", počet skupin: " + groupCount
 }
 
 function removeDup(word,lesson){
@@ -778,6 +814,23 @@ function showWordList(show){
     }else{
         list.style.display = "none"
     }
+
+}
+
+function closeDuplicates(){
+
+	const btn = document.getElementById("dupBtn")
+	btn.style.background = "#9c27b0"
+
+	duplicatesMode = false
+
+    document.getElementById("dupResults").innerHTML = ""
+
+    showWordList(true)
+
+    document.getElementById("deleteSelectedBar").style.display = "flex"
+
+    renderWords()
 
 }
 

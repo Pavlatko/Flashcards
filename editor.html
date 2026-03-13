@@ -11,16 +11,16 @@ body{
 font-family:sans-serif;
 background:#f5f5f5;
 margin:0;
-padding:12px;
+padding:10px;
 }
 
 .card{
-background:white;
 max-width:700px;
 margin:auto;
+background:white;
+border-radius:16px;
 padding:15px;
-border-radius:15px;
-box-shadow:0 6px 20px rgba(0,0,0,0.15);
+box-shadow:0 8px 20px rgba(0,0,0,0.15);
 }
 
 h2{
@@ -47,11 +47,6 @@ font-weight:bold;
 cursor:pointer;
 }
 
-.btn{background:#2196F3;color:white}
-.btn-green{background:#4CAF50;color:white}
-.btn-red{background:#e53935;color:white}
-.btn-gray{background:#777;color:white}
-
 .toolbar{
 display:flex;
 gap:8px;
@@ -59,12 +54,16 @@ flex-wrap:wrap;
 margin-bottom:10px;
 }
 
+.btn{background:#2196F3;color:white}
+.btn-green{background:#4CAF50;color:white}
+.btn-red{background:#e53935;color:white}
+.btn-gray{background:#777;color:white}
+.btn-purple{background:#9c27b0;color:white}
+
 .word{
 padding:12px;
 border-bottom:1px solid #eee;
-display:flex;
-flex-direction:column;
-gap:3px;
+cursor:pointer;
 }
 
 .word strong{
@@ -72,23 +71,28 @@ font-size:1.1rem;
 }
 
 .word small{
+display:block;
 color:#777;
 }
 
-.actions{
-margin-top:5px;
-display:flex;
-gap:8px;
-}
-
-.check{
-position:absolute;
-right:10px;
-}
-
 .list{
-max-height:50vh;
+max-height:45vh;
 overflow:auto;
+}
+
+.sticky{
+position:sticky;
+bottom:0;
+background:white;
+padding-top:10px;
+border-top:2px solid #eee;
+}
+
+.dupBox{
+background:#fafafa;
+border-radius:10px;
+padding:10px;
+margin-top:10px;
 }
 
 </style>
@@ -107,9 +111,12 @@ overflow:auto;
 <button class="btn" onclick="newLesson()">+ lekce</button>
 <button class="btn-red" onclick="deleteLesson()">🗑 lekce</button>
 <button class="btn-gray" onclick="sortWords()">A→Z</button>
+<button class="btn-purple" onclick="findDuplicates()">🔎 duplicity</button>
 </div>
 
 <input id="search" placeholder="🔎 hledat..." oninput="renderWords()">
+
+<div id="dupResults"></div>
 
 <div class="list" id="list"></div>
 
@@ -117,17 +124,18 @@ overflow:auto;
 <button class="btn-red" onclick="deleteSelected()">🗑 označené</button>
 </div>
 
-<hr>
+<div class="sticky">
 
-<h3>Přidat / upravit</h3>
-
-<input id="nl" placeholder="Nizozemsky">
+<input id="nl" placeholder="Nizozemsky" oninput="autoIPA()">
 <input id="ipa" placeholder="IPA">
 <input id="cz" placeholder="Česky">
 
 <div class="toolbar">
 <button class="btn-green" onclick="saveWord()">ULOŽIT</button>
+<button class="btn" onclick="saveAndNext()">+ DALŠÍ</button>
 <button class="btn-gray" onclick="clearForm()">RESET</button>
+</div>
+
 </div>
 
 </div>
@@ -163,13 +171,13 @@ c.appendChild(op)
 })
 
 loadLessons()
+
 }
 
 function loadLessons(){
 
 const cat=document.getElementById("category").value
 const l=document.getElementById("lesson")
-
 l.innerHTML=""
 
 let list=[]
@@ -177,7 +185,6 @@ let list=[]
 if(cat==="none"){
 
 const used=Object.values(categories).flat()
-
 list=Object.keys(lessons).filter(x=>!used.includes(x))
 
 }else{
@@ -203,7 +210,6 @@ function renderWords(){
 
 const lesson=document.getElementById("lesson").value
 const list=document.getElementById("list")
-
 list.innerHTML=""
 
 if(!lessons[lesson])return
@@ -221,24 +227,21 @@ if(!(w.nl+w.cz+w.ipa).toLowerCase().includes(search))return
 const div=document.createElement("div")
 div.className="word"
 
+div.onclick=()=>editWord(i)
+
 div.innerHTML=`
 
 <label>
-<input type="checkbox" onchange="toggleSelect(${i},this)">
+<input type="checkbox" onclick="event.stopPropagation()" onchange="toggleSelect(${i},this)">
 <strong>${w.nl}</strong>
 </label>
 
 <small>${w.ipa}</small>
 <small>${w.cz}</small>
 
-<div class="actions">
-
-<button onclick="editWord(${i})">✏</button>
-
-<button onclick="deleteWord(${i})">🗑</button>
-
-<button onclick="moveWord(${i})">↪</button>
-
+<div class="toolbar">
+<button onclick="event.stopPropagation();moveWord(${i})">↪</button>
+<button onclick="event.stopPropagation();deleteWord(${i})">🗑</button>
 </div>
 
 `
@@ -254,11 +257,7 @@ function newLesson(){
 const name=prompt("Název lekce")
 
 if(!name)return
-
-if(lessons[name]){
-alert("existuje")
-return
-}
+if(lessons[name])return alert("existuje")
 
 lessons[name]=[]
 
@@ -270,7 +269,6 @@ categories[cat].push(name)
 }
 
 save()
-
 loadLessons()
 
 }
@@ -284,13 +282,10 @@ if(!confirm("Smazat lekci?"))return
 delete lessons[lesson]
 
 Object.keys(categories).forEach(c=>{
-
 categories[c]=categories[c].filter(l=>l!==lesson)
-
 })
 
 save()
-
 loadLessons()
 
 }
@@ -298,17 +293,13 @@ loadLessons()
 function saveWord(){
 
 const lesson=document.getElementById("lesson").value
-
 if(!lesson)return
 
 const nl=document.getElementById("nl").value.trim()
 const ipa=document.getElementById("ipa").value.trim()
 const cz=document.getElementById("cz").value.trim()
 
-if(!nl||!cz){
-alert("vyplň NL a CZ")
-return
-}
+if(!nl||!cz)return alert("vyplň NL a CZ")
 
 const word={nl,ipa,cz}
 
@@ -318,17 +309,22 @@ lessons[lesson].push(word)
 
 }else{
 
+if(!confirm("Opravdu upravit slovíčko?"))return
+
 lessons[lesson][editIndex]=word
 editIndex=null
 
 }
 
 save()
-
 clearForm()
-
 renderWords()
 
+}
+
+function saveAndNext(){
+saveWord()
+document.getElementById("nl").focus()
 }
 
 function editWord(i){
@@ -355,7 +351,6 @@ if(!confirm("Smazat slovíčko?"))return
 lessons[lesson].splice(i,1)
 
 save()
-
 renderWords()
 
 }
@@ -380,7 +375,6 @@ lessons[lesson]=lessons[lesson].filter((_,i)=>!selected.has(i))
 selected.clear()
 
 save()
-
 renderWords()
 
 }
@@ -391,19 +385,14 @@ const lesson=document.getElementById("lesson").value
 
 const target=prompt("Do jaké lekce přesunout?")
 
-if(!target||!lessons[target]){
-alert("lekce neexistuje")
-return
-}
+if(!target||!lessons[target])return alert("lekce neexistuje")
 
 const w=lessons[lesson][i]
 
 lessons[target].push(w)
-
 lessons[lesson].splice(i,1)
 
 save()
-
 renderWords()
 
 }
@@ -415,7 +404,6 @@ const lesson=document.getElementById("lesson").value
 lessons[lesson].sort((a,b)=>a.nl.localeCompare(b.nl,"nl"))
 
 save()
-
 renderWords()
 
 }
@@ -427,6 +415,87 @@ document.getElementById("ipa").value=""
 document.getElementById("cz").value=""
 
 editIndex=null
+
+}
+
+function autoIPA(){
+
+let nl=document.getElementById("nl").value.trim().toLowerCase()
+
+if(!nl)return
+
+nl=nl.replace(/^de |^het /,"")
+
+let ipa=nl
+
+ipa=ipa
+.replace(/aa/g,"aː")
+.replace(/ee/g,"eː")
+.replace(/oo/g,"oː")
+.replace(/uu/g,"yː")
+.replace(/eu/g,"øː")
+.replace(/ui/g,"œy")
+.replace(/ij/g,"ɛi")
+.replace(/ng/g,"ŋ")
+
+document.getElementById("ipa").value=ipa
+
+}
+
+function findDuplicates(){
+
+const map={}
+const dup=[]
+
+Object.entries(lessons).forEach(([lesson,words])=>{
+words.forEach(w=>{
+let key=w.nl.trim().toLowerCase()
+
+if(!map[key])map[key]=[]
+map[key].push({lesson,word:w})
+})
+})
+
+Object.entries(map).forEach(([k,v])=>{
+if(v.length>1)dup.push({word:k,list:v})
+})
+
+const box=document.getElementById("dupResults")
+
+box.innerHTML=""
+
+dup.forEach(d=>{
+
+const div=document.createElement("div")
+div.className="dupBox"
+
+div.innerHTML=`<b>${d.word}</b> (${d.list.length})`
+
+d.list.forEach(item=>{
+
+const row=document.createElement("div")
+
+row.innerHTML=`${item.lesson} <button onclick="removeDup('${d.word}','${item.lesson}')">❌</button>`
+
+div.appendChild(row)
+
+})
+
+box.appendChild(div)
+
+})
+
+}
+
+function removeDup(word,lesson){
+
+if(!confirm("Opravdu odstranit z lekce?"))return
+
+lessons[lesson]=lessons[lesson].filter(w=>w.nl.toLowerCase().trim()!=word)
+
+save()
+findDuplicates()
+renderWords()
 
 }
 

@@ -1,6 +1,8 @@
 ﻿<!DOCTYPE html>
 <html lang="cs">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Flashcards Editor</title>
@@ -8,50 +10,50 @@
 <style>
 
 body{
-font-family:sans-serif;
-background:#f5f5f5;
-margin:0;
-padding:10px;
+    font-family:sans-serif;
+    background:#f5f5f5;
+    margin:0;
+    padding:10px;
 }
 
 .card{
-max-width:700px;
-margin:auto;
-background:white;
-border-radius:16px;
-padding:15px;
-box-shadow:0 8px 20px rgba(0,0,0,0.15);
+    max-width:700px;
+    margin:auto;
+    background:white;
+    border-radius:16px;
+    padding:15px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.15);
 }
 
 h2{
-margin-top:0;
-text-align:center;
-color:#2196F3;
+    margin-top:0;
+    text-align:center;
+    color:#2196F3;
 }
 
 select,input{
-width:100%;
-padding:12px;
-border-radius:10px;
-border:1px solid #ddd;
-font-size:1rem;
-margin-bottom:10px;
-box-sizing:border-box;
+    width:100%;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    font-size:1rem;
+    margin-bottom:10px;
+    box-sizing:border-box;
 }
 
 button{
-padding:12px;
-border:none;
-border-radius:10px;
-font-weight:bold;
-cursor:pointer;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    font-weight:bold;
+    cursor:pointer;
 }
 
 .toolbar{
-display:flex;
-gap:8px;
-flex-wrap:wrap;
-margin-bottom:10px;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
 }
 
 .btn{background:#2196F3;color:white}
@@ -61,38 +63,38 @@ margin-bottom:10px;
 .btn-purple{background:#9c27b0;color:white}
 
 .word{
-padding:12px;
-border-bottom:1px solid #eee;
-cursor:pointer;
+    padding:12px;
+    border-bottom:1px solid #eee;
+    cursor:pointer;
 }
 
 .word strong{
-font-size:1.1rem;
+    font-size:1.1rem;
 }
 
 .word small{
-display:block;
-color:#777;
+    display:block;
+    color:#777;
 }
 
 .list{
-max-height:45vh;
-overflow:auto;
+    max-height:45vh;
+    overflow:auto;
 }
 
 .sticky{
-position:sticky;
-bottom:0;
-background:white;
-padding-top:10px;
-border-top:2px solid #eee;
+    position:sticky;
+    bottom:0;
+    background:white;
+    padding-top:10px;
+    border-top:2px solid #eee;
 }
 
 .dupBox{
-background:#fafafa;
-border-radius:10px;
-padding:10px;
-margin-top:10px;
+    background:#fafafa;
+    border-radius:10px;
+    padding:10px;
+    margin-top:10px;
 }
 
 </style>
@@ -108,10 +110,10 @@ margin-top:10px;
 <select id="lesson"></select>
 
 <div class="toolbar">
-<button class="btn" onclick="newLesson()">+ lekce</button>
-<button class="btn-red" onclick="deleteLesson()">🗑 lekce</button>
-<button class="btn-gray" onclick="sortWords()">A→Z</button>
-<button class="btn-purple" onclick="findDuplicates()">🔎 duplicity</button>
+    <button class="btn" onclick="newLesson()">+ lekce</button>
+    <button class="btn-red" onclick="deleteLesson()">🗑 lekce</button>
+    <button class="btn-gray" onclick="sortWords()">A→Z</button>
+    <button class="btn-purple" onclick="findDuplicates()">🔎 duplicity</button>
 </div>
 
 <input id="search" placeholder="🔎 hledat..." oninput="renderWords()">
@@ -121,7 +123,7 @@ margin-top:10px;
 <div class="list" id="list"></div>
 
 <div class="toolbar">
-<button class="btn-red" onclick="deleteSelected()">🗑 označené</button>
+    <button class="btn-red" onclick="deleteSelected()">🗑 označené</button>
 </div>
 
 <div class="sticky">
@@ -131,9 +133,9 @@ margin-top:10px;
 <input id="cz" placeholder="Česky">
 
 <div class="toolbar">
-<button class="btn-green" onclick="saveWord()">ULOŽIT</button>
-<button class="btn" onclick="saveAndNext()">+ DALŠÍ</button>
-<button class="btn-gray" onclick="clearForm()">RESET</button>
+    <button class="btn-green" onclick="saveWord()">ULOŽIT</button>
+    <button class="btn" onclick="saveAndNext()">+ DALŠÍ</button>
+    <button class="btn-gray" onclick="clearForm()">RESET</button>
 </div>
 
 </div>
@@ -142,95 +144,114 @@ margin-top:10px;
 
 <script>
 
-let lessons = JSON.parse(localStorage.getItem('pl_lessons')||'{}')
-let categories = JSON.parse(localStorage.getItem('pl_categories')||'{}')
+let lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}')
+let categories = JSON.parse(localStorage.getItem('pl_categories') || '{}')
 
-let editIndex=null
-let selected=new Set()
+let editIndex = null
+let selected = new Set()
 
 function save(){
-localStorage.setItem('pl_lessons',JSON.stringify(lessons))
-localStorage.setItem('pl_categories',JSON.stringify(categories))
+    localStorage.setItem('pl_lessons', JSON.stringify(lessons))
+    localStorage.setItem('pl_categories', JSON.stringify(categories))
 }
 
 function loadCategories(){
 
-const c=document.getElementById("category")
-c.innerHTML=""
+    const c = document.getElementById("category")
+    c.innerHTML = ""
 
-let o=document.createElement("option")
-o.value="none"
-o.innerText="-- hlavní menu --"
-c.appendChild(o)
+    let o1 = document.createElement("option")
+    o1.value = "none"
+    o1.innerText = "-- hlavní menu --"
+    c.appendChild(o1)
 
-Object.keys(categories).sort().forEach(cat=>{
-let op=document.createElement("option")
-op.value=cat
-op.innerText=cat
-c.appendChild(op)
-})
+    let o2 = document.createElement("option")
+    o2.value = "all"
+    o2.innerText = "-- všechny kategorie --"
+    c.appendChild(o2)
 
-loadLessons()
+    Object.keys(categories)
+        .sort()
+        .forEach(cat => {
 
+            let op = document.createElement("option")
+            op.value = cat
+            op.innerText = cat
+            c.appendChild(op)
+
+        })
+
+    loadLessons()
 }
 
 function loadLessons(){
 
-const cat=document.getElementById("category").value
-const l=document.getElementById("lesson")
-l.innerHTML=""
+    const cat = document.getElementById("category").value
+    const l = document.getElementById("lesson")
 
-let list=[]
+    l.innerHTML = ""
 
-if(cat==="none"){
+    let list = []
 
-const used=Object.values(categories).flat()
-list=Object.keys(lessons).filter(x=>!used.includes(x))
+    let first = document.createElement("option")
+    first.value = "all"
+    first.innerText = "-- všechny lekce --"
+    l.appendChild(first)
 
-}else{
+    if(cat === "none"){
 
-list=categories[cat]||[]
+        const used = Object.values(categories).flat()
+        list = Object.keys(lessons).filter(x => !used.includes(x))
 
-}
+    }
+    else if(cat === "all"){
 
-list.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}))
+        list = Object.keys(lessons)
 
-list.forEach(n=>{
-let op=document.createElement("option")
-op.value=n
-op.innerText=n
-l.appendChild(op)
-})
+    }
+    else{
 
-renderWords()
+        list = categories[cat] || []
 
+    }
+
+    list
+        .sort((a,b) => a.localeCompare(b, undefined, {numeric:true}))
+        .forEach(n => {
+
+            let op = document.createElement("option")
+            op.value = n
+            op.innerText = n
+            l.appendChild(op)
+
+        })
+
+    renderWords()
 }
 
 function renderWords(){
 
-const lesson=document.getElementById("lesson").value
-const list=document.getElementById("list")
-list.innerHTML=""
+    const lesson = document.getElementById("lesson").value
+    const list = document.getElementById("list")
 
-if(!lessons[lesson])return
+    list.innerHTML = ""
 
-const search=document.getElementById("search").value.toLowerCase()
+    if(!lessons[lesson]) return
 
-lessons[lesson].forEach((w,i)=>{
+    const search = document.getElementById("search").value.toLowerCase()
 
-if(search){
+    lessons[lesson].forEach((w,i)=>{
 
-if(!(w.nl+w.cz+w.ipa).toLowerCase().includes(search))return
+        if(search){
+            if(!(w.nl + w.cz + w.ipa).toLowerCase().includes(search)) return
+        }
 
-}
+        const div = document.createElement("div")
+        div.className = "word"
 
-const div=document.createElement("div")
-div.className="word"
+        div.onclick = () => editWord(i)
 
-div.onclick=()=>editWord(i)
-
-div.innerHTML=`
-
+        div.innerHTML = `
 <label>
 <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleSelect(${i},this)">
 <strong>${w.nl}</strong>
@@ -243,264 +264,288 @@ div.innerHTML=`
 <button onclick="event.stopPropagation();moveWord(${i})">↪</button>
 <button onclick="event.stopPropagation();deleteWord(${i})">🗑</button>
 </div>
-
 `
 
-list.appendChild(div)
+        list.appendChild(div)
 
-})
-
+    })
 }
 
 function newLesson(){
 
-const name=prompt("Název lekce")
+    const name = prompt("Název lekce")
 
-if(!name)return
-if(lessons[name])return alert("existuje")
+    if(!name) return
+    if(lessons[name]) return alert("existuje")
 
-lessons[name]=[]
+    lessons[name] = []
 
-const cat=document.getElementById("category").value
+    const cat = document.getElementById("category").value
 
-if(cat!=="none"){
-if(!categories[cat])categories[cat]=[]
-categories[cat].push(name)
-}
+    if(cat !== "none"){
+        if(!categories[cat]) categories[cat] = []
+        categories[cat].push(name)
+    }
 
-save()
-loadLessons()
-
+    save()
+    loadLessons()
 }
 
 function deleteLesson(){
 
-const lesson=document.getElementById("lesson").value
+    const lesson = document.getElementById("lesson").value
 
-if(!confirm("Smazat lekci?"))return
+    if(!confirm("Smazat lekci?")) return
 
-delete lessons[lesson]
+    delete lessons[lesson]
 
-Object.keys(categories).forEach(c=>{
-categories[c]=categories[c].filter(l=>l!==lesson)
-})
+    Object.keys(categories).forEach(c=>{
+        categories[c] = categories[c].filter(l => l !== lesson)
+    })
 
-save()
-loadLessons()
-
+    save()
+    loadLessons()
 }
 
 function saveWord(){
 
-const lesson=document.getElementById("lesson").value
-if(!lesson)return
+    const lesson = document.getElementById("lesson").value
+    if(!lesson) return
 
-const nl=document.getElementById("nl").value.trim()
-const ipa=document.getElementById("ipa").value.trim()
-const cz=document.getElementById("cz").value.trim()
+    const nl = document.getElementById("nl").value.trim()
+    const ipa = document.getElementById("ipa").value.trim()
+    const cz = document.getElementById("cz").value.trim()
 
-if(!nl||!cz)return alert("vyplň NL a CZ")
+    if(!nl || !cz) return alert("vyplň NL a CZ")
 
-const word={nl,ipa,cz}
+    const word = {nl,ipa,cz}
 
-if(editIndex===null){
+    if(editIndex === null){
 
-lessons[lesson].push(word)
+        lessons[lesson].push(word)
 
-}else{
+    }
+    else{
 
-if(!confirm("Opravdu upravit slovíčko?"))return
+        if(!confirm("Opravdu upravit slovíčko?")) return
 
-lessons[lesson][editIndex]=word
-editIndex=null
+        lessons[lesson][editIndex] = word
+        editIndex = null
 
-}
+    }
 
-save()
-clearForm()
-renderWords()
-
+    save()
+    clearForm()
+    renderWords()
 }
 
 function saveAndNext(){
-saveWord()
-document.getElementById("nl").focus()
+    saveWord()
+    document.getElementById("nl").focus()
 }
 
 function editWord(i){
 
-const lesson=document.getElementById("lesson").value
-const w=lessons[lesson][i]
+    const lesson = document.getElementById("lesson").value
+    const w = lessons[lesson][i]
 
-document.getElementById("nl").value=w.nl
-document.getElementById("ipa").value=w.ipa
-document.getElementById("cz").value=w.cz
+    document.getElementById("nl").value = w.nl
+    document.getElementById("ipa").value = w.ipa
+    document.getElementById("cz").value = w.cz
 
-editIndex=i
+    editIndex = i
 
-window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"})
-
+    window.scrollTo({
+        top:document.body.scrollHeight,
+        behavior:"smooth"
+    })
 }
 
 function deleteWord(i){
 
-const lesson=document.getElementById("lesson").value
+    const lesson = document.getElementById("lesson").value
 
-if(!confirm("Smazat slovíčko?"))return
+    if(!confirm("Smazat slovíčko?")) return
 
-lessons[lesson].splice(i,1)
+    lessons[lesson].splice(i,1)
 
-save()
-renderWords()
-
+    save()
+    renderWords()
 }
 
 function toggleSelect(i,cb){
 
-if(cb.checked)selected.add(i)
-else selected.delete(i)
+    if(cb.checked) selected.add(i)
+    else selected.delete(i)
 
 }
 
 function deleteSelected(){
 
-const lesson=document.getElementById("lesson").value
+    const lesson = document.getElementById("lesson").value
 
-if(!selected.size)return
+    if(!selected.size) return
 
-if(!confirm("Smazat označené?"))return
+    if(!confirm("Smazat označené?")) return
 
-lessons[lesson]=lessons[lesson].filter((_,i)=>!selected.has(i))
+    lessons[lesson] = lessons[lesson].filter((_,i)=>!selected.has(i))
 
-selected.clear()
+    selected.clear()
 
-save()
-renderWords()
-
+    save()
+    renderWords()
 }
 
 function moveWord(i){
 
-const lesson=document.getElementById("lesson").value
+    const lesson = document.getElementById("lesson").value
 
-const target=prompt("Do jaké lekce přesunout?")
+    const target = prompt("Do jaké lekce přesunout?")
 
-if(!target||!lessons[target])return alert("lekce neexistuje")
+    if(!target || !lessons[target]) return alert("lekce neexistuje")
 
-const w=lessons[lesson][i]
+    const w = lessons[lesson][i]
 
-lessons[target].push(w)
-lessons[lesson].splice(i,1)
+    lessons[target].push(w)
+    lessons[lesson].splice(i,1)
 
-save()
-renderWords()
-
+    save()
+    renderWords()
 }
 
 function sortWords(){
 
-const lesson=document.getElementById("lesson").value
+    const lesson = document.getElementById("lesson").value
 
-lessons[lesson].sort((a,b)=>a.nl.localeCompare(b.nl,"nl"))
+    lessons[lesson].sort((a,b)=>a.nl.localeCompare(b.nl,"nl"))
 
-save()
-renderWords()
-
+    save()
+    renderWords()
 }
 
 function clearForm(){
 
-document.getElementById("nl").value=""
-document.getElementById("ipa").value=""
-document.getElementById("cz").value=""
+    document.getElementById("nl").value = ""
+    document.getElementById("ipa").value = ""
+    document.getElementById("cz").value = ""
 
-editIndex=null
-
+    editIndex = null
 }
 
 function autoIPA(){
 
-let nl=document.getElementById("nl").value.trim().toLowerCase()
+    let nl = document.getElementById("nl").value.trim().toLowerCase()
 
-if(!nl)return
+    if(!nl) return
 
-nl=nl.replace(/^de |^het /,"")
+    nl = nl.replace(/^de |^het /,"")
 
-let ipa=nl
+    let ipa = nl
 
-ipa=ipa
-.replace(/aa/g,"aː")
-.replace(/ee/g,"eː")
-.replace(/oo/g,"oː")
-.replace(/uu/g,"yː")
-.replace(/eu/g,"øː")
-.replace(/ui/g,"œy")
-.replace(/ij/g,"ɛi")
-.replace(/ng/g,"ŋ")
+    ipa = ipa
+        .replace(/aa/g,"aː")
+        .replace(/ee/g,"eː")
+        .replace(/oo/g,"oː")
+        .replace(/uu/g,"yː")
+        .replace(/eu/g,"øː")
+        .replace(/ui/g,"œy")
+        .replace(/ij/g,"ɛi")
+        .replace(/ng/g,"ŋ")
 
-document.getElementById("ipa").value=ipa
-
+    document.getElementById("ipa").value = ipa
 }
 
 function findDuplicates(){
 
-const map={}
-const dup=[]
+    const cat = document.getElementById("category").value
+    const lessonFilter = document.getElementById("lesson").value
 
-Object.entries(lessons).forEach(([lesson,words])=>{
-words.forEach(w=>{
-let key=w.nl.trim().toLowerCase()
+    let source = {}
 
-if(!map[key])map[key]=[]
-map[key].push({lesson,word:w})
-})
-})
+    if(lessonFilter && lessonFilter !== "all"){
 
-Object.entries(map).forEach(([k,v])=>{
-if(v.length>1)dup.push({word:k,list:v})
-})
+        source[lessonFilter] = lessons[lessonFilter] || []
 
-const box=document.getElementById("dupResults")
+    }
+    else if(cat === "all"){
 
-box.innerHTML=""
+        source = lessons
 
-dup.forEach(d=>{
+    }
+    else if(cat === "none"){
 
-const div=document.createElement("div")
-div.className="dupBox"
+        const used = Object.values(categories).flat()
 
-div.innerHTML=`<b>${d.word}</b> (${d.list.length})`
+        Object.keys(lessons).forEach(l=>{
+            if(!used.includes(l)) source[l] = lessons[l]
+        })
 
-d.list.forEach(item=>{
+    }
+    else{
 
-const row=document.createElement("div")
+        (categories[cat] || []).forEach(l=>{
+            source[l] = lessons[l]
+        })
 
-row.innerHTML=`${item.lesson} <button onclick="removeDup('${d.word}','${item.lesson}')">❌</button>`
+    }
 
-div.appendChild(row)
+    const map = {}
+    const dup = []
 
-})
+    Object.entries(source).forEach(([lesson,words])=>{
+        words.forEach(w=>{
 
-box.appendChild(div)
+            let key = w.nl.trim().toLowerCase()
 
-})
+            if(!map[key]) map[key] = []
 
+            map[key].push({lesson,word:w})
+
+        })
+    })
+
+    Object.entries(map).forEach(([k,v])=>{
+        if(v.length > 1) dup.push({word:k,list:v})
+    })
+
+    const box = document.getElementById("dupResults")
+    box.innerHTML = ""
+
+    dup.forEach(d=>{
+
+        const div = document.createElement("div")
+        div.className = "dupBox"
+
+        div.innerHTML = `<b>${d.word}</b> (${d.list.length})`
+
+        d.list.forEach(item=>{
+
+            const row = document.createElement("div")
+
+            row.innerHTML = `${item.lesson} <button onclick="removeDup('${d.word}','${item.lesson}')">❌</button>`
+
+            div.appendChild(row)
+
+        })
+
+        box.appendChild(div)
+
+    })
 }
 
 function removeDup(word,lesson){
 
-if(!confirm("Opravdu odstranit z lekce?"))return
+    if(!confirm("Opravdu odstranit z lekce?")) return
 
-lessons[lesson]=lessons[lesson].filter(w=>w.nl.toLowerCase().trim()!=word)
+    lessons[lesson] = lessons[lesson].filter(w=>w.nl.toLowerCase().trim() != word)
 
-save()
-findDuplicates()
-renderWords()
-
+    save()
+    findDuplicates()
+    renderWords()
 }
 
-document.getElementById("category").onchange=loadLessons
-document.getElementById("lesson").onchange=renderWords
+document.getElementById("category").onchange = loadLessons
+document.getElementById("lesson").onchange = renderWords
 
 loadCategories()
 

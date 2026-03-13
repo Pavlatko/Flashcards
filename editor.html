@@ -1,0 +1,441 @@
+﻿<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flashcards Editor</title>
+
+<style>
+
+body{
+font-family:sans-serif;
+background:#f5f5f5;
+margin:0;
+padding:12px;
+}
+
+.card{
+background:white;
+max-width:700px;
+margin:auto;
+padding:15px;
+border-radius:15px;
+box-shadow:0 6px 20px rgba(0,0,0,0.15);
+}
+
+h2{
+margin-top:0;
+text-align:center;
+color:#2196F3;
+}
+
+select,input{
+width:100%;
+padding:12px;
+border-radius:10px;
+border:1px solid #ddd;
+font-size:1rem;
+margin-bottom:10px;
+box-sizing:border-box;
+}
+
+button{
+padding:12px;
+border:none;
+border-radius:10px;
+font-weight:bold;
+cursor:pointer;
+}
+
+.btn{background:#2196F3;color:white}
+.btn-green{background:#4CAF50;color:white}
+.btn-red{background:#e53935;color:white}
+.btn-gray{background:#777;color:white}
+
+.toolbar{
+display:flex;
+gap:8px;
+flex-wrap:wrap;
+margin-bottom:10px;
+}
+
+.word{
+padding:12px;
+border-bottom:1px solid #eee;
+display:flex;
+flex-direction:column;
+gap:3px;
+}
+
+.word strong{
+font-size:1.1rem;
+}
+
+.word small{
+color:#777;
+}
+
+.actions{
+margin-top:5px;
+display:flex;
+gap:8px;
+}
+
+.check{
+position:absolute;
+right:10px;
+}
+
+.list{
+max-height:50vh;
+overflow:auto;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>✏️ Editor slovíček</h2>
+
+<select id="category"></select>
+<select id="lesson"></select>
+
+<div class="toolbar">
+<button class="btn" onclick="newLesson()">+ lekce</button>
+<button class="btn-red" onclick="deleteLesson()">🗑 lekce</button>
+<button class="btn-gray" onclick="sortWords()">A→Z</button>
+</div>
+
+<input id="search" placeholder="🔎 hledat..." oninput="renderWords()">
+
+<div class="list" id="list"></div>
+
+<div class="toolbar">
+<button class="btn-red" onclick="deleteSelected()">🗑 označené</button>
+</div>
+
+<hr>
+
+<h3>Přidat / upravit</h3>
+
+<input id="nl" placeholder="Nizozemsky">
+<input id="ipa" placeholder="IPA">
+<input id="cz" placeholder="Česky">
+
+<div class="toolbar">
+<button class="btn-green" onclick="saveWord()">ULOŽIT</button>
+<button class="btn-gray" onclick="clearForm()">RESET</button>
+</div>
+
+</div>
+
+<script>
+
+let lessons = JSON.parse(localStorage.getItem('pl_lessons')||'{}')
+let categories = JSON.parse(localStorage.getItem('pl_categories')||'{}')
+
+let editIndex=null
+let selected=new Set()
+
+function save(){
+localStorage.setItem('pl_lessons',JSON.stringify(lessons))
+localStorage.setItem('pl_categories',JSON.stringify(categories))
+}
+
+function loadCategories(){
+
+const c=document.getElementById("category")
+c.innerHTML=""
+
+let o=document.createElement("option")
+o.value="none"
+o.innerText="-- hlavní menu --"
+c.appendChild(o)
+
+Object.keys(categories).sort().forEach(cat=>{
+let op=document.createElement("option")
+op.value=cat
+op.innerText=cat
+c.appendChild(op)
+})
+
+loadLessons()
+}
+
+function loadLessons(){
+
+const cat=document.getElementById("category").value
+const l=document.getElementById("lesson")
+
+l.innerHTML=""
+
+let list=[]
+
+if(cat==="none"){
+
+const used=Object.values(categories).flat()
+
+list=Object.keys(lessons).filter(x=>!used.includes(x))
+
+}else{
+
+list=categories[cat]||[]
+
+}
+
+list.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}))
+
+list.forEach(n=>{
+let op=document.createElement("option")
+op.value=n
+op.innerText=n
+l.appendChild(op)
+})
+
+renderWords()
+
+}
+
+function renderWords(){
+
+const lesson=document.getElementById("lesson").value
+const list=document.getElementById("list")
+
+list.innerHTML=""
+
+if(!lessons[lesson])return
+
+const search=document.getElementById("search").value.toLowerCase()
+
+lessons[lesson].forEach((w,i)=>{
+
+if(search){
+
+if(!(w.nl+w.cz+w.ipa).toLowerCase().includes(search))return
+
+}
+
+const div=document.createElement("div")
+div.className="word"
+
+div.innerHTML=`
+
+<label>
+<input type="checkbox" onchange="toggleSelect(${i},this)">
+<strong>${w.nl}</strong>
+</label>
+
+<small>${w.ipa}</small>
+<small>${w.cz}</small>
+
+<div class="actions">
+
+<button onclick="editWord(${i})">✏</button>
+
+<button onclick="deleteWord(${i})">🗑</button>
+
+<button onclick="moveWord(${i})">↪</button>
+
+</div>
+
+`
+
+list.appendChild(div)
+
+})
+
+}
+
+function newLesson(){
+
+const name=prompt("Název lekce")
+
+if(!name)return
+
+if(lessons[name]){
+alert("existuje")
+return
+}
+
+lessons[name]=[]
+
+const cat=document.getElementById("category").value
+
+if(cat!=="none"){
+if(!categories[cat])categories[cat]=[]
+categories[cat].push(name)
+}
+
+save()
+
+loadLessons()
+
+}
+
+function deleteLesson(){
+
+const lesson=document.getElementById("lesson").value
+
+if(!confirm("Smazat lekci?"))return
+
+delete lessons[lesson]
+
+Object.keys(categories).forEach(c=>{
+
+categories[c]=categories[c].filter(l=>l!==lesson)
+
+})
+
+save()
+
+loadLessons()
+
+}
+
+function saveWord(){
+
+const lesson=document.getElementById("lesson").value
+
+if(!lesson)return
+
+const nl=document.getElementById("nl").value.trim()
+const ipa=document.getElementById("ipa").value.trim()
+const cz=document.getElementById("cz").value.trim()
+
+if(!nl||!cz){
+alert("vyplň NL a CZ")
+return
+}
+
+const word={nl,ipa,cz}
+
+if(editIndex===null){
+
+lessons[lesson].push(word)
+
+}else{
+
+lessons[lesson][editIndex]=word
+editIndex=null
+
+}
+
+save()
+
+clearForm()
+
+renderWords()
+
+}
+
+function editWord(i){
+
+const lesson=document.getElementById("lesson").value
+const w=lessons[lesson][i]
+
+document.getElementById("nl").value=w.nl
+document.getElementById("ipa").value=w.ipa
+document.getElementById("cz").value=w.cz
+
+editIndex=i
+
+window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"})
+
+}
+
+function deleteWord(i){
+
+const lesson=document.getElementById("lesson").value
+
+if(!confirm("Smazat slovíčko?"))return
+
+lessons[lesson].splice(i,1)
+
+save()
+
+renderWords()
+
+}
+
+function toggleSelect(i,cb){
+
+if(cb.checked)selected.add(i)
+else selected.delete(i)
+
+}
+
+function deleteSelected(){
+
+const lesson=document.getElementById("lesson").value
+
+if(!selected.size)return
+
+if(!confirm("Smazat označené?"))return
+
+lessons[lesson]=lessons[lesson].filter((_,i)=>!selected.has(i))
+
+selected.clear()
+
+save()
+
+renderWords()
+
+}
+
+function moveWord(i){
+
+const lesson=document.getElementById("lesson").value
+
+const target=prompt("Do jaké lekce přesunout?")
+
+if(!target||!lessons[target]){
+alert("lekce neexistuje")
+return
+}
+
+const w=lessons[lesson][i]
+
+lessons[target].push(w)
+
+lessons[lesson].splice(i,1)
+
+save()
+
+renderWords()
+
+}
+
+function sortWords(){
+
+const lesson=document.getElementById("lesson").value
+
+lessons[lesson].sort((a,b)=>a.nl.localeCompare(b.nl,"nl"))
+
+save()
+
+renderWords()
+
+}
+
+function clearForm(){
+
+document.getElementById("nl").value=""
+document.getElementById("ipa").value=""
+document.getElementById("cz").value=""
+
+editIndex=null
+
+}
+
+document.getElementById("category").onchange=loadLessons
+document.getElementById("lesson").onchange=renderWords
+
+loadCategories()
+
+</script>
+
+</body>
+</html>

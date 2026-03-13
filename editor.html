@@ -56,10 +56,16 @@ button{
     margin-bottom:10px;
     justify-content:center;
 }
+.toolbar-bottom{
+    display:flex;
+    justify-content:right;
+    align-items:right;
+}
 
 .btn{background:#2196F3;color:white}
 .btn-green{background:#4CAF50;color:white}
 .btn-red{background:#e53935;color:white}
+.btn-del-all{margin-top:10px;}
 .btn-gray{background:#777;color:white}
 .btn-purple{background:#9c27b0;color:white}
 
@@ -81,6 +87,11 @@ button{
 .list{
     max-height:45vh;
     overflow:auto;
+    transition:max-height 0.25s;
+}
+
+.headerCollapsed + .searchBox + #resultCount + #dupResults + .list{
+    max-height:70vh;
 }
 
 .sticky{
@@ -262,8 +273,8 @@ Počet záznamů: 0
 
 <div class="list" id="list"></div>
 
-<div class="toolbar" id="deleteSelectedBar" style="justify-content:flex-end">
-    <button class="btn-red" onclick="deleteSelected()">Smazat označené</button>
+<div class="toolbar-bottom" id="deleteSelectedBar">
+    <button class="btn-red btn-del-all" onclick="deleteSelected()">Smazat označené</button>
 </div>
 
 <div class="sticky" id="addWordBox" style="display:none">
@@ -940,13 +951,16 @@ function toggleHeader(){
 
     const box = document.getElementById("headerBox")
     const btn = box.querySelector(".toggleHeader")
+    const list = document.getElementById("list")
 
     box.classList.toggle("headerCollapsed")
 
     if(box.classList.contains("headerCollapsed")){
         btn.innerText = "⌄"
+        list.style.maxHeight = "75vh"
     }else{
         btn.innerText = "⌃"
+        list.style.maxHeight = "45vh"
     }
 
 }

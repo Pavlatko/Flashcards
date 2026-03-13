@@ -54,6 +54,7 @@ button{
     gap:8px;
     flex-wrap:wrap;
     margin-bottom:10px;
+    justify-content:center;
 }
 
 .btn{background:#2196F3;color:white}
@@ -97,6 +98,85 @@ button{
     margin-top:10px;
 }
 
+.searchBox{
+    position:relative;
+}
+
+#search{
+    padding-right:40px;
+}
+
+#clearSearch{
+    position:absolute;
+    right:8px;
+    top:50%;
+    transform:translateY(-50%);
+    
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    
+    border:none;
+    background:#dcdcdc;
+    color:#444;
+
+    align-items:center;
+    justify-content:center;
+
+    font-size:14px;
+    cursor:pointer;
+
+    display:none;
+}
+
+#clearSearch:hover{
+    background:#ccc;
+}
+
+.toast{
+    position:fixed;
+    bottom:25px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#323232;
+    color:white;
+    padding:12px 20px;
+    border-radius:12px;
+    font-size:0.95rem;
+    box-shadow:0 8px 20px rgba(0,0,0,0.3);
+    opacity:0;
+    transition:0.3s;
+    z-index:999;
+}
+
+.toast.show{
+    opacity:1;
+}
+
+.word{
+    padding:12px;
+    border-bottom:1px solid #eee;
+    cursor:pointer;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.wordContent{
+    flex:1;
+}
+
+.wordRight{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.wordRight input{
+    transform:scale(1.4);
+}
+
 </style>
 </head>
 
@@ -110,23 +190,30 @@ button{
 <select id="lesson"></select>
 
 <div class="toolbar">
+    <button class="btn-green" onclick="showAddWord()">+ slovíčko</button>
     <button class="btn" onclick="newLesson()">+ lekce</button>
     <button class="btn-red" onclick="deleteLesson()">🗑 lekce</button>
     <button class="btn-gray" onclick="sortWords()">A→Z</button>
     <button class="btn-purple" onclick="findDuplicates()">🔎 duplicity</button>
 </div>
 
-<input id="search" placeholder="🔎 hledat..." oninput="renderWords()">
+<div class="searchBox">
+<input id="search" placeholder="🔎 hledat..." oninput="renderWords();toggleClearBtn()">
+<button id="clearSearch" onclick="clearSearch()">×</button>
+</div>
+<div id="resultCount" style="margin:6px 0 10px 0;color:#666;font-size:0.9rem;text-align:center">
+Počet záznamů: 0
+</div>
 
 <div id="dupResults"></div>
 
 <div class="list" id="list"></div>
 
-<div class="toolbar">
-    <button class="btn-red" onclick="deleteSelected()">🗑 označené</button>
+<div class="toolbar" style="justify-content:flex-end">
+    <button class="btn-red" onclick="deleteSelected()">Smazat označené</button>
 </div>
 
-<div class="sticky">
+<div class="sticky" id="addWordBox" style="display:none">
 
 <input id="nl" placeholder="Nizozemsky" oninput="autoIPA()">
 <input id="ipa" placeholder="IPA">
@@ -136,6 +223,7 @@ button{
     <button class="btn-green" onclick="saveWord()">ULOŽIT</button>
     <button class="btn" onclick="saveAndNext()">+ DALŠÍ</button>
     <button class="btn-gray" onclick="clearForm()">RESET</button>
+	<button class="btn-red" onclick="cancelAdd()">STORNO</button>
 </div>
 
 </div>
@@ -160,15 +248,15 @@ function loadCategories(){
     const c = document.getElementById("category")
     c.innerHTML = ""
 
-    let o1 = document.createElement("option")
-    o1.value = "none"
-    o1.innerText = "-- hlavní menu --"
-    c.appendChild(o1)
-
     let o2 = document.createElement("option")
     o2.value = "all"
     o2.innerText = "-- všechny kategorie --"
     c.appendChild(o2)
+
+    let o1 = document.createElement("option")
+    o1.value = "none"
+    o1.innerText = "[ Hlavní nabídka ]"
+    c.appendChild(o1)
 
     Object.keys(categories)
         .sort()
@@ -231,47 +319,97 @@ function loadLessons(){
 
 function renderWords(){
 
-    const lesson = document.getElementById("lesson").value
+	showWordList(true)
+	document.getElementById("dupResults").innerHTML = ""
+
+    const cat = document.getElementById("category").value
+    const lessonFilter = document.getElementById("lesson").value
     const list = document.getElementById("list")
 
     list.innerHTML = ""
-
-    if(!lessons[lesson]) return
+	let count = 0
 
     const search = document.getElementById("search").value.toLowerCase()
 
-    lessons[lesson].forEach((w,i)=>{
+    let source = {}
 
-        if(search){
-            if(!(w.nl + w.cz + w.ipa).toLowerCase().includes(search)) return
-        }
+    if(lessonFilter && lessonFilter !== "all"){
 
-        const div = document.createElement("div")
-        div.className = "word"
+        source[lessonFilter] = lessons[lessonFilter] || []
 
-        div.onclick = () => editWord(i)
+    }
+    else if(cat === "all"){
 
-        div.innerHTML = `
-<label>
-<input type="checkbox" onclick="event.stopPropagation()" onchange="toggleSelect(${i},this)">
+        source = lessons
+
+    }
+    else if(cat === "none"){
+
+        const used = Object.values(categories).flat()
+
+        Object.keys(lessons).forEach(l=>{
+            if(!used.includes(l)) source[l] = lessons[l]
+        })
+
+    }
+    else{
+
+        (categories[cat] || []).forEach(l=>{
+            source[l] = lessons[l]
+        })
+
+    }
+
+    Object.entries(source).forEach(([lessonName, words]) => {
+
+        words.forEach((w,i)=>{
+
+            if(search){
+                if(!(w.nl + w.cz + w.ipa).toLowerCase().includes(search)) return
+            }
+
+            const div = document.createElement("div")
+            div.className = "word"
+
+            div.onclick = () => editWord(lessonName,i)
+
+           div.innerHTML = `
+<div class="wordContent">
 <strong>${w.nl}</strong>
-</label>
-
 <small>${w.ipa}</small>
 <small>${w.cz}</small>
+<small style="color:#2196F3">${lessonName}</small>
 
 <div class="toolbar">
-<button onclick="event.stopPropagation();moveWord(${i})">↪</button>
-<button onclick="event.stopPropagation();deleteWord(${i})">🗑</button>
+<button onclick="event.stopPropagation();moveWord('${lessonName}',${i})">↪</button>
+<button onclick="event.stopPropagation();deleteWord('${lessonName}',${i})">🗑</button>
+</div>
+</div>
+
+<div class="wordRight">
+<input type="checkbox" onclick="event.stopPropagation()" onchange="toggleSelect(${i},this)">
 </div>
 `
 
-        list.appendChild(div)
+            list.appendChild(div)
+			count++
+
+        })
 
     })
+
+	document.getElementById("resultCount").innerText = "Počet záznamů: " + count
+
 }
 
 function newLesson(){
+
+    const cat = document.getElementById("category").value
+
+    if(cat === "all"){
+        alert("Nejdříve vyber kategorii")
+        return
+    }
 
     const name = prompt("Název lekce")
 
@@ -279,8 +417,6 @@ function newLesson(){
     if(lessons[name]) return alert("existuje")
 
     lessons[name] = []
-
-    const cat = document.getElementById("category").value
 
     if(cat !== "none"){
         if(!categories[cat]) categories[cat] = []
@@ -310,7 +446,7 @@ function deleteLesson(){
 function saveWord(){
 
     const lesson = document.getElementById("lesson").value
-    if(!lesson) return
+    if(!lesson || lesson === "all") return alert("Nejdříve vyber lekci")
 
     const nl = document.getElementById("nl").value.trim()
     const ipa = document.getElementById("ipa").value.trim()
@@ -320,9 +456,12 @@ function saveWord(){
 
     const word = {nl,ipa,cz}
 
+    let savedWord = null
+
     if(editIndex === null){
 
         lessons[lesson].push(word)
+        savedWord = word
 
     }
     else{
@@ -330,6 +469,7 @@ function saveWord(){
         if(!confirm("Opravdu upravit slovíčko?")) return
 
         lessons[lesson][editIndex] = word
+        savedWord = word
         editIndex = null
 
     }
@@ -337,6 +477,11 @@ function saveWord(){
     save()
     clearForm()
     renderWords()
+
+    if(savedWord){
+        showToast(`<b>${savedWord.nl}</b> byl úspěšně uložen do <b>${lesson}</b>`)
+    }
+
 }
 
 function saveAndNext(){
@@ -361,16 +506,34 @@ function editWord(i){
     })
 }
 
-function deleteWord(i){
+function deleteWord(lesson,i){
 
-    const lesson = document.getElementById("lesson").value
+    if(!lessons[lesson] || !lessons[lesson][i]){
+        alert("Slovíčko už neexistuje.")
+        return
+    }
 
-    if(!confirm("Smazat slovíčko?")) return
+    const word = lessons[lesson][i]
+
+    if(!confirm(`Opravdu smazat "${word.nl}" ?`)) return
 
     lessons[lesson].splice(i,1)
 
     save()
+
+    const search = document.getElementById("search")
+
+    if(search.value){
+        search.value = ""
+        toggleClearBtn()
+    }
+
     renderWords()
+
+    if(!lessons[lesson].some(w => w.nl === word.nl)){
+        showToast(`<b>${word.nl}</b> bylo odstraněno`)
+    }
+
 }
 
 function toggleSelect(i,cb){
@@ -396,9 +559,9 @@ function deleteSelected(){
     renderWords()
 }
 
-function moveWord(i){
+function moveWord(lesson,i){
 
-    const lesson = document.getElementById("lesson").value
+    if(!lessons[lesson] || !lessons[lesson][i]) return
 
     const target = prompt("Do jaké lekce přesunout?")
 
@@ -411,6 +574,7 @@ function moveWord(i){
 
     save()
     renderWords()
+
 }
 
 function sortWords(){
@@ -432,7 +596,7 @@ function clearForm(){
     editIndex = null
 }
 
-function autoIPA(){
+async function autoIPA(){
 
     let nl = document.getElementById("nl").value.trim().toLowerCase()
 
@@ -440,6 +604,32 @@ function autoIPA(){
 
     nl = nl.replace(/^de |^het /,"")
 
+    try{
+
+        const url = "https://nl.wiktionary.org/w/api.php?action=parse&page="
+            + encodeURIComponent(nl) +
+            "&prop=text&format=json&origin=*"
+
+        const res = await fetch(url)
+        const data = await res.json()
+
+        let html = data.parse.text["*"]
+
+        let parser = new DOMParser()
+        let doc = parser.parseFromString(html,"text/html")
+
+        let ipa = doc.querySelector(".IPA")
+
+        if(ipa){
+            document.getElementById("ipa").value = ipa.textContent.trim()
+            return
+        }
+
+    }catch(e){
+        console.log("online IPA selhalo")
+    }
+
+    // fallback generátor
     let ipa = nl
 
     ipa = ipa
@@ -456,6 +646,8 @@ function autoIPA(){
 }
 
 function findDuplicates(){
+
+	showWordList(false)
 
     const cat = document.getElementById("category").value
     const lessonFilter = document.getElementById("lesson").value
@@ -491,6 +683,7 @@ function findDuplicates(){
 
     const map = {}
     const dup = []
+	let count = 0
 
     Object.entries(source).forEach(([lesson,words])=>{
         words.forEach(w=>{
@@ -513,6 +706,7 @@ function findDuplicates(){
 
     dup.forEach(d=>{
 
+		count += d.list.length
         const div = document.createElement("div")
         div.className = "dupBox"
 
@@ -522,7 +716,10 @@ function findDuplicates(){
 
             const row = document.createElement("div")
 
-            row.innerHTML = `${item.lesson} <button onclick="removeDup('${d.word}','${item.lesson}')">❌</button>`
+            row.innerHTML = `
+${item.lesson} — ${item.word.cz}
+<button onclick="removeDup('${d.word}','${item.lesson}')">❌</button>
+`
 
             div.appendChild(row)
 
@@ -531,6 +728,8 @@ function findDuplicates(){
         box.appendChild(div)
 
     })
+
+	document.getElementById("resultCount").innerText = "Počet výsledků: " + count
 }
 
 function removeDup(word,lesson){
@@ -548,6 +747,88 @@ document.getElementById("category").onchange = loadLessons
 document.getElementById("lesson").onchange = renderWords
 
 loadCategories()
+
+function toggleClearBtn(){
+
+    const s = document.getElementById("search")
+    const btn = document.getElementById("clearSearch")
+
+    btn.style.display = s.value ? "flex" : "none"
+
+}
+
+function clearSearch(){
+
+    const s = document.getElementById("search")
+
+    s.value = ""
+    s.focus()
+
+    toggleClearBtn()
+    renderWords()
+
+}
+
+function showWordList(show){
+
+    const list = document.getElementById("list")
+
+    if(show){
+        list.style.display = "block"
+    }else{
+        list.style.display = "none"
+    }
+
+}
+
+function showAddWord(){
+
+    const lesson = document.getElementById("lesson").value
+
+    if(!lesson || lesson === "all"){
+        alert("Nejdříve vyber lekci")
+        return
+    }
+
+    const box = document.getElementById("addWordBox")
+
+    box.style.display = "block"
+
+    document.getElementById("nl").focus()
+
+    window.scrollTo({
+        top:document.body.scrollHeight,
+        behavior:"smooth"
+    })
+
+}
+
+function showToast(text){
+
+    let t = document.createElement("div")
+    t.className = "toast"
+    t.innerHTML = text
+
+    document.body.appendChild(t)
+
+    setTimeout(()=>{
+        t.classList.add("show")
+    },50)
+
+    setTimeout(()=>{
+        t.classList.remove("show")
+        setTimeout(()=>t.remove(),300)
+    },3000)
+
+}
+
+function cancelAdd(){
+
+    clearForm()
+
+    document.getElementById("addWordBox").style.display = "none"
+
+}
 
 </script>
 

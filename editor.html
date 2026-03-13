@@ -177,6 +177,50 @@ button{
     transform:scale(1.4);
 }
 
+.headerBox{
+    border:2px solid #eee;
+    border-radius:12px;
+    padding:10px;
+    margin-bottom:10px;
+    background:white;
+}
+
+.headerTop{
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.toggleHeader{
+    position:absolute;
+    right:0;
+    top:50%;
+    transform:translateY(-50%);
+
+    cursor:pointer;
+    font-size:18px;
+
+    background:#eee;
+    border:none;
+    border-radius:8px;
+
+    width:34px;
+    height:34px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.headerContent{
+    margin-top:10px;
+}
+
+.headerCollapsed .headerContent{
+    display:none;
+}
+
 </style>
 </head>
 
@@ -184,7 +228,14 @@ button{
 
 <div class="card">
 
-<h2>✏️ Editor slovíček</h2>
+<div id="headerBox" class="headerBox">
+
+<div class="headerTop">
+<h2 style="margin:0;text-align:center;width:100%">✏️ Editor slovíček</h2>
+<button class="toggleHeader" onclick="toggleHeader()">⌃</button>
+</div>
+
+<div class="headerContent">
 
 <select id="category"></select>
 <select id="lesson"></select>
@@ -206,6 +257,8 @@ Počet záznamů: 0
 </div>
 
 <div id="dupResults"></div>
+</div>
+</div>
 
 <div class="list" id="list"></div>
 
@@ -880,6 +933,21 @@ function cancelAdd(){
     clearForm()
 
     document.getElementById("addWordBox").style.display = "none"
+
+}
+
+function toggleHeader(){
+
+    const box = document.getElementById("headerBox")
+    const btn = box.querySelector(".toggleHeader")
+
+    box.classList.toggle("headerCollapsed")
+
+    if(box.classList.contains("headerCollapsed")){
+        btn.innerText = "⌄"
+    }else{
+        btn.innerText = "⌃"
+    }
 
 }
 

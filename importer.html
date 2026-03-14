@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hromadný Importer (PavlatkoLabs)</title>
+    <title>Flashcards Importer</title>
     <style>
         :root { --p: #2196F3; --bg: #f5f5f5; }
         body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; justify-content: center; }
@@ -24,7 +24,7 @@
 		<button onclick="window.close()" style="background: none; border: none; color: #666; font-weight: bold; cursor: pointer; padding: 0; font-family: sans-serif;">ZAVŘÍT ❌</button>
 	</div>
 
-    <h2>🚀 Hromadný Import</h2>
+    <h2>Hromadný Import / Export</h2>
     
     <div class="field">
         <label>Cílová kategorie:</label>
@@ -43,6 +43,20 @@
     <button class="btn" onclick="runImport()">NAHRÁT DO APLIKACE</button>
 
     <div id="log"></div>
+
+	<br />
+	<br />
+	<hr />
+
+	<div class="field">
+		<label>Export lekce:</label>
+		<select id="lessonSel">
+			<option value="">-- Vybrat lekci --</option>
+		</select>
+	</div>
+
+	<button class="btn" onclick="runExport()">STÁHNOUT CSV</button>
+
 </div>
 
 <script>
@@ -52,6 +66,62 @@
     
     // Načtení existujících kategorií a naplnění selectu (pouze jednou)
     const cats = JSON.parse(localStorage.getItem('pl_categories') || '{}');
+	const lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
+	const lessonSel = document.getElementById('lessonSel');
+
+	// --- lekce bez kategorie (hlavní menu) ---
+	const categorized = new Set(Object.values(cats).flat());
+
+	const mainLessons = Object.keys(lessons)
+	.filter(l => !categorized.has(l))
+	.sort((a,b)=>a.localeCompare(b,'cs',{numeric:true}));
+
+	if (mainLessons.length) {
+
+		const group = document.createElement("optgroup");
+		group.label = "-- hlavní nabídka --";
+
+		mainLessons.forEach(lesson=>{
+			const o = document.createElement("option");
+			o.value = lesson;
+			o.textContent = lesson;
+			group.appendChild(o);
+		});
+
+		lessonSel.appendChild(group);
+	}
+
+
+	// --- lekce podle kategorií ---
+	Object.keys(cats)
+	.sort((a,b)=>a.localeCompare(b,'cs',{numeric:true}))
+	.forEach(cat => {
+
+		const group = document.createElement("optgroup");
+		group.label = cat;
+
+		(cats[cat] || [])
+		.slice()
+		.sort((a,b)=>a.localeCompare(b,'cs',{numeric:true}))
+		.forEach(lesson => {
+
+			if (lessons[lesson]) {
+
+				const o = document.createElement("option");
+				o.value = lesson;
+				o.textContent = lesson;
+				group.appendChild(o);
+
+			}
+
+		});
+
+		if (group.children.length) {
+			lessonSel.appendChild(group);
+		}
+
+	});
+
     Object.keys(cats).sort().forEach(c => {
         const o = document.createElement('option'); 
         o.value = o.innerText = c;
@@ -104,10 +174,13 @@
             let currentField = "";
             let inQuotes = false;
             
-            // 1. Detekce oddělovače (podle toho, co je častější v datech)
-            // Skočíme za první řádek, abychom nebyli zmateni hlavičkou
-            const sample = text.includes('\n') ? text.split('\n').slice(1).join('\n') : text;
-            const delim = (sample.split(';').length > sample.split(',').length) ? ';' : ',';
+            // 1. Detekce oddělovače podle hlavičky
+			const firstLine = text.split('\n')[0];
+
+			let delim = ',';
+			if (firstLine.includes(';') && !firstLine.includes(',')) {
+				delim = ';';
+			}
 
             // 2. Stavový automat - čtení znaku po znaku
             for (let i = 0; i < text.length; i++) {
@@ -142,12 +215,12 @@
 
             // 3. Mapování na nl, ipa, cz a vynechání hlavičky
             const validWords = rows
-                .filter(r => r[0] && r[0].toLowerCase() !== 'nizozemsky')
-                .map(r => ({
-                    nl: r[0] || '',
-                    ipa: (r[1] || '').replace(/[\[\]]/g, ''),
-                    cz: r[2] || ''
-                }));
+			.filter(r => r[0] && r[0].toLowerCase() !== 'nizozemsky')
+			.map(r => ({
+				nl: r[0] || '',
+				ipa: r[1] || '',
+				cz: r[2] || ''
+			}));
 
             const lessonName = file.name.replace('.csv', '');
             lessons[lessonName] = validWords;
@@ -166,6 +239,66 @@
         log.innerHTML = `<strong>Hotovo!</strong>\n${report.join('\n')}`;
         log.className = "ok";
     }
+
+	function runExport() {
+
+		const lessonName = document.getElementById('lessonSel').value;
+
+		if (!lessonName) {
+			alert("Vyber lekci pro export.");
+			return;
+		}
+
+		const lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
+		const words = lessons[lessonName];
+
+		if (!words || !words.length) {
+			alert("Lekce je prázdná.");
+			return;
+		}
+
+		// hlavička
+		let csv = "Nizozemsky;IPA;Česky\n";
+
+		for (let w of words) {
+
+			const nl = escapeCSV(w.nl);
+			const ipa = escapeCSV(w.ipa);
+			const cz = escapeCSV(w.cz);
+
+			csv += `${nl};${ipa};${cz}\n`;
+		}
+
+		const blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
+		const url = URL.createObjectURL(blob);
+
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = lessonName + ".csv";
+
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+
+		URL.revokeObjectURL(url);
+	}
+
+	function escapeCSV(value) {
+
+		if (value == null) return "";
+
+		value = String(value);
+
+		if (value.includes('"')) {
+			value = value.replace(/"/g, '""');
+		}
+
+		if (value.includes(';') || value.includes('"') || value.includes('\n')) {
+			value = `"${value}"`;
+		}
+
+		return value;
+	}
 </script>
 
 </body>

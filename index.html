@@ -144,6 +144,10 @@
             position: relative; 
         }
 
+		#lessons-container .lesson-row:last-child{
+			margin-bottom:0;
+		}
+
         .lesson-btn { 
             justify-content: flex-start !important; 
             text-align: left; 
@@ -175,7 +179,7 @@
 
 		.lesson-pin {
 			position: absolute;
-			right: 8px;
+			right: 44px;
 			top: 50%;
 			transform: translateY(-50%);
 			width: 34px;
@@ -263,18 +267,18 @@
         #menu-area { width: 100%; max-width: 360px; display: flex; flex-direction: column; margin-top: 15px; }
 		.lesson-row { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 12px; position: relative; }
         .is-finished::after { 
-            content: ''; 
-            position: absolute; 
-            right: 50px; 
-            top: 50%; 
-            transform: translateY(-50%); 
-            width: 8px; 
-            height: 8px; 
-            background-color: #00ff00; /* Jasnější zelená pro kontrast na šedé */
-            border-radius: 50%; 
-            box-shadow: 0 0 8px rgba(0,255,0,0.8); 
-            border: 1.5px solid white; 
-        }
+			content: ''; 
+			position: absolute; 
+			right: 20px; 
+			top: 50%; 
+			transform: translateY(-50%); 
+			width: 8px; 
+			height: 8px; 
+			background-color: #00ff00;
+			border-radius: 50%; 
+			box-shadow: 0 0 8px rgba(0,255,0,0.8); 
+			border: 1.5px solid white; 
+		}
 
 		/* Aero / Glassy efekt pro tlačítka Pokračovat a Problematické */
 		.resume-btn, .problematic-btn {
@@ -599,10 +603,12 @@
         <div id="categories-container"></div>
         <div id="lessons-container"></div>
 
+		<div class="menu-section">📖 Slovní zásoba</div>
+
 		<button class="btn-action btn-flip-big"
-				style="--btn-color:var(--secondary); margin-top:35px; margin-bottom:5px;"
+				style="--btn-color:var(--secondary);"
 				onclick="openDictionary()">
-			📖 Slovníček
+			📖 Slovníček Flashcards
 		</button>
 
 		<div class="menu-section">🛠 Nástroje</div>
@@ -629,7 +635,7 @@
 			<button class="btn-action btn-flip-big"
 					style="--btn-color:var(--category); flex:1;"
 					onclick="window.open('./importer-exporter.html', '_blank')">
-				📄 Import • Export
+				📄 CSV
 			</button>
 
 			<button class="btn-action btn-flip-big"
@@ -640,7 +646,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260314.2 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260314.5 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -682,13 +688,13 @@
 		</div>
 
         <center class="upload-wrap">
-			<button class="btn-cat-add" onclick="createNewCategory()">📁 Vytvořit novou kategorii</button>
-			<label class="btn-load">📂 Nahrát lekci do hlavní nabídky<input type="file" id="fIn" style="display:none" onchange="handleFile(this)" accept=".csv"></label>
 			<div class="btn-load" onclick="exportBackup()">💾 Vytvořit zálohu dat</div>
+
 			<label class="btn-load">
 			📂 Obnovit ze zálohy
 			<input type="file" id="backupFileInput" style="display:none" accept=".json" onchange="importBackup(this)">
 			</label>
+
 			<div class="btn-load" style="background:#c62828;" onclick="factoryReset()">
 			🧨 Resetovat vše
 			</div>
@@ -706,10 +712,9 @@
     <div id="category-detail-area" style="display:none; width: 100%; max-width: 360px; margin-top:20px;">
 		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 20px;" onclick="closeCategory()">⬅ &nbsp; ZPĚT DO MENU</button>
         <div id="cat-lessons-container"></div>
-        <center class="upload-wrap">
-			<label class="btn-load2">📂 Nahrát lekci<input type="file" id="fInCat" style="display:none" onchange="handleFile(this, true)" accept=".csv"></label>
-		</center>
     </div>
+
+	<br />
 
     <div id="mode-area" class="controls" style="display:none">
 		<div id="lesson-info-sub"></div>
@@ -1562,12 +1567,11 @@
 		}
 
         Object.keys(categories).sort().forEach(catName => {
-            const r = document.createElement('div'); r.className = 'lesson-row';
-            r.innerHTML = `
-                <button class="lesson-btn category-btn" onclick="openCategory('${catName}')">${catName} (${categories[catName].length})</button>
-                <div class="lesson-del" onclick="deleteCategory('${catName}')">×</div>`;
-            cc.appendChild(r);
-        });
+			const r = document.createElement('div'); r.className = 'lesson-row';
+			r.innerHTML = `
+				<button class="lesson-btn category-btn" onclick="openCategory('${catName}')">${catName} (${categories[catName].length})</button>`;
+			cc.appendChild(r);
+		});
 
         const categorizedLessons = Object.values(categories).flat();
         Object.keys(allLessons).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(n => {
@@ -1575,20 +1579,10 @@
                 const r = document.createElement('div'); r.className = 'lesson-row';
                 const isFinished = finishedLessons.includes(n) ? ' is-finished' : '';
                 r.innerHTML = `
-                    <button class="lesson-btn${isFinished}" onclick="selectLesson('${n}')">${n} (${allLessons[n].length})</button>
-                    <div class="lesson-del" onclick="deleteLesson('${n}')">×</div>`;
+					<button class="lesson-btn${isFinished}" onclick="selectLesson('${n}')">${n} (${allLessons[n].length})</button>`;
                 c.appendChild(r);
             }
         });
-    }
-
-    function createNewCategory() {
-        const name = prompt("Zadejte název kategorie:");
-        if (name && name.trim() !== "") {
-            if (categories[name.trim()]) { alert("Kategorie již existuje."); return; }
-            categories[name.trim()] = [];
-            saveData(); renderMenu();
-        }
     }
 
     function openCategory(name) {
@@ -1651,39 +1645,12 @@
 				const isFinished = finishedLessons.includes(n) ? ' is-finished' : '';
 				
 				r.innerHTML = `
-					<button class="lesson-btn${isFinished}" onclick="selectLesson('${n}')">${n} (${allLessons[n].length})</button>
-					<div class="lesson-del" onclick="deleteLesson('${n}')">×</div>`;
+					<button class="lesson-btn${isFinished}" onclick="selectLesson('${n}')">${n} (${allLessons[n].length})</button>`;
 				
 				container.appendChild(r);
 			}
 		});
 	}
-
-    function deleteCategory(name) {
-        if (confirm(`Smazat kategorii "${name}" i se všemi lekcemi uvnitř?`)) {
-            (categories[name] || []).forEach(l => delete allLessons[l]);
-            delete categories[name];
-            saveData(); renderMenu();
-        }
-    }
-
-    function handleFile(input, intoCategory = false) {
-        const f = input.files[0]; if (!f) return;
-        const r = new FileReader();
-        r.onload = (e) => {
-            const d = parseCSV(e.target.result);
-            if (d.length > 0) {
-                const lName = f.name.replace(/\.[^/.]+$/, "");
-                allLessons[lName] = d;
-                if (intoCategory && currentOpenCategory) {
-                    if (!categories[currentOpenCategory].includes(lName)) categories[currentOpenCategory].push(lName);
-                }
-                saveData();
-                if (intoCategory) renderCategoryLessons(); else renderMenu();
-            }
-        };
-        r.readAsText(f, 'UTF-8');
-    }
 
 	function selectLesson(id) { 
         currentLessonId = id; 
@@ -2640,16 +2607,7 @@
     }
     function saveProgress() { if (trainingActive) localStorage.setItem('pl_active_state', JSON.stringify({ lessonId: currentLessonId, words: words, index: currentIndex, mode: mode })); }
     
-    function deleteLesson(n) { 
-        if (confirm(`Smazat lekci ${n}?`)) { 
-            delete allLessons[n]; 
-            Object.keys(categories).forEach(c => categories[c] = categories[c].filter(l => l !== n));
-            saveData(); 
-            if (currentOpenCategory) renderCategoryLessons(); else renderMenu();
-        } 
-    }
-
-	function exitTraining() {
+    function exitTraining() {
 		if (sessionStartTime) {
 			const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
 			stats.totalTime += duration;

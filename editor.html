@@ -272,13 +272,20 @@ button{
 
 <div class="headerContent">
 
+<div style="display:flex;gap:6px;margin-bottom:8px">
 <select id="category"></select>
+<button class="btn-green" onclick="newCategory()" style="width:45px">+</button>
+<button class="btn-red" onclick="deleteCategory()" style="width:45px">🗑</button>
+</div>
+
+<div style="display:flex;gap:6px;margin-bottom:8px">
 <select id="lesson"></select>
+<button class="btn-green" onclick="newLesson()" style="width:45px">+</button>
+<button class="btn-red" onclick="deleteLesson()" style="width:45px">🗑</button>
+</div>
 
 <div class="toolbar">
     <button class="btn-green" onclick="showAddWord()">+ slovíčko</button>
-    <button class="btn" onclick="newLesson()">+ lekce</button>
-    <button class="btn-red" onclick="deleteLesson()">🗑 lekce</button>
     <button id="dupBtn" class="btn-purple" onclick="toggleDuplicates()">🔎 duplicitní</button>
 </div>
 
@@ -532,19 +539,75 @@ function renderWords(){
 
 }
 
+function newCategory(){
+
+    let name = prompt("Název kategorie")
+
+    if(!name) return
+    name = name.trim()
+
+    if(categories[name]){
+        alert("Kategorie už existuje")
+        return
+    }
+
+    categories[name] = []
+
+    save()
+
+    // znovu načte seznam kategorií
+    loadCategories()
+
+    // automaticky vybere novou kategorii
+    document.getElementById("category").value = name
+
+    // načte její lekce
+    loadLessons()
+
+}
+
+function deleteCategory(){
+
+    const cat = document.getElementById("category").value
+
+    if(!cat || cat === "all" || cat === "none"){
+        alert("Vyber kategorii určenou ke smazání.")
+        return
+    }
+
+    if(!confirm(`Smazat kategorii "${cat}" včetně všech lekcí a slovíček?`)) return
+
+    const lessonsToDelete = categories[cat] || []
+
+    lessonsToDelete.forEach(l=>{
+        delete lessons[l]
+    })
+
+    delete categories[cat]
+
+    save()
+    loadCategories()
+
+}
+
 function newLesson(){
 
     const cat = document.getElementById("category").value
 
     if(cat === "all"){
-        alert("Nejdříve vyber kategorii")
+        alert("Nejdříve vyber kategorii, kde vytvořit novou lekci.")
         return
     }
 
-    const name = prompt("Název lekce")
+    let name = prompt("Název lekce")
 
     if(!name) return
-    if(lessons[name]) return alert("existuje")
+    name = name.trim()
+
+    if(lessons[name]){
+        alert("Lekce už existuje")
+        return
+    }
 
     lessons[name] = []
 
@@ -554,7 +617,16 @@ function newLesson(){
     }
 
     save()
+
+    // znovu načte seznam lekcí
     loadLessons()
+
+    // automaticky vybere novou lekci
+    document.getElementById("lesson").value = name
+
+    // zobrazí její obsah
+    renderWords()
+	showAddWord()
 }
 
 function deleteLesson(){
@@ -562,7 +634,7 @@ function deleteLesson(){
     const lesson = document.getElementById("lesson").value
 
     if(!lesson || lesson === "all"){
-        alert("Nejdříve vyber lekci")
+        alert("Nejdříve vyber lekci určenou ke smazání.")
         return
     }
 
@@ -1042,7 +1114,7 @@ function showAddWord(){
     const lesson = document.getElementById("lesson").value
 
     if(!lesson || lesson === "all"){
-        alert("Nejdříve vyber lekci")
+        alert("Nejdříve vyber lekci, kam přidat nové slovíčko.")
         return
     }
 

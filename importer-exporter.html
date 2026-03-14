@@ -1,0 +1,305 @@
+﻿<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flashcards Importer/Exporter</title>
+    <style>
+        :root { --p: #2196F3; --bg: #f5f5f5; }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .card { background: white; width: 100%; max-width: 450px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); box-sizing: border-box; }
+        h2 { margin: 0 0 20px; color: var(--p); text-align: center; font-size: 1.4rem; }
+        .field { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; font-size: 0.9rem; }
+        select, input { width: 100%; padding: 14px; border: 2px solid #eee; border-radius: 12px; font-size: 1rem; box-sizing: border-box; }
+        .btn { background: var(--p); color: white; border: none; padding: 18px; width: 100%; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 10px; }
+        #log { margin-top: 20px; padding: 15px; border-radius: 12px; display: none; background: #fff; border: 1px solid #ddd; white-space: pre-wrap; font-size: 0.85rem; line-height: 1.4; }
+        .ok { display: block !important; border-left: 5px solid #4CAF50; color: #2e7d32; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 20px;">
+		<button onclick="window.close()" style="background: none; border: none; color: #666; font-weight: bold; cursor: pointer; padding: 0; font-family: sans-serif;">ZAVŘÍT ❌</button>
+	</div>
+
+    <h2>Import / Export</h2>
+    
+    <div class="field">
+        <label>Cílová kategorie:</label>
+        <select id="catSel">
+            <option value="none">-- Hlavní menu --</option>
+            <option value="NEW">+ Vytvořit novou...</option>
+        </select>
+        <input type="text" id="newCat" placeholder="Název nové kategorie" style="display:none; margin-top:10px;">
+    </div>
+
+    <div class="field">
+        <label>Vybrat CSV soubory:</label>
+        <input type="file" id="files" multiple accept=".csv">
+    </div>
+
+    <button class="btn" onclick="runImport()">NAHRÁT DO APLIKACE</button>
+
+    <div id="log"></div>
+
+	<br />
+	<br />
+	<hr />
+
+	<div class="field">
+		<label>Export lekce:</label>
+		<select id="lessonSel">
+			<option value="">-- Vybrat lekci --</option>
+		</select>
+	</div>
+
+	<button class="btn" onclick="runExport()">STÁHNOUT CSV</button>
+
+</div>
+
+<script>
+    // Inicializace elementů
+    const sel = document.getElementById('catSel');
+    const nc = document.getElementById('newCat');
+    
+    // Načtení existujících kategorií a naplnění selectu (pouze jednou)
+    const cats = JSON.parse(localStorage.getItem('pl_categories') || '{}');
+	const lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
+	const lessonSel = document.getElementById('lessonSel');
+
+	// --- lekce bez kategorie (hlavní menu) ---
+	const categorized = new Set(Object.values(cats).flat());
+
+	const mainLessons = Object.keys(lessons)
+	.filter(l => !categorized.has(l))
+	.sort((a,b)=>a.localeCompare(b,'cs',{numeric:true}));
+
+	if (mainLessons.length) {
+
+		const group = document.createElement("optgroup");
+		group.label = "-- hlavní nabídka --";
+
+		mainLessons.forEach(lesson=>{
+			const o = document.createElement("option");
+			o.value = lesson;
+			o.textContent = lesson;
+			group.appendChild(o);
+		});
+
+		lessonSel.appendChild(group);
+	}
+
+
+	// --- lekce podle kategorií ---
+	Object.keys(cats)
+	.sort((a,b)=>a.localeCompare(b,'cs',{numeric:true}))
+	.forEach(cat => {
+
+		const group = document.createElement("optgroup");
+		group.label = cat;
+
+		(cats[cat] || [])
+		.slice()
+		.sort((a,b)=>a.localeCompare(b,'cs',{numeric:true}))
+		.forEach(lesson => {
+
+			if (lessons[lesson]) {
+
+				const o = document.createElement("option");
+				o.value = lesson;
+				o.textContent = lesson;
+				group.appendChild(o);
+
+			}
+
+		});
+
+		if (group.children.length) {
+			lessonSel.appendChild(group);
+		}
+
+	});
+
+    Object.keys(cats).sort().forEach(c => {
+        const o = document.createElement('option'); 
+        o.value = o.innerText = c;
+        sel.add(o, sel.options[1]); // Přidá kategorii pod "Vytvořit novou"
+    });
+
+    // Ovládání viditelnosti textového pole pro novou kategorii
+    sel.onchange = () => {
+        const isNew = sel.value === 'NEW';
+        nc.style.display = isNew ? 'block' : 'none';
+        if (isNew) {
+            nc.value = ""; // Vyčistí pole při každém přepnutí
+            nc.focus();
+        }
+    };
+
+    // Aktivace importu stiskem Enter v poli pro novou kategorii
+    nc.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            runImport();
+        }
+    });
+
+	async function runImport() {
+        const fileInput = document.getElementById('files');
+        if (!fileInput.files.length) {
+            alert("Vyber alespoň jeden CSV soubor.");
+            return;
+        }
+
+        let target = sel.value === 'NEW' ? nc.value.trim() : sel.value;
+        
+        // Kontrola, zda není název nové kategorie prázdný
+        if (sel.value === 'NEW' && !target) {
+            alert("Zadej prosím název nové kategorie.");
+            nc.focus();
+            return;
+        }
+
+        let lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
+        // ... zbytek funkce zůstává stejný
+        let categories = JSON.parse(localStorage.getItem('pl_categories') || '{}');
+        let report = [];
+
+        for (let file of fileInput.files) {
+            const text = await file.text();
+            const rows = [];
+            let currentRow = [];
+            let currentField = "";
+            let inQuotes = false;
+            
+            // 1. Detekce oddělovače podle hlavičky
+			const firstLine = text.split('\n')[0];
+
+			let delim = ',';
+			if (firstLine.includes(';') && !firstLine.includes(',')) {
+				delim = ';';
+			}
+
+            // 2. Stavový automat - čtení znaku po znaku
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const next = text[i+1];
+
+                if (char === '"') {
+                    // Pokud jsou dvě uvozovky za sebou, bereme je jako jednu uvozovku v textu
+                    if (inQuotes && next === '"') {
+                        currentField += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === delim && !inQuotes) {
+                    currentRow.push(currentField.trim());
+                    currentField = "";
+                } else if (char === '\n' && !inQuotes) {
+                    currentRow.push(currentField.trim());
+                    if (currentRow.some(c => c !== "")) rows.push(currentRow);
+                    currentRow = [];
+                    currentField = "";
+                } else if (char !== '\r') {
+                    currentField += char;
+                }
+            }
+            // Poslední řádek
+            if (currentField !== "" || currentRow.length > 0) {
+                currentRow.push(currentField.trim());
+                if (currentRow.some(c => c !== "")) rows.push(currentRow);
+            }
+
+            // 3. Mapování na nl, ipa, cz a vynechání hlavičky
+            const validWords = rows
+			.filter(r => r[0] && r[0].toLowerCase() !== 'nizozemsky')
+			.map(r => ({
+				nl: r[0] || '',
+				ipa: r[1] || '',
+				cz: r[2] || ''
+			}));
+
+            const lessonName = file.name.replace('.csv', '');
+            lessons[lessonName] = validWords;
+
+            if (target !== 'none') {
+                if (!categories[target]) categories[target] = [];
+                if (!categories[target].includes(lessonName)) categories[target].push(lessonName);
+            }
+            report.push(`✅ ${lessonName}: ${validWords.length} slov`);
+        }
+
+        localStorage.setItem('pl_lessons', JSON.stringify(lessons));
+        localStorage.setItem('pl_categories', JSON.stringify(categories));
+
+        const log = document.getElementById('log');
+        log.innerHTML = `<strong>Hotovo!</strong>\n${report.join('\n')}`;
+        log.className = "ok";
+    }
+
+	function runExport() {
+
+		const lessonName = document.getElementById('lessonSel').value;
+
+		if (!lessonName) {
+			alert("Vyber lekci pro export.");
+			return;
+		}
+
+		const lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
+		const words = lessons[lessonName];
+
+		if (!words || !words.length) {
+			alert("Lekce je prázdná.");
+			return;
+		}
+
+		// hlavička
+		let csv = "Nizozemsky;IPA;Česky\n";
+
+		for (let w of words) {
+
+			const nl = escapeCSV(w.nl);
+			const ipa = escapeCSV(w.ipa);
+			const cz = escapeCSV(w.cz);
+
+			csv += `${nl};${ipa};${cz}\n`;
+		}
+
+		const blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
+		const url = URL.createObjectURL(blob);
+
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = lessonName + ".csv";
+
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+
+		URL.revokeObjectURL(url);
+	}
+
+	function escapeCSV(value) {
+
+		if (value == null) return "";
+
+		value = String(value);
+
+		if (value.includes('"')) {
+			value = value.replace(/"/g, '""');
+		}
+
+		if (value.includes(';') || value.includes('"') || value.includes('\n')) {
+			value = `"${value}"`;
+		}
+
+		return value;
+	}
+</script>
+
+</body>
+</html>

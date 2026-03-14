@@ -605,8 +605,10 @@
 			📖 Slovníček
 		</button>
 
+		<div class="menu-section">🛠 Nástroje</div>
+
 		<div class="dict-btn-wrap"
-			 style="display:flex; gap:12px; margin-top:10px; margin-bottom:10px;">
+			 style="display:flex; gap:10px; margin-top:0;">
 
 			<button class="btn-action btn-flip-big"
 					style="--btn-color:var(--category); flex:1;"
@@ -621,8 +623,24 @@
 			</button>
 		</div>
 
+		<div class="dict-btn-wrap"
+			 style="display:flex; gap:10px; margin-top:10px; margin-bottom:10px;">
+
+			<button class="btn-action btn-flip-big"
+					style="--btn-color:var(--category); flex:1;"
+					onclick="window.open('./importer-exporter.html', '_blank')">
+				📄 Import • Export
+			</button>
+
+			<button class="btn-action btn-flip-big"
+					style="--btn-color:var(--category); flex:1;"
+					onclick="window.open('./editor.html', '_blank')">
+				🖊 Editor
+			</button>
+		</div>
+
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260314.1 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260314.2 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -666,8 +684,6 @@
         <center class="upload-wrap">
 			<button class="btn-cat-add" onclick="createNewCategory()">📁 Vytvořit novou kategorii</button>
 			<label class="btn-load">📂 Nahrát lekci do hlavní nabídky<input type="file" id="fIn" style="display:none" onchange="handleFile(this)" accept=".csv"></label>
-			<div class="btn-load" onclick="window.open('./importer-exporter.html', '_blank')">📂 Import / Export lekcí</div>
-			<div class="btn-load" onclick="window.open('./editor.html', '_blank')">✏ Editor</div>
 			<div class="btn-load" onclick="exportBackup()">💾 Vytvořit zálohu dat</div>
 			<label class="btn-load">
 			📂 Obnovit ze zálohy

@@ -20,14 +20,14 @@
 <body>
 
 <div class="card">
-    <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 20px;">
-		<button onclick="window.close()" style="background: none; border: none; color: #666; font-weight: bold; cursor: pointer; padding: 0; font-family: sans-serif;">ZAVŘÍT ❌</button>
-	</div>
 
-    <h2>Import / Export</h2>
-    
+    <h2>Import / Export *.CSV</h2>
+
+	<hr />
+
     <div class="field">
-        <label>Cílová kategorie:</label>
+        <h3>Import lekce:</h3>
+        <label>Umístění do kategorie:</label>
         <select id="catSel">
             <option value="none">-- Hlavní menu --</option>
             <option value="NEW">+ Vytvořit novou...</option>
@@ -36,11 +36,11 @@
     </div>
 
     <div class="field">
-        <label>Vybrat CSV soubory:</label>
+        <label>Vyber soubor:</label>
         <input type="file" id="files" multiple accept=".csv">
     </div>
 
-    <button class="btn" onclick="runImport()">NAHRÁT DO APLIKACE</button>
+    <button class="btn" onclick="runImport()">NAHRÁT *.CSV</button>
 
     <div id="log"></div>
 
@@ -49,13 +49,13 @@
 	<hr />
 
 	<div class="field">
-		<label>Export lekce:</label>
+		<h3>Export lekce:</h3>
 		<select id="lessonSel">
 			<option value="">-- Vybrat lekci --</option>
 		</select>
 	</div>
 
-	<button class="btn" onclick="runExport()">STÁHNOUT CSV</button>
+	<button class="btn" onclick="runExport()">STÁHNOUT *.CSV</button>
 
 </div>
 

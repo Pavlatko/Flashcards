@@ -232,6 +232,36 @@ button{
     display:none;
 }
 
+.dupList{
+    margin:8px 0 0 18px;
+    padding:0;
+}
+
+.dupItem{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:6px 0;
+}
+
+.dupText{
+    line-height:1.3;
+}
+
+.dupLesson{
+    font-style:italic;
+    color:#777;
+}
+
+.dupDelete{
+    border:none;
+    background:#e53935;
+    color:white;
+    border-radius:6px;
+    padding:4px 8px;
+    cursor:pointer;
+}
+
 </style>
 </head>
 
@@ -255,8 +285,7 @@ button{
     <button class="btn-green" onclick="showAddWord()">+ slovíčko</button>
     <button class="btn" onclick="newLesson()">+ lekce</button>
     <button class="btn-red" onclick="deleteLesson()">🗑 lekce</button>
-    <button id="sortBtn" class="btn-gray" onclick="sortWords()">A→Z</button>
-    <button id="dupBtn" class="btn-purple" onclick="findDuplicates()">🔎 duplicitní</button>
+    <button id="dupBtn" class="btn-purple" onclick="toggleDuplicates()">🔎 duplicitní</button>
 </div>
 
 <div class="searchBox">
@@ -303,6 +332,18 @@ let sortAZ = false
 
 let editIndex = null
 let selected = new Set()
+
+function toggleDuplicates(){
+
+    if(duplicatesMode){
+        closeDuplicates()
+        return
+    }
+
+    duplicatesMode = true
+    renderDuplicates()
+
+}
 
 function save(){
     localStorage.setItem('pl_lessons', JSON.stringify(lessons))
@@ -385,8 +426,9 @@ function loadLessons(){
 
 function renderWords(){
 
-	if(duplicatesMode){
-		closeDuplicates()
+    if(duplicatesMode){
+		renderDuplicates()
+		return
 	}
 
 	showWordList(true)
@@ -430,10 +472,34 @@ function renderWords(){
 
     }
 
-    Object.entries(source).forEach(([lessonName, words]) => {
+	let allWords = []
 
-        words.forEach((w,i)=>{
+	Object.entries(source).forEach(([lessonName, words]) => {
 
+		words.forEach((w,i)=>{
+			allWords.push({
+				lesson: lessonName,
+				index: i,
+				word: w
+			})
+		})
+
+	})
+
+	allWords.sort((a,b)=>{
+
+		const aa = a.word.nl.replace(/^(de|het)\s+/i,"")
+		const bb = b.word.nl.replace(/^(de|het)\s+/i,"")
+
+		return aa.localeCompare(bb,"nl",{sensitivity:"base"})
+
+	})
+
+	allWords.forEach(item=>{
+
+		const w = item.word
+		const lessonName = item.lesson
+		const i = item.index
             if(search){
                 if(!(w.nl + w.cz + w.ipa).toLowerCase().includes(search)) return
             }
@@ -457,14 +523,12 @@ function renderWords(){
 </div>
 
 <div class="wordRight">
-<input type="checkbox" onclick="event.stopPropagation()" onchange="toggleSelect(${i},this)">
+<input type="checkbox" onclick="event.stopPropagation()" onchange="toggleSelect('${lessonName}_${i}',this)">
 </div>
 `
 
             list.appendChild(div)
 			count++
-
-        })
 
     })
 
@@ -501,7 +565,12 @@ function deleteLesson(){
 
     const lesson = document.getElementById("lesson").value
 
-    if(!confirm("Smazat lekci?")) return
+    if(!lesson || lesson === "all"){
+        alert("Nejdříve vyber lekci")
+        return
+    }
+
+    if(!confirm(`Opravdu smazat lekci "${lesson}" ?`)) return
 
     delete lessons[lesson]
 
@@ -559,9 +628,8 @@ function saveAndNext(){
     document.getElementById("nl").focus()
 }
 
-function editWord(i){
+function editWord(lesson,i){
 
-    const lesson = document.getElementById("lesson").value
     const w = lessons[lesson][i]
 
     document.getElementById("nl").value = w.nl
@@ -615,13 +683,14 @@ function toggleSelect(i,cb){
 
 function deleteSelected(){
 
-    const lesson = document.getElementById("lesson").value
-
     if(!selected.size) return
 
     if(!confirm("Smazat označené?")) return
 
-    lessons[lesson] = lessons[lesson].filter((_,i)=>!selected.has(i))
+    selected.forEach(id=>{
+        const [lesson,i] = id.split("_")
+        if(lessons[lesson]) lessons[lesson].splice(i,1)
+    })
 
     selected.clear()
 
@@ -645,31 +714,6 @@ function moveWord(lesson,i){
     save()
     renderWords()
 
-}
-
-function sortWords(){
-
-    const lesson = document.getElementById("lesson").value
-    const btn = document.getElementById("sortBtn")
-
-    if(!lesson || lesson === "all") return
-
-    sortAZ = !sortAZ
-
-    if(sortAZ){
-
-        lessons[lesson].sort((a,b)=>a.nl.localeCompare(b.nl,"nl"))
-        btn.style.background = "#ff9800"
-
-    }else{
-
-        // znovu načte původní pořadí z localStorage
-        lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}')
-        btn.style.background = "#777"
-
-    }
-
-    renderWords()
 }
 
 function clearForm(){
@@ -730,16 +774,10 @@ async function autoIPA(){
     document.getElementById("ipa").value = ipa
 }
 
-function findDuplicates(){
+function renderDuplicates(){
 
 	const btn = document.getElementById("dupBtn")
 
-    if(duplicatesMode){
-        closeDuplicates()
-        return
-    }
-
-    duplicatesMode = true
 	btn.style.background = "#ff9800"
 
 	showWordList(false)
@@ -794,7 +832,9 @@ function findDuplicates(){
         })
     })
 
-    Object.entries(map).forEach(([k,v])=>{
+    Object.entries(map)
+    .sort((a,b)=>a[0].localeCompare(b[0],"nl"))
+    .forEach(([k,v])=>{
         if(v.length > 1) dup.push({word:k,list:v})
     })
 
@@ -808,20 +848,38 @@ function findDuplicates(){
         const div = document.createElement("div")
         div.className = "dupBox"
 
-        div.innerHTML = `<b>${d.word}</b> (${d.list.length})`
+        div.innerHTML = `
+		<div style="display:flex;justify-content:space-between;align-items:center">
+		<b>${d.word}</b> (${d.list.length})
+		<button class="dupDelete"
+		style="background:#b71c1c"
+		onclick="removeDupAll('${d.word}',${d.list.length})">🗑</button>
+		</div>
+		`
 
-        d.list.forEach(item=>{
+        const ul = document.createElement("ul")
+		ul.className = "dupList"
 
-            const row = document.createElement("div")
+		d.list.forEach((item,index)=>{
 
-            row.innerHTML = `
-${item.lesson} — ${item.word.cz}
-<button onclick="removeDup('${d.word}','${item.lesson}')">❌</button>
-`
+			const li = document.createElement("li")
+			li.className = "dupItem"
 
-            div.appendChild(row)
+			li.innerHTML = `
+		<div class="dupText">
+		<div>${item.word.cz}</div>
+		<div class="dupLesson">${item.lesson}</div>
+		</div>
 
-        })
+		<button class="dupDelete"
+		onclick="removeDup('${d.word}','${item.lesson}','${item.word.cz}')">✖</button>
+		`
+
+			ul.appendChild(li)
+
+		})
+
+		div.appendChild(ul)
 
         box.appendChild(div)
 
@@ -832,15 +890,74 @@ ${item.lesson} — ${item.word.cz}
 	", počet skupin: " + groupCount
 }
 
-function removeDup(word,lesson){
+function removeDup(word,lesson,cz){
 
-    if(!confirm("Opravdu odstranit z lekce?")) return
+    if(!confirm(`Opravdu odstranit "${word}" z lekce "${lesson}" ?`)) return
 
-    lessons[lesson] = lessons[lesson].filter(w=>w.nl.toLowerCase().trim() != word)
+    const index = lessons[lesson].findIndex(
+        w => w.nl.toLowerCase().trim() === word && w.cz === cz
+    )
+
+    if(index !== -1){
+        lessons[lesson].splice(index,1)
+        save()
+        showToast(`<b>${word}</b> bylo odstraněno z <b>${lesson}</b>`)
+    }
+
+    renderDuplicates()
+}
+
+function removeDupAll(word,count){
+
+    if(!confirm(`Opravdu odstranit "${word}" ze všech zobrazených lekcí?\nCelkem: ${count}x`)) return
+
+    const cat = document.getElementById("category").value
+    const lessonFilter = document.getElementById("lesson").value
+
+    let source = []
+
+    if(lessonFilter && lessonFilter !== "all"){
+
+        source = [lessonFilter]
+
+    }
+    else if(cat === "all"){
+
+        source = Object.keys(lessons)
+
+    }
+    else if(cat === "none"){
+
+        const used = Object.values(categories).flat()
+
+        source = Object.keys(lessons).filter(l => !used.includes(l))
+
+    }
+    else{
+
+        source = categories[cat] || []
+
+    }
+
+    let removed = 0
+
+    source.forEach(l=>{
+
+        const before = lessons[l].length
+
+        lessons[l] = lessons[l].filter(w=>w.nl.toLowerCase().trim() != word)
+
+        removed += before - lessons[l].length
+
+    })
 
     save()
-    findDuplicates()
-    renderWords()
+
+    if(removed){
+        showToast(`<b>${word}</b> odstraněno (${removed}x)`)
+    }
+
+    renderDuplicates()
 }
 
 document.getElementById("category").onchange = loadLessons
@@ -894,7 +1011,7 @@ function closeDuplicates(){
 
     document.getElementById("deleteSelectedBar").style.display = "flex"
 
-    renderWords()
+	renderWords()
 
 }
 

@@ -69,12 +69,6 @@ button{
 .btn-gray{background:#777;color:white}
 .btn-purple{background:#9c27b0;color:white}
 
-.word{
-    padding:12px;
-    border-bottom:1px solid #eee;
-    cursor:pointer;
-}
-
 .word strong{
     font-size:1.1rem;
 }
@@ -328,9 +322,10 @@ Počet záznamů: 0
 let lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}')
 let categories = JSON.parse(localStorage.getItem('pl_categories') || '{}')
 let duplicatesMode = false
-let sortAZ = false
 
 let editIndex = null
+let editLesson = null
+let originalWord = null
 let selected = new Set()
 
 function toggleDuplicates(){
@@ -426,6 +421,7 @@ function loadLessons(){
 
 function renderWords(){
 
+	selected.clear()
     if(duplicatesMode){
 		renderDuplicates()
 		return
@@ -517,7 +513,7 @@ function renderWords(){
 <small style="color:#2196F3">${lessonName}</small>
 
 <div class="toolbar">
-<button onclick="event.stopPropagation();moveWord('${lessonName}',${i})">↪</button>
+<button onclick="event.stopPropagation();editWord('${lessonName}',${i})">✏</button>
 <button onclick="event.stopPropagation();deleteWord('${lessonName}',${i})">🗑</button>
 </div>
 </div>
@@ -632,11 +628,22 @@ function editWord(lesson,i){
 
     const w = lessons[lesson][i]
 
+    document.getElementById("addWordBox").style.display = "block"
+
     document.getElementById("nl").value = w.nl
     document.getElementById("ipa").value = w.ipa
     document.getElementById("cz").value = w.cz
 
     editIndex = i
+    editLesson = lesson
+
+    originalWord = {
+        nl: w.nl,
+        ipa: w.ipa,
+        cz: w.cz
+    }
+
+    document.getElementById("nl").focus()
 
     window.scrollTo({
         top:document.body.scrollHeight,
@@ -684,12 +691,22 @@ function toggleSelect(i,cb){
 function deleteSelected(){
 
     if(!selected.size) return
-
     if(!confirm("Smazat označené?")) return
+
+    let map = {}
 
     selected.forEach(id=>{
         const [lesson,i] = id.split("_")
-        if(lessons[lesson]) lessons[lesson].splice(i,1)
+        if(!map[lesson]) map[lesson] = []
+        map[lesson].push(Number(i))
+    })
+
+    Object.entries(map).forEach(([lesson,indexes])=>{
+        indexes
+            .sort((a,b)=>b-a)
+            .forEach(i=>{
+                lessons[lesson].splice(i,1)
+            })
     })
 
     selected.clear()
@@ -698,25 +715,16 @@ function deleteSelected(){
     renderWords()
 }
 
-function moveWord(lesson,i){
-
-    if(!lessons[lesson] || !lessons[lesson][i]) return
-
-    const target = prompt("Do jaké lekce přesunout?")
-
-    if(!target || !lessons[target]) return alert("lekce neexistuje")
-
-    const w = lessons[lesson][i]
-
-    lessons[target].push(w)
-    lessons[lesson].splice(i,1)
-
-    save()
-    renderWords()
-
-}
-
 function clearForm(){
+
+    if(editIndex !== null && originalWord){
+
+        document.getElementById("nl").value = originalWord.nl
+        document.getElementById("ipa").value = originalWord.ipa
+        document.getElementById("cz").value = originalWord.cz
+
+        return
+    }
 
     document.getElementById("nl").value = ""
     document.getElementById("ipa").value = ""
@@ -747,11 +755,22 @@ async function autoIPA(){
         let parser = new DOMParser()
         let doc = parser.parseFromString(html,"text/html")
 
-        let ipa = doc.querySelector(".IPA")
+        // najde IPA pouze v nizozemské sekci
+        let nlSection = doc.querySelector("#Nederlands")
 
-        if(ipa){
-            document.getElementById("ipa").value = ipa.textContent.trim()
-            return
+        if(nlSection){
+
+            let ipa = nlSection.parentElement.querySelector(".IPA")
+
+            if(ipa){
+                document.getElementById("ipa").value =
+                    ipa.textContent
+				.split(",")[0]
+				.replace(/\//g,"")
+				.trim()
+                return
+            }
+
         }
 
     }catch(e){
@@ -929,7 +948,6 @@ function removeDupAll(word,count){
     else if(cat === "none"){
 
         const used = Object.values(categories).flat()
-
         source = Object.keys(lessons).filter(l => !used.includes(l))
 
     }
@@ -943,9 +961,13 @@ function removeDupAll(word,count){
 
     source.forEach(l=>{
 
+        if(!lessons[l]) return   // ochrana proti crashi
+
         const before = lessons[l].length
 
-        lessons[l] = lessons[l].filter(w=>w.nl.toLowerCase().trim() != word)
+        lessons[l] = lessons[l].filter(
+            w => w.nl.toLowerCase().trim() != word
+        )
 
         removed += before - lessons[l].length
 
@@ -1058,7 +1080,13 @@ function showToast(text){
 
 function cancelAdd(){
 
-    clearForm()
+    editIndex = null
+    editLesson = null
+    originalWord = null
+
+    document.getElementById("nl").value = ""
+    document.getElementById("ipa").value = ""
+    document.getElementById("cz").value = ""
 
     document.getElementById("addWordBox").style.display = "none"
 

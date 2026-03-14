@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Flashcards Importer/Exporter</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --p: #2196F3; --bg: #f5f5f5; }
         body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; justify-content: center; }
@@ -52,6 +53,7 @@
 		<h3>Export lekce:</h3>
 		<select id="lessonSel">
 			<option value="">-- Vybrat lekci --</option>
+			<option value="__ALL__">⬇️ Stáhnout vše v ZIP</option>
 		</select>
 	</div>
 
@@ -240,7 +242,7 @@
         log.className = "ok";
     }
 
-	function runExport() {
+	async function runExport() {
 
 		const lessonName = document.getElementById('lessonSel').value;
 
@@ -250,6 +252,73 @@
 		}
 
 		const lessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
+		const cats = JSON.parse(localStorage.getItem('pl_categories') || '{}');
+
+		// =============================
+		// EXPORT VŠEHO DO ZIP
+		// =============================
+		if (lessonName === "__ALL__") {
+
+			const zip = new JSZip();
+
+			// vytvoří mapu: lekce -> kategorie
+			const lessonCategory = {};
+
+			Object.keys(cats).forEach(cat => {
+				(cats[cat] || []).forEach(lesson => {
+					lessonCategory[lesson] = cat;
+				});
+			});
+
+			Object.keys(lessons).forEach(name => {
+
+				const words = lessons[name];
+				if (!words || !words.length) return;
+
+				let csv = "Nizozemsky;IPA;Česky\n";
+
+				for (let w of words) {
+
+					const nl = escapeCSV(w.nl);
+					const ipa = escapeCSV(w.ipa);
+					const cz = escapeCSV(w.cz);
+
+					csv += `${nl};${ipa};${cz}\n`;
+				}
+
+			// určení složky
+			const folder = lessonCategory[name];
+
+			if (folder) {
+				zip.file(`${folder}/${name}.csv`, csv);
+			} else {
+				// lekce bez kategorie -> přímo do kořene ZIP
+				zip.file(`${name}.csv`, csv);
+			}
+
+			});
+
+			const blob = await zip.generateAsync({type:"blob"});
+
+			const url = URL.createObjectURL(blob);
+
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = "flashcards.zip";
+
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+
+			URL.revokeObjectURL(url);
+
+			return;
+		}
+
+		// =============================
+		// EXPORT JEDNÉ LEKCE
+		// =============================
+
 		const words = lessons[lessonName];
 
 		if (!words || !words.length) {
@@ -257,7 +326,6 @@
 			return;
 		}
 
-		// hlavička
 		let csv = "Nizozemsky;IPA;Česky\n";
 
 		for (let w of words) {
@@ -299,6 +367,7 @@
 
 		return value;
 	}
+
 </script>
 
 </body>

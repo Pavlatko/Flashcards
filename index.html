@@ -258,7 +258,7 @@
 		#lesson-info-sub { 
             font-size: 0.8rem; 
             color: var(--text-color) !important; /* Přidáno !important a proměnná */
-            margin: -22px 0 10px 0; 
+            margin: -40px 0 0 0; 
             font-weight: normal; 
             opacity: 0.8; /* Trochu ztlumíme, aby to vypadalo jako podnadpis */
             transition: color 0.4s ease;
@@ -478,6 +478,8 @@
 			color: black;
 		}
 
+		#study-area {display:none; width:100%; max-width:500px; margin-top:0px;}
+
 		/* STUDIUM – glassy aqua styl */
 		.study-item{
 			background: linear-gradient(
@@ -663,7 +665,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260315.2 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260315.3 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -792,7 +794,7 @@
         </div>
     </div>
 
-	<div id="study-area" style="display:none; width:100%; max-width:500px; margin-top:10px;">
+	<div id="study-area">
 
 		<div style="display:flex; gap:10px; width:100%; margin-bottom:15px;">
 
@@ -1520,8 +1522,10 @@
 			const r = document.createElement('div');
 			r.className = 'lesson-row';
 
+			const isFinishedRepeat = finishedLessons.includes(lastFinishedLesson) ? ' is-finished' : '';
+
 			r.innerHTML = `
-				<button class="lesson-btn resume-btn"
+				<button class="lesson-btn resume-btn${isFinishedRepeat}"
 					onclick="selectLesson('${lastFinishedLesson}')">
 					🔁 &nbsp; Opakovat: ${lastFinishedLesson}
 				</button>`;
@@ -1540,7 +1544,7 @@
 				r2.innerHTML = `
 					<button class="lesson-btn"
 						onclick="selectLesson('${nextLesson}')">
-						➡ &nbsp; Následující: ${nextLesson}
+						➡ &nbsp; Následuje: ${nextLesson}
 					</button>`;
 
 				rc.appendChild(r2);
@@ -2655,7 +2659,7 @@
 
 		renderMenu();
 	}
-    function clearProgress() { if (confirm("Smazat uložený postup?")) { localStorage.removeItem('pl_active_state'); activeState = null; renderMenu(); localStorage.removeItem('pl_last_finished_lesson'); } }
+    function clearProgress() { if (confirm("Smazat uložený postup?")) { localStorage.removeItem('pl_active_state'); activeState = null; renderMenu(); } }
     function clearProblematic() { if (confirm("Vymazat problematická?")) { problematic = []; saveData(); renderMenu(); } }
 
 	document.addEventListener('keydown', e => {

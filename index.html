@@ -258,7 +258,7 @@
 		#lesson-info-sub { 
             font-size: 0.8rem; 
             color: var(--text-color) !important; /* Přidáno !important a proměnná */
-            margin: -40px 0 0 0; 
+            margin: -22px 0 0 0; 
             font-weight: normal; 
             opacity: 0.8; /* Trochu ztlumíme, aby to vypadalo jako podnadpis */
             transition: color 0.4s ease;
@@ -386,7 +386,7 @@
         .sub-word { font-size: 1.4rem; color: #666; white-space: pre-wrap; line-height: 1.4; margin-top: 5px; }
         .ipa { font-size: 1.2rem; color: #d32f2f; margin-top: 12px; font-family: serif; }
 
-        .controls { margin-top: 25px; display: flex; flex-direction: column; align-items: center; width: 90%; max-width: 360px; min-height: 230px; gap: 16px; }
+        .controls { margin-top: 25px; display: none; flex-direction: column; align-items: center; width: 90%; max-width: 360px; min-height: 230px; gap: 16px;}
 		.btn-row { display: none; width: 100%; justify-content: center; align-items: stretch; gap: 16px;}
 		#hint-row { flex-direction: column; align-items: stretch; }
         .btn-flip-big { background: var(--primary); color: white; width: 100%; }
@@ -478,7 +478,7 @@
 			color: black;
 		}
 
-		#study-area {display:none; width:100%; max-width:500px; margin-top:-10px;}
+		#study-area {display:none; width:100%; max-width:500px; margin-top: 8px;}
 
 		/* STUDIUM – glassy aqua styl */
 		.study-item{
@@ -722,14 +722,12 @@
 		<button class="btn-action btn-flip-big" style="--btn-color:var(--danger); margin-top:15px;" onclick="resetStats()">🗑 Resetovat statistiky</button>
 	</div>
 
-    <div id="category-detail-area" style="display:none; width: 100%; max-width: 360px; margin-top:20px;">
+    <div id="category-detail-area" style="display:none; width: 100%; max-width: 360px; margin-top:10px;">
 		<button class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 20px;" onclick="closeCategory()">⬅ &nbsp; ZPĚT DO MENU</button>
         <div id="cat-lessons-container"></div>
     </div>
 
-	<br />
-
-    <div id="mode-area" class="controls" style="display:none">
+    <div id="mode-area" class="controls">
 		<div id="lesson-info-sub"></div>
 
 		<div style="display:flex; gap:10px; width:100%;">

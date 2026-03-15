@@ -266,18 +266,34 @@
 
         #menu-area { width: 100%; max-width: 360px; display: flex; flex-direction: column; margin-top: 15px; }
 		.lesson-row { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 12px; position: relative; }
+		
+		/* Puntík pro zobrazení dokončené lekce */
         .is-finished::after { 
 			content: ''; 
 			position: absolute; 
 			right: 16px;                 /* výchozí pozice */
 			top: 50%; 
 			transform: translateY(-50%); 
-			width: 8px; 
-			height: 8px; 
-			background-color: #00ff00;
-			border-radius: 50%; 
-			box-shadow: 0 0 8px rgba(0,255,0,0.8); 
-			border: 1.5px solid white; 
+
+			width: 9px;
+			height: 9px;
+
+			border-radius: 50%;
+
+			background: radial-gradient(
+				circle at 35% 35%,
+				#b9ffb9 0%,
+				#4cff4c 40%,
+				#00c800 70%,
+				#007a00 100%
+			);
+
+			border: 1px solid rgba(255,255,255,0.8);
+
+			box-shadow:
+				0 0 3px rgba(0,255,0,0.8),
+				0 0 5px rgba(0,255,0,0.4),
+				inset 0 1px 2px rgba(255,255,255,0.7);
 		}
 
 		/* pokud existuje PIN → puntík se posune vlevo od něj */
@@ -647,7 +663,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260315.1 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260315.2 by <b>Pavlatko</b>Labs
         </div>
     </div>
 

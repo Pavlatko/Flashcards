@@ -665,7 +665,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 20px; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260315.4 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260315.5 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1539,8 +1539,10 @@
 				const r2 = document.createElement('div');
 				r2.className = 'lesson-row';
 
+				const isFinishedNext = finishedLessons.includes(nextLesson) ? ' is-finished' : '';
+
 				r2.innerHTML = `
-					<button class="lesson-btn"
+					<button class="lesson-btn${isFinishedNext}"
 						onclick="selectLesson('${nextLesson}')">
 						➡ &nbsp; Následuje: ${nextLesson}
 					</button>`;

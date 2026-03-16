@@ -665,7 +665,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260316.1 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260316.2 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1876,10 +1876,22 @@
 			document.getElementById('flip-row').style.display = 'none';
 			document.getElementById('action-row').style.display = 'flex';
 
-			// po otočení musí nápověda zmizet
-			// document.getElementById('hint-row').style.display = 'none';
 			const hintRow = document.getElementById('hint-row');
-			if (hintRow) hintRow.style.display = 'none';
+
+			if (hintRow) {
+
+				if (currentLessonId === "problematic") {
+
+					// u problematických musí zůstat kotva
+					renderHintButton();
+
+				} else {
+
+					hintRow.style.display = 'none';
+
+				}
+
+			}
 		}
 
 		if(afterError){
@@ -1888,6 +1900,7 @@
 				<button class="btn-action btn-umim" onclick="forceNextAfterError()">&nbsp;&nbsp; POKRAČUJ ➔</button>
 			`;
 		}
+		renderPinButton();
 	}
 
 	function showWord() {
@@ -1948,7 +1961,14 @@
 					: currentLessonId;
 			document.getElementById('lesson-name-display').innerText =
 				currentLessonId === "problematic" ? "🔥 " + displayId : displayId;
-			document.getElementById('remaining-count').innerText = `Zbývá: ${words.length - currentIndex}`;
+
+			const uniqueRemaining = new Set(
+				words.slice(currentIndex).map(w => w.nl)
+			).size;
+
+			document.getElementById('remaining-count').innerText =
+				`Zbývá: ${uniqueRemaining}`;
+
 		}, 150);
 
 		updatePinStar();
@@ -2267,6 +2287,8 @@
             const targetOffset = Math.min(4, remainingCount);
             // Pokud zbývá hodně slov, vložíme to na 4. pozici, jinak na konec
 			words.splice(currentIndex + 1 + targetOffset, 0, {...cur}); 
+			// ⭐ DŮLEŽITÉ: uložit novou podobu pole words
+			saveProgress();
 			
 			isProcessing = true;
 			setTimeout(() => {

@@ -665,7 +665,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260315.6 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260316.1 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -913,7 +913,9 @@
 
     let words = []; let currentIndex = 0; let isFlipped = false; let mode = ''; 
     let currentLessonId = ""; let trainingActive = false; let currentOpenCategory = null;
-    let wasFlippedOnce = false; let isProcessing = false;
+    let wasFlippedOnce = false;
+	let isProcessing = false;
+	let afterError = false;
     let dictionaryScope = null;
     let hintLevel = 0; 
 	let studyPreviewMode = false;
@@ -1844,10 +1846,59 @@
 		manageKeepAlive();
 	}
 
-    function resumeTraining() { if (!activeState) return; currentLessonId = activeState.lessonId; words = activeState.words; currentIndex = activeState.index; mode = activeState.mode; startTraining(mode, true); }
+    function resumeTraining() {
+
+		if (!activeState) return;
+
+		currentLessonId = activeState.lessonId;
+		words = activeState.words;
+		currentIndex = activeState.index;
+		mode = activeState.mode;
+
+		isFlipped = activeState.isFlipped || false;
+		wasFlippedOnce = activeState.wasFlippedOnce || false;
+		afterError = activeState.afterError || false;
+
+		startTraining(mode, true);
+
+		setTimeout(() => {
+			restoreCardState();
+			activeState = null;
+		}, 200);
+	}
+
+	function restoreCardState(){
+
+		const card = document.getElementById("card");
+
+		if(wasFlippedOnce){
+
+			document.getElementById('flip-row').style.display = 'none';
+			document.getElementById('action-row').style.display = 'flex';
+
+			// po otočení musí nápověda zmizet
+			// document.getElementById('hint-row').style.display = 'none';
+			const hintRow = document.getElementById('hint-row');
+			if (hintRow) hintRow.style.display = 'none';
+		}
+
+		if(afterError){
+			document.getElementById('action-row').innerHTML = `
+				<button class="btn-action btn-poslech-blue" style="background:var(--secondary)" onclick="replayCurrentWord(event)">🔊 POSLECH</button>
+				<button class="btn-action btn-umim" onclick="forceNextAfterError()">&nbsp;&nbsp; POKRAČUJ ➔</button>
+			`;
+		}
+	}
 
 	function showWord() {
-		isFlipped = false; wasFlippedOnce = false; isProcessing = false;
+
+		if(!activeState){
+			isFlipped = false;
+			wasFlippedOnce = false;
+			afterError = false;
+		}
+
+		isProcessing = false;
         hintLevel = 0;
 		const hintBtn = document.getElementById('hint-btn');
 		if (hintBtn) hintBtn.innerText = "ZOBRAZIT NÁPOVĚDU";
@@ -1857,7 +1908,13 @@
 
         const faces = document.querySelectorAll('.card-face div');
 		faces.forEach(f => f.style.opacity = '0');
-		document.getElementById('card').classList.remove('is-flipped');
+		const card = document.getElementById('card');
+
+		if (isFlipped) {
+			card.classList.add('is-flipped');
+		} else {
+			card.classList.remove('is-flipped');
+		}
 		
 		// RESET tlačítek do výchozího stavu
 		document.getElementById('flip-row').style.display = 'flex';
@@ -1896,6 +1953,7 @@
 
 		updatePinStar();
 		renderPinButton();
+		saveProgress();
 	}
 
 	function hasPinnedWords(){
@@ -1905,7 +1963,9 @@
     function toggleFlip(e) {
 		if (cardHoldTriggered) return;
 		if (e) e.stopPropagation();
-        isFlipped = !isFlipped; wasFlippedOnce = true;
+        isFlipped = !isFlipped;
+		wasFlippedOnce = true;
+		saveProgress();
         document.getElementById('card').classList.toggle('is-flipped');
         document.getElementById('flip-row').style.display = 'none';
         // po otočení karta → nápověda zmizí
@@ -2151,7 +2211,12 @@
 	function handleResult(ok, e) {
 		if (e) e.stopPropagation(); 
 		if (isProcessing) return; 
-		
+
+		if (!ok) {
+			afterError = true;
+			saveProgress();
+		}
+
 		const cur = words[currentIndex];
 		let pIdx = problematic.findIndex(w => w.nl === cur.nl);
 		
@@ -2628,7 +2693,18 @@
         localStorage.setItem('pl_categories', JSON.stringify(categories));
         localStorage.setItem('pl_problematic', JSON.stringify(problematic)); 
     }
-    function saveProgress() { if (trainingActive) localStorage.setItem('pl_active_state', JSON.stringify({ lessonId: currentLessonId, words: words, index: currentIndex, mode: mode })); }
+    function saveProgress() { 
+		if (trainingActive)
+			localStorage.setItem('pl_active_state', JSON.stringify({ 
+				lessonId: currentLessonId,
+				words: words,
+				index: currentIndex,
+				mode: mode,
+				isFlipped: isFlipped,
+				wasFlippedOnce: wasFlippedOnce,
+				afterError: afterError
+			}));
+	}
     
     function exitTraining() {
 		if (sessionStartTime) {

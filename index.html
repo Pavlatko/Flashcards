@@ -647,6 +647,20 @@
 			padding-bottom: 10px;
 		}
 
+		#dict-header {
+			position: sticky;
+			top: 0;
+			z-index: 100;
+
+			background: var(--app-bg);
+
+			padding-top: 10px;
+			padding-bottom: 0;
+
+			/* jemný oddělovací efekt */
+			box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+		}
+
 		</style>
 	<link rel="icon" type="image/png" href="icon.png">
 	<link rel="apple-touch-icon" href="icon.png">
@@ -705,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260320.6 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260320.7 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -818,12 +832,21 @@
 	</div>
 
     <div id="dictionary-area">
-        <button id="dict-back-btn" class="btn-action btn-flip-big" style="--btn-color:var(--neutral); margin-bottom: 15px;" onclick="closeDictionary()">⬅ &nbsp; ZPĚT DO MENU</button>
-        <div id="dict-stats">Celkem slov: 0</div>
-        <div class="search-container">
-            <input type="text" id="dict-filter" placeholder="Hledat výraz..." oninput="filterDictionary()">
-            <button class="clear-search" onclick="clearSearch()">×</button>
-        </div>
+		<div id="dict-header">
+			<button id="dict-back-btn"
+				class="btn-action btn-flip-big"
+				style="--btn-color:var(--neutral); margin-bottom: 10px;"
+				onclick="closeDictionary()">
+				⬅ &nbsp; ZPĚT DO MENU
+			</button>
+
+			<div id="dict-stats">Celkem slov: 0</div>
+
+			<div class="search-container">
+				<input type="text" id="dict-filter" placeholder="Hledat výraz..." oninput="filterDictionary()">
+				<button class="clear-search" onclick="clearSearch()">×</button>
+			</div>
+		</div>
         <div class="dict-table-wrap">
             <table>
                 <thead><tr><th width="50%">Nizozemsky</th><th width="50%">Česky</th></tr></thead>

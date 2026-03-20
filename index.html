@@ -603,7 +603,10 @@
 		#mode-area > button:first-of-type{
 			margin-top:25px;
 		}
-
+		.mode-active {
+			height: 100dvh;
+			overflow: hidden;
+		}
 
 		.card-pin{
 			position:absolute;
@@ -1687,6 +1690,7 @@
 	}
 
 	function selectLesson(id) { 
+		document.getElementById('app-body').classList.add('mode-active');
         currentLessonId = id; 
 		const pinBtn = document.getElementById("pin-lesson-btn");
 		const pinnedPreviewBtn = document.getElementById("pinned-preview-btn");
@@ -1784,7 +1788,7 @@
     }
 
     function backFromModeSelection() {
-
+		document.getElementById('app-body').classList.remove('mode-active');
 		document.getElementById('mode-area').style.display = 'none';
 		localStorage.removeItem('pl_app_view');
 		localStorage.removeItem('pl_current_lesson_id');

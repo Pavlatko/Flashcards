@@ -32,8 +32,12 @@
             align-items: center; 
             background: var(--app-bg); 
             color: var(--text-color); /* Aplikace barvy na celé body */
-            margin: 0; padding: 10px; min-height: 100vh; width: 100vw; 
-            box-sizing: border-box; overflow-x: hidden; 
+            margin: 0;
+			padding: 10px;
+			min-height: 100dvh;
+			width: 100vw; 
+            box-sizing: border-box;
+			overflow-x: hidden; 
             transition: background-color 0.4s ease, color 0.4s ease; 
 			-webkit-user-select: none;
 			-ms-user-select: none;
@@ -252,7 +256,11 @@
             color: var(--text-color); /* Změněno z #555 */
             transition: color 0.4s ease;
         }
-        
+
+		.training-mode {
+			height: 100vh;
+			overflow: hidden;
+		}        
         .training-mode #counter-wrap { justify-content: space-between; font-size: 0.95rem; }
 		.training-mode #lesson-name-display { color: var(--text-color); /* Změněno z var(--neutral) */ font-weight: bold; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.4s ease; }
 		#lesson-info-sub { 
@@ -595,6 +603,10 @@
 		#mode-area > button:first-of-type{
 			margin-top:25px;
 		}
+		.mode-active {
+			height: 100dvh;
+			overflow: hidden;
+		}
 
 		.card-pin{
 			position:absolute;
@@ -665,7 +677,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260316.2 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260320.3 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1678,6 +1690,7 @@
 	}
 
 	function selectLesson(id) { 
+		document.getElementById('app-body').classList.add('mode-active');
         currentLessonId = id; 
 		const pinBtn = document.getElementById("pin-lesson-btn");
 		const pinnedPreviewBtn = document.getElementById("pinned-preview-btn");
@@ -1775,7 +1788,7 @@
     }
 
     function backFromModeSelection() {
-
+		document.getElementById('app-body').classList.remove('mode-active');
 		document.getElementById('mode-area').style.display = 'none';
 		localStorage.removeItem('pl_app_view');
 		localStorage.removeItem('pl_current_lesson_id');
@@ -1905,11 +1918,9 @@
 
 	function showWord() {
 
-		if(!activeState){
-			isFlipped = false;
-			wasFlippedOnce = false;
-			afterError = false;
-		}
+		isFlipped = false;
+		wasFlippedOnce = false;
+		afterError = false;
 
 		isProcessing = false;
         hintLevel = 0;
@@ -1945,16 +1956,21 @@
 		const flagNL = '<div class="card-flag">🇳🇱</div>';
 
 		setTimeout(() => {
-			if (mode === 'CZ-NL') { 
-                updateF('front', flagCZ + pCZ.m, pCZ.s, "");
-                updateF('back', flagNL + pNL.m, pNL.s, cur.ipa); 
-            } 
-            else { 
-                updateF('front', flagNL + pNL.m, pNL.s, cur.ipa); 
-                updateF('back', flagCZ + pCZ.m, pCZ.s, ""); 
-                speak(cur.nl); 
-            }
+			// 🔥 FIX – směr je pevný (nezávislý na flipu)
+			const isCZtoNL = mode === 'CZ-NL';
+
+			if (isCZtoNL) {
+				updateF('front', flagCZ + pCZ.m, pCZ.s, "");
+				updateF('back', flagNL + pNL.m, pNL.s, cur.ipa);
+			} else {
+				updateF('front', flagNL + pNL.m, pNL.s, cur.ipa);
+				updateF('back', flagCZ + pCZ.m, pCZ.s, "");
+			}
 			faces.forEach(f => f.style.opacity = '1');
+			if (mode === 'NL-CZ') {
+				window.speechSynthesis.cancel();
+				speak(words[currentIndex].nl);
+			}
             const displayId =
 				currentLessonId === 'problematic'
 					? (cur.lesson || 'Problematické')
@@ -2015,7 +2031,10 @@
 
 		}
         document.getElementById('action-row').style.display = 'flex';
-        if ((mode === 'CZ-NL' && isFlipped) || (mode === 'NL-CZ' && !isFlipped)) speak(words[currentIndex].nl);
+        // 🔥 mluv jen po otočení
+		if (isFlipped && mode === 'CZ-NL') {
+			speak(words[currentIndex].nl);
+		}
     }
 
 	function updatePinStar(){

@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260321.1 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260321.2 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -811,7 +811,23 @@
 		<button class="btn-action btn-flip-big" onclick="startTraining('CZ-NL')">ČESKY ➔ NIZOZEMSKY</button>
 		<button class="btn-action btn-flip-big" onclick="startTraining('NL-CZ')">NIZOZEMSKY ➔ ČESKY</button>
 		<button class="btn-action btn-flip-big" style="--btn-color:var(--secondary);" onclick="openDictionary(currentLessonId)">📖 Slovníček lekce</button>
-		<button id="pinned-preview-btn" class="btn-action btn-flip-big" style="--btn-color:var(--success);" onclick="openPinnedPreview()">⚓ Ukotvené</button>
+		<div id="problematic-buttons-row" style="display:flex; gap:10px; width:100%;">
+
+			<button id="pinned-preview-btn"
+				class="btn-action btn-flip-big"
+				style="--btn-color:var(--danger); width:50%;"
+				onclick="openPinnedPreview()">
+				⚓ Ukotvené
+			</button>
+
+			<button id="archive-btn"
+				class="btn-action btn-flip-big"
+				style="--btn-color:var(--success); width:50%;"
+				onclick="openArchive()">
+				🗂 Archiv
+			</button>
+
+		</div>
 		<div style="display:flex; gap:10px; width:100%;">
 
 			<button class="btn-action btn-flip-big"
@@ -928,6 +944,7 @@
     let allLessons = JSON.parse(localStorage.getItem('pl_lessons') || '{}');
     let categories = JSON.parse(localStorage.getItem('pl_categories') || '{}');
     let problematic = JSON.parse(localStorage.getItem('pl_problematic') || '[]');
+	let archive = JSON.parse(localStorage.getItem('pl_archive') || '[]');
     let activeState = JSON.parse(localStorage.getItem('pl_active_state') || 'null');
     let finishedLessons = JSON.parse(localStorage.getItem('pl_finished_lessons') || '[]');
     let dictSortActive = false; 
@@ -1319,14 +1336,20 @@
         if (lastView === 'dictionary') {
 			const scope = localStorage.getItem('pl_dict_scope');
 
-			// OPRAVA: umožnit i problematic
+			// 🔥 přidat archive
 			if (
+				scope === "archive" ||
 				scope === "problematic" ||
 				scope === "all" ||
 				allLessons[scope] ||
 				(scope && scope.startsWith("category_"))
 			) {
-				openDictionary(scope === 'all' ? null : scope);
+
+				if (scope === "archive") {
+					openArchive();
+				} else {
+					openDictionary(scope === 'all' ? null : scope);
+				}
 				return;
 			}
 		}
@@ -1744,15 +1767,28 @@
 		document.getElementById('app-body').classList.add('mode-active');
         currentLessonId = id; 
 		const pinBtn = document.getElementById("pin-lesson-btn");
+		const row = document.getElementById("problematic-buttons-row");
 		const pinnedPreviewBtn = document.getElementById("pinned-preview-btn");
 
-		if (pinnedPreviewBtn) {
+		if (id === "problematic") {
 
-			if (id === "problematic" && hasPinnedWords()) {
-				pinnedPreviewBtn.style.display = "block";
-			} else {
-				pinnedPreviewBtn.style.display = "none";
+			if (row) row.style.display = "flex";
+
+			if (pinnedPreviewBtn) {
+				const enabled = hasPinnedWords();
+
+				if (enabled) {
+					pinnedPreviewBtn.style.opacity = "1";
+					pinnedPreviewBtn.style.pointerEvents = "auto";
+				} else {
+					pinnedPreviewBtn.style.opacity = "0.35";
+					pinnedPreviewBtn.style.pointerEvents = "none";
+				}
 			}
+
+		} else {
+
+			if (row) row.style.display = "none";
 
 		}
 
@@ -2350,7 +2386,16 @@
 			document.getElementById('front-face').classList.add('flash-red');
 			document.getElementById('back-face').classList.add('flash-red-back');
 			speak(cur.nl, true);
-			
+
+			// aktuální slovo
+			const word = words[currentIndex];
+
+			// ➕ přidat do ARCHIVU (jen pokud tam ještě není)
+			if (!archive.some(w => w.nl === word.nl)) {
+				archive.unshift(word);
+				localStorage.setItem('pl_archive', JSON.stringify(archive));
+			}
+
 			// CHYTRÉ VLOŽENÍ: Snažíme se o odstup 3 slov
 			const remainingCount = words.length - (currentIndex + 1);
             // Cílíme na index + 4 (tedy 3 slova mezi), ale nesmíme přetéct délku pole
@@ -2371,6 +2416,7 @@
 				`;
 				isProcessing = false;
 			}, 800);
+
 		} else {
 			isProcessing = true;
 
@@ -2581,6 +2627,26 @@
 		if (trainingActive) {
 			document.getElementById('mode-area').style.display = 'block';
 		} else {
+			// 🔥 návrat z ARCHIVU
+			if (dictionaryScope === 'archive') {
+
+				const returnTo = localStorage.getItem('pl_archive_return');
+
+				if (returnTo === 'problematic') {
+					selectLesson('problematic');
+					document.getElementById('mode-area').style.display = 'flex';
+
+					localStorage.removeItem('pl_archive_return'); // 🧹
+
+					// 🔥 DŮLEŽITÉ – cleanup
+					dictSortActive = false;
+					manageKeepAlive();
+					dictionaryScope = null;
+
+					return;
+				}
+			}
+
 			const isCategoryScope = dictionaryScope && dictionaryScope.startsWith('category_');
 
 			if (isCategoryScope && currentOpenCategory) {
@@ -2608,6 +2674,7 @@
 		}
 		dictSortActive = false;
 		manageKeepAlive();
+		dictionaryScope = null;
 	}
 
     function buildDictionary() {
@@ -3220,6 +3287,7 @@
 
 		localStorage.setItem('pl_app_view','pinned_preview');
 		localStorage.setItem('pl_current_lesson_id','problematic');
+		localStorage.setItem('pl_return_view', 'mode-area');
 
 		updateLessonArrows();
 	}
@@ -3412,6 +3480,7 @@
 			localStorage.setItem('pl_app_view','study');
 		}
 		localStorage.setItem('pl_current_lesson_id', currentLessonId);
+		localStorage.setItem('pl_return_view', 'mode-area');
 
 		updateLessonArrows();
 		updateLessonArrows();
@@ -3425,15 +3494,21 @@
 		manageKeepAlive();
 
 		const pinnedPreviewBtn = document.getElementById("pinned-preview-btn");
+		const returnView = localStorage.getItem('pl_return_view');
 
-		if (pinnedPreviewBtn){
+		if (pinnedPreviewBtn) {
 
-			if(currentLessonId === "problematic" && hasPinnedWords()){
-				pinnedPreviewBtn.style.display = "block";
-			}else{
-				pinnedPreviewBtn.style.display = "none";
+			const enabled = (currentLessonId === "problematic" && hasPinnedWords());
+
+			pinnedPreviewBtn.style.display = "block";
+
+			if (enabled) {
+				pinnedPreviewBtn.style.opacity = "1";
+				pinnedPreviewBtn.style.pointerEvents = "auto";
+			} else {
+				pinnedPreviewBtn.style.opacity = "0.35";
+				pinnedPreviewBtn.style.pointerEvents = "none";
 			}
-
 		}
 
 		if (sessionStartTime) {
@@ -3862,6 +3937,70 @@
 		alert("Aplikace byla resetována.");
 
 		location.reload();
+	}
+
+	function openArchive() {
+
+		localStorage.setItem('pl_archive_return', currentLessonId);
+
+		document.getElementById('menu-area').style.display = 'none';
+		document.getElementById('mode-area').style.display = 'none';
+		document.getElementById('study-area').style.display = 'none';
+		document.getElementById('category-detail-area').style.display = 'none';
+		document.getElementById('settings-area').style.display = 'none';
+		document.getElementById('stats-area').style.display = 'none';
+
+		document.getElementById('dictionary-area').style.display = 'block';
+
+		document.getElementById('lesson-name-display').innerText = 'Archiv';
+		document.getElementById('remaining-count').innerText = '';
+
+		dictionaryScope = 'archive';
+
+		localStorage.setItem('pl_dict_scope', 'archive');
+		localStorage.setItem('pl_app_view', 'dictionary'); // 🔥 TOTO CHYBĚLO
+
+		buildArchive();
+	}
+
+	function buildArchive() {
+
+		const tbody = document.getElementById('dict-body');
+		tbody.innerHTML = '';
+
+		document.getElementById('dict-stats').innerText = `Archiv: ${archive.length} slov`;
+
+		archive.forEach(word => {
+
+			const tr = document.createElement('tr');
+
+			tr.innerHTML = `
+				<td>${word.nl}</td>
+				<td>
+					${word.cz}
+					<span style="
+						position:absolute;
+						right:8px;
+						top:50%;
+						transform:translateY(-50%);
+						cursor:pointer;
+						color:#c62828;
+						font-weight:bold;
+					"
+					onclick="deleteFromArchive('${word.nl}')">×</span>
+				</td>
+			`;
+
+			tbody.appendChild(tr);
+		});
+	}
+
+	function deleteFromArchive(nlWord) {
+
+		archive = archive.filter(w => w.nl !== nlWord);
+		localStorage.setItem('pl_archive', JSON.stringify(archive));
+
+		buildArchive();
 	}
 
 </script>

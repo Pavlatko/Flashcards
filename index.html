@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260321.4 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260321.5 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -2254,7 +2254,15 @@
 
 		if(pIdx === -1) return;
 
-		problematic[pIdx].pinned = !problematic[pIdx].pinned;
+		if (!problematic[pIdx].pinned) {
+			// připínáme → uložíme čas
+			problematic[pIdx].pinned = true;
+			problematic[pIdx].pinnedAt = Date.now();
+		} else {
+			// odepínáme → smažeme čas
+			problematic[pIdx].pinned = false;
+			delete problematic[pIdx].pinnedAt;
+		}
 
 		saveData();
 
@@ -3230,7 +3238,9 @@
 	// **************************************************************
 	function openPinnedPreview(){
 
-		const pinned = problematic.filter(w => w.pinned);
+		const pinned = problematic
+			.filter(w => w.pinned)
+			.sort((a, b) => (b.pinnedAt || 0) - (a.pinnedAt || 0));
 
 		if(pinned.length === 0){
 			alert("Žádná ukotvená slovíčka.");

@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260321.3 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260321.4 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -3279,7 +3279,70 @@
 				<div class="study-ipa">${w.ipa}</div>
 			`;
 
-			div.onclick = ()=> speak(w.nl);
+			// ===== LONG PRESS =====
+
+			let holdTimer;
+			let holdTriggered = false;
+			let startX = 0;
+			let startY = 0;
+
+			div.onclick = (e) => {
+				if (holdTriggered) return;
+				speak(w.nl);
+			};
+
+			div.addEventListener("touchstart", (e) => {
+
+				holdTriggered = false; // 🔥 důležité
+
+				startX = e.touches[0].clientX;
+				startY = e.touches[0].clientY;
+
+				holdTimer = setTimeout(() => {
+
+					holdTriggered = true;
+
+					// najdi slovo v problematic
+					const idx = problematic.findIndex(p => p.nl === w.nl);
+
+					if (idx !== -1) {
+
+						problematic[idx].pinned = false;
+						if (navigator.vibrate) navigator.vibrate(50);
+
+						localStorage.setItem('pl_problematic', JSON.stringify(problematic));
+
+						// vizuální feedback (rychlé "bliknutí")
+						div.style.opacity = "0.3";
+
+						setTimeout(() => {
+							div.remove(); // okamžitě zmizí ze seznamu
+						}, 150);
+					}
+
+				}, 500); // délka podržení
+
+			});
+
+			div.addEventListener("touchmove", (e) => {
+
+				const dx = Math.abs(e.touches[0].clientX - startX);
+				const dy = Math.abs(e.touches[0].clientY - startY);
+
+				// pokud se prst pohne → zrušit longpress
+				if (dx > 10 || dy > 10) {
+					clearTimeout(holdTimer);
+				}
+
+			});
+
+			div.addEventListener("touchend", () => {
+				clearTimeout(holdTimer);
+
+				setTimeout(() => {
+					holdTriggered = false;
+				}, 50);
+			});
 
 			list.appendChild(div);
 

@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260322.1 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260322.2 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -2491,6 +2491,10 @@
 		isFlipped = false;
 		wasFlippedOnce = false;
 		afterError = false;
+
+		const card = document.getElementById('card');
+		card.classList.remove('is-flipped');
+		card.offsetHeight;
 
 		saveData(); 
 		currentIndex++;

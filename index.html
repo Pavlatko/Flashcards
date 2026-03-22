@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260321.5 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260322.1 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -2005,12 +2005,9 @@
 
 	function showWord() {
 
-		if(!activeState){
-			isFlipped = false;
-			wasFlippedOnce = false;
-			afterError = false;
-		}
-
+		isFlipped = false;
+		wasFlippedOnce = false;
+		afterError = false;
 		isProcessing = false;
 		hintLevel = 0;
 		const hintBtn = document.getElementById('hint-btn');
@@ -2021,13 +2018,20 @@
 
         const faces = document.querySelectorAll('.card-face div');
 		faces.forEach(f => f.style.opacity = '0');
+
 		const card = document.getElementById('card');
 
-		if (isFlipped) {
-			card.classList.add('is-flipped');
-		} else {
-			card.classList.remove('is-flipped');
-		}
+		// 🔥 tvrdý reset karty (bez animace bugů)
+		card.classList.remove('is-flipped');
+
+		// 🔥 vynucení reflow → zruší rozbitou animaci
+		card.offsetHeight;
+
+		// if (isFlipped) {
+			// card.classList.add('is-flipped');
+		// } else {
+			// card.classList.remove('is-flipped');
+		// }
 		
 		// RESET tlačítek do výchozího stavu
 		document.getElementById('flip-row').style.display = 'flex';
@@ -2483,9 +2487,14 @@
 	}
 
 	function finishResult() {
+
+		isFlipped = false;
+		wasFlippedOnce = false;
+		afterError = false;
+
 		saveData(); 
 		currentIndex++;
-		
+
 		if (currentIndex < words.length) { 
 			saveProgress();  // Uložit NOVÝ index
 			showWord(); 

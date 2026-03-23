@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260323.1 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260323.2 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1941,7 +1941,7 @@
 		document.getElementById('training-controls').style.display = 'flex'; 
 		localStorage.setItem('pl_app_view', 'training');
 		window.scrollTo(0, 0);
-		showWord(); 
+		showWord(!isR); 
 		saveProgress(); 
 		manageKeepAlive();
 	}
@@ -2010,11 +2010,14 @@
 		renderPinButton();
 	}
 
-	function showWord() {
+	function showWord(resetState = true) {
 
-		isFlipped = false;
-		wasFlippedOnce = false;
-		afterError = false;
+		if (resetState) {
+			isFlipped = false;
+			wasFlippedOnce = false;
+			afterError = false;
+		}
+
 		isProcessing = false;
 		hintLevel = 0;
 		const hintBtn = document.getElementById('hint-btn');
@@ -2028,11 +2031,14 @@
 
 		const card = document.getElementById('card');
 
-		// 🔥 tvrdý reset karty (bez animace bugů)
+		// reset animace
 		card.classList.remove('is-flipped');
-
-		// 🔥 vynucení reflow → zruší rozbitou animaci
 		card.offsetHeight;
+
+		// ✅ aplikuj uložený stav otočení
+		if (isFlipped) {
+			card.classList.add('is-flipped');
+		}
 
 		// if (isFlipped) {
 			// card.classList.add('is-flipped');

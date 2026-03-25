@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260325.5 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260325.6 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -3548,7 +3548,7 @@
 				let hideTimer = null;
 
 				const revealTime = 3000; // jak dlouho je text vidět STUDIUM
-				const revealDelay = 1000; // prodleva zobrazení textu od kliknutí (audio náskok) → text STUDIUM
+				const revealDelay = 500; // prodleva zobrazení textu od kliknutí (audio náskok) → text STUDIUM
 
 				let pressTimer = null;
 
@@ -3556,8 +3556,15 @@
 
 					speak(w.nl);
 
-					// pokud už je text vidět → jen přehraj audio
-					if(revealed) return;
+					// 🔥 RESET všeho
+					clearTimeout(hideTimer);
+
+					nl.forEach(e => e.style.visibility = "hidden");
+					ipa.style.visibility = "hidden";
+
+					timerBar.style.transition = "none";
+					timerBar.style.transform = "scaleX(1)";
+					timerBar.style.opacity = "0";
 
 					revealed = true;
 

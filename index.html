@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260325.1 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260325.2 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -739,6 +739,7 @@
 				<label class="checkbox-row"><input type="checkbox" id="keep-alive-enabled" onchange="toggleKeepAlive(this.checked)"> Udržovat spojení se sluchátkami</label>
 				<label class="checkbox-row"><input type="checkbox" id="show-repeat-next" onchange="toggleRepeatNext(this.checked)"> Zobrazovat &quot;Poslední dokončené&quot; tlačítka</label>
 				<label class="checkbox-row"><input type="checkbox" id="auto-backup-enabled" onchange="toggleAutoBackup(this.checked)">Automatické denní zálohy</label>
+				<label class="checkbox-row"><input type="checkbox" id="shuffle-study" onchange="toggleShuffleStudy(this.checked)">Pokaždé zamíchat STUDIUM</label>
 			</div>
 			<div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
 				<label class="settings-label">Barva pozadí aplikace:</label>
@@ -955,6 +956,7 @@
 	localStorage.setItem('pl_pinned_lessons', JSON.stringify(pinnedLessons));
 	let showRepeatNext = localStorage.getItem('pl_show_repeat_next');
 	let autoBackupEnabled = localStorage.getItem('pl_auto_backup');
+	let shuffleStudy = localStorage.getItem('pl_shuffle_study') === 'true';
 
 	if(autoBackupEnabled === null){
 		autoBackupEnabled = true;
@@ -1007,6 +1009,7 @@
     // Inicializace nastavení UI
     document.getElementById('keep-alive-enabled').checked = keepAliveEnabled;
     document.getElementById('speed-slider').value = speechRate;
+	document.getElementById('shuffle-study').checked = shuffleStudy;
     document.getElementById('speed-val').innerText = speechRate;
     document.getElementById('read-articles').checked = readArticles;
     document.getElementById('read-all-forms').checked = readAllForms;
@@ -1246,6 +1249,10 @@
 		const index = list.indexOf(currentLessonId);
 
 		if (index < list.length - 1) {
+
+			// 🔥 SPRÁVNÉ SMAZÁNÍ
+			localStorage.removeItem("pl_study_order");
+
 			currentLessonId = list[index + 1];
 			openStudyMode(studyPreviewMode);
 		}
@@ -1257,6 +1264,9 @@
 		const index = list.indexOf(currentLessonId);
 
 		if (index > 0) {
+
+			localStorage.removeItem("pl_study_order");
+
 			currentLessonId = list[index - 1];
 			openStudyMode(studyPreviewMode);
 		}
@@ -1734,6 +1744,7 @@
         localStorage.setItem('pl_app_view', 'settings');
 		document.getElementById('show-repeat-next').checked = showRepeatNext;
 		document.getElementById('auto-backup-enabled').checked = autoBackupEnabled;
+		document.getElementById('shuffle-study').checked = shuffleStudy;
     }
 
     function closeSettings() {
@@ -3444,10 +3455,40 @@
 		document.getElementById('study-area').style.display = 'block';
 
 		// OPRAVA: správný zdroj slov
-		const lesson =
+		let lesson =
 			currentLessonId === "problematic"
 				? problematic
 				: allLessons[currentLessonId];
+
+		// ===== SHUFFLE LOGIKA =====
+
+		if (shuffleStudy && !preview) {
+
+			const storageKey = "pl_study_order";
+
+			const saved = localStorage.getItem(storageKey);
+
+			if (saved) {
+
+				try {
+					lesson = JSON.parse(saved);
+				} catch(e) {
+					localStorage.removeItem(storageKey);
+
+					const shuffled = [...lesson].sort(() => Math.random() - 0.5);
+					localStorage.setItem(storageKey, JSON.stringify(shuffled));
+					lesson = shuffled;
+				}
+
+			} else {
+
+				const shuffled = [...lesson].sort(() => Math.random() - 0.5);
+
+				localStorage.setItem(storageKey, JSON.stringify(shuffled));
+
+				lesson = shuffled;
+			}
+		}
 
 		const list = document.getElementById("study-list");
 		list.innerHTML = "";
@@ -3623,6 +3664,9 @@
 
 	function closeStudyMode(){
 
+		const storageKey = "pl_study_order";
+		localStorage.removeItem(storageKey);
+
 		trainingActive = false;
 		manageKeepAlive();
 
@@ -3690,6 +3734,7 @@
 		if(pinBtn){
 			pinBtn.style.display = currentLessonId === "problematic" ? "none" : "block";
 		}
+		selectLesson(currentLessonId);
 	}
 
 	// **************************************************************
@@ -4134,6 +4179,11 @@
 		localStorage.setItem('pl_archive', JSON.stringify(archive));
 
 		buildArchive();
+	}
+
+	function toggleShuffleStudy(val){
+		shuffleStudy = val;
+		localStorage.setItem('pl_shuffle_study', val);
 	}
 
 </script>

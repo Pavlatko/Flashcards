@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260325.6 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260325.7 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -2476,7 +2476,7 @@
 
 				// základ 3 + penalizace za chyby
 				// TEĎ SE CHOVÁ TAK, ŽE MUSÍ BÝT 3x UMÍM V SAMOSTATNÝCH SESSION + ZA KAŽDÉ POKAŽENÍ +1 UMÍM
-				const requiredScore = 4 + Math.min(fails, 7);
+				const requiredScore = 4 + Math.min(fails, 5);
 
 				if (problematic[pIdx].score >= requiredScore) {
 
@@ -2818,7 +2818,46 @@
 			tdCZ.innerHTML = formatCell(w.cz);
 			
             const delBtn = document.createElement('button');
-            delBtn.innerHTML = '×';
+
+			// 🔥 zjistit, jestli je slovo v problematic
+			const base = w.nl.split(";")[0].trim().toLowerCase();
+
+			const p = problematic.find(pw =>
+				pw.nl.split(";")[0].trim().toLowerCase() === base
+			);
+
+			if (p) {
+				const fails = p.failCount || 0;
+				const requiredScore = 4 + Math.min(fails, 5);
+
+				const remaining = Math.max(0, requiredScore - (p.score || 0));
+
+				delBtn.innerHTML = remaining;
+			} else {
+				delBtn.innerHTML = '×';
+			}
+
+			delBtn.className = 'clear-search';
+			delBtn.style.cssText = `
+				position:absolute;
+				right:8px;
+				top:50%;
+				transform:translateY(-50%);
+				width:24px;
+				height:24px;
+				color:#f44336;
+				font-size:14px;
+				display:flex;
+				align-items:center;
+				justify-content:center;
+				border-radius:50%;
+			`;
+
+			delBtn.onclick = (e) => {
+				e.stopPropagation();
+				deleteWordFromLesson(w.nl, dictionaryScope || 'all');
+			};
+
             delBtn.className = 'clear-search';
             delBtn.style.cssText = 'position:absolute; right:8px; top:50%; transform:translateY(-50%); width:24px; height:24px; color:#f44336; font-size:14px; display:flex; align-items:center; justify-content:center;';
             

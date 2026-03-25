@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260323.2 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260325.1 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1959,7 +1959,7 @@
 			seen.add(w.nl);
 			return true;
 		});
-		currentIndex = activeState.index;
+		currentIndex = Math.min(activeState.index, words.length - 1);
 		mode = activeState.mode;
 
 		isFlipped = activeState.isFlipped || false;
@@ -2897,13 +2897,21 @@
         localStorage.setItem('pl_categories', JSON.stringify(categories));
         localStorage.setItem('pl_problematic', JSON.stringify(problematic)); 
     }
-    function saveProgress() {
 
-		if (!trainingActive) return;
+	function saveProgress() {
 
+		if (!trainingActive || isProcessing) return;
+
+		// 🔥 1. ochrana proti prázdnému poli
+		if (!words || words.length === 0) return;
+
+		// 🔥 2. absolutní kontrola indexu
+		currentIndex = Math.max(0, Math.min(currentIndex, words.length - 1));
+
+		// 🔥 3. vytvoření čistého snapshotu (žádná reference)
 		const state = {
 			lessonId: currentLessonId,
-			words: words,
+			words: JSON.parse(JSON.stringify(words)),
 			index: currentIndex,
 			mode: mode,
 			isFlipped: isFlipped,
@@ -2911,13 +2919,17 @@
 			afterError: afterError
 		};
 
+		// 🔥 4. atomic save
 		localStorage.setItem('pl_active_state', JSON.stringify(state));
 
-		// 🔥 KRITICKÉ – okamžitá synchronizace do paměti
+		// 🔥 5. sync do paměti
 		activeState = state;
 	}
     
     function exitTraining() {
+
+		if (isProcessing) return;
+
 		if (sessionStartTime) {
 			const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
 			stats.totalTime += duration;
@@ -2932,7 +2944,12 @@
 		trainingActive = false;
 		manageKeepAlive();
 
-		saveProgress(); // uložit aktuální stav
+		if (afterError) {
+			finishResult();
+		}
+
+		// 🔥 vždy uložit finální stabilní stav
+		saveProgress();
 
 		// Aktualizovat globální activeState z localStorage
 		activeState = JSON.parse(localStorage.getItem('pl_active_state'));

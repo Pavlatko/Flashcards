@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260325.8 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260325.9 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1322,13 +1322,12 @@
 		const prevBtnDict = document.getElementById("prev-lesson-btn-dict");
 		const nextBtnDict = document.getElementById("next-lesson-btn-dict");
 
-		// 👉 zobrazovat jen pro konkrétní lekci
+		// 👉 zobrazovat jen pokud existuje normální lekce
 		const isLessonDictionary =
-			dictionaryScope &&
-			!dictionaryScope.startsWith("category_") &&
-			dictionaryScope !== "problematic";
+			currentLessonId &&
+			allLessons[currentLessonId];
 
-		// pokud NEJSI ve slovníčku lekce → schovej šipky
+		// ❌ pokud nejsme ve slovníčku lekce → schovej šipky
 		if (!isLessonDictionary) {
 			if (prevBtnDict) prevBtnDict.style.display = "none";
 			if (nextBtnDict) nextBtnDict.style.display = "none";
@@ -1337,6 +1336,7 @@
 			if (nextBtnDict) nextBtnDict.style.display = "";
 		}
 
+		// 👉 speciální případ problematic
 		if (currentLessonId === 'problematic') {
 
 			const prevBtn = document.getElementById("prev-lesson-btn");
@@ -1348,36 +1348,53 @@
 				if (btn) btn.style.display = "none";
 			});
 
+			if (prevBtnDict) prevBtnDict.style.display = "none";
+			if (nextBtnDict) nextBtnDict.style.display = "none";
+
 			return;
 		}
 
 		const list = getLessonList();
 		const index = list.indexOf(currentLessonId);
-		if (index === -1) return;
 
-		// 👉 nastavení stavu pro dictionary šipky
-		if (isLessonDictionary) {
+		// 👉 když něco nesedí → radši schovat
+		if (index === -1) {
+			if (prevBtnDict) prevBtnDict.style.display = "none";
+			if (nextBtnDict) nextBtnDict.style.display = "none";
+			return;
+		}
 
-			if (prevBtnDict) {
-				if (index <= 0) {
-					prevBtnDict.style.opacity = "0.35";
-					prevBtnDict.style.pointerEvents = "none";
-				} else {
-					prevBtnDict.style.opacity = "1";
-					prevBtnDict.style.pointerEvents = "auto";
-				}
-			}
+		// ======================
+		// 📖 SLOVNÍČEK
+		// ======================
 
-			if (nextBtnDict) {
-				if (index >= list.length - 1) {
-					nextBtnDict.style.opacity = "0.35";
-					nextBtnDict.style.pointerEvents = "none";
-				} else {
-					nextBtnDict.style.opacity = "1";
-					nextBtnDict.style.pointerEvents = "auto";
-				}
+		if (prevBtnDict) {
+			if (index <= 0) {
+				prevBtnDict.style.opacity = "0.35";
+				prevBtnDict.style.pointerEvents = "none";
+				prevBtnDict.style.filter = "grayscale(60%)";
+			} else {
+				prevBtnDict.style.opacity = "1";
+				prevBtnDict.style.pointerEvents = "auto";
+				prevBtnDict.style.filter = "";
 			}
 		}
+
+		if (nextBtnDict) {
+			if (index >= list.length - 1) {
+				nextBtnDict.style.opacity = "0.35";
+				nextBtnDict.style.pointerEvents = "none";
+				nextBtnDict.style.filter = "grayscale(60%)";
+			} else {
+				nextBtnDict.style.opacity = "1";
+				nextBtnDict.style.pointerEvents = "auto";
+				nextBtnDict.style.filter = "";
+			}
+		}
+
+		// ======================
+		// 🎮 MODE + STUDY
+		// ======================
 
 		const prevBtns = [
 			document.getElementById("prev-lesson-btn"),
@@ -2868,16 +2885,46 @@
         });
 
         let uniqueWords = Array.from(dictMap.values());
-        
-        if (dictSortActive) {
-            const transformNL = (t) => { 
-                let m = splitP(t).m; 
-                if (m.toLowerCase().startsWith('de ')) return m.substring(3).trim() + ', De'; 
-                if (m.toLowerCase().startsWith('het ')) return m.substring(4).trim() + ', Het'; 
-                return m; 
-            };
-            uniqueWords.sort((a, b) => transformNL(a.nl).localeCompare(transformNL(b.nl), 'nl'));
-        }
+
+		// 🔥 NOVÉ ŘAZENÍ: podle zbývajících "UMÍM"
+		uniqueWords.sort((a, b) => {
+
+			const getRemaining = (w) => {
+
+				const base = w.nl.split(";")[0].trim().toLowerCase();
+
+				const p = problematic.find(pw =>
+					pw.nl.split(";")[0].trim().toLowerCase() === base
+				);
+
+				if (!p) return -1; // slova bez problematiky jdou dolů
+
+				const fails = p.failCount || 0;
+				const requiredScore = 4 + Math.min(fails, 5);
+				const remaining = Math.max(0, requiredScore - (p.score || 0));
+
+				return remaining;
+			};
+
+			const ra = getRemaining(a);
+			const rb = getRemaining(b);
+
+			// 1️⃣ hlavní řazení: nejvyšší remaining první
+			if (ra !== rb) return rb - ra;
+
+			// 2️⃣ fallback: abeceda (jen pokud máš zapnuté třídění)
+			if (dictSortActive) {
+				const transformNL = (t) => { 
+					let m = splitP(t).m; 
+					if (m.toLowerCase().startsWith('de ')) return m.substring(3).trim() + ', De'; 
+					if (m.toLowerCase().startsWith('het ')) return m.substring(4).trim() + ', Het'; 
+					return m; 
+				};
+				return transformNL(a.nl).localeCompare(transformNL(b.nl), 'nl');
+			}
+
+			return 0;
+		});
         
         uniqueWords.forEach(w => {
 			const tr = document.createElement('tr');

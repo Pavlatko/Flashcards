@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260325.2 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260325.4 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1962,20 +1962,15 @@
 		if (!activeState) return;
 
 		currentLessonId = activeState.lessonId;
-		words = activeState.words;
-		// 🔥 odstranění duplicit (ochrana proti starým bugům)
-		const seen = new Set();
-		words = words.filter(w => {
-			if (seen.has(w.nl)) return false;
-			seen.add(w.nl);
-			return true;
-		});
-		currentIndex = Math.min(activeState.index, words.length - 1);
+		words = JSON.parse(JSON.stringify(activeState.words));
+
+		currentIndex = Math.max(0, Math.min(activeState.index, words.length - 1));
 		mode = activeState.mode;
 
 		isFlipped = activeState.isFlipped || false;
 		wasFlippedOnce = activeState.wasFlippedOnce || false;
 		afterError = activeState.afterError || false;
+		failedWords = activeState.failedWords || [];
 
 		startTraining(mode, true);
 
@@ -2378,7 +2373,6 @@
 
 		if (!ok) {
 			afterError = true;
-			saveProgress();
 		}
 
 		const cur = words[currentIndex];
@@ -2449,9 +2443,10 @@
 			if (!alreadyExists) {
 				words.splice(insertIndex, 0, { ...cur });
 			}
-			// ⭐ DŮLEŽITÉ: uložit novou podobu pole words
+
+			// 🔥 ULOŽIT AŽ PO KOMPLETNÍ ZMĚNĚ STAVU
 			saveProgress();
-			
+
 			isProcessing = true;
 			setTimeout(() => {
 				document.getElementById('front-face').classList.remove('flash-red');
@@ -2477,8 +2472,8 @@
 			if (pIdx !== -1) {
 				problematic[pIdx].score++;
 				
-				// Pokud dosáhl 4 úspěšných (tzn. 3x v řadě + první přidání)
-				if (problematic[pIdx].score >= 4) {
+				// Pokud dosáhl po sobě 4x úspěšných (tzn. 3x po sobě v samostatných session)
+				if (problematic[pIdx].score > 4) {
 
 					// pokud je ukotvené → NEVYŘAZOVAT
 					if (problematic[pIdx].pinned) {
@@ -2532,8 +2527,10 @@
 		saveData(); 
 		currentIndex++;
 
+		// 🔥 uložit až po změně indexu
+		saveProgress();
+
 		if (currentIndex < words.length) { 
-			saveProgress();  // Uložit NOVÝ index
 			showWord(); 
 		} else { 
 			// KONEC LEKCE
@@ -2927,7 +2924,8 @@
 			mode: mode,
 			isFlipped: isFlipped,
 			wasFlippedOnce: wasFlippedOnce,
-			afterError: afterError
+			afterError: afterError,
+			failedWords: [...failedWords]   // 🔥 PŘIDAT
 		};
 
 		// 🔥 4. atomic save

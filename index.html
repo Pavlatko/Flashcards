@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260325.9 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260327.1 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -965,7 +965,7 @@
 	let archive = JSON.parse(localStorage.getItem('pl_archive') || '[]');
     let activeState = JSON.parse(localStorage.getItem('pl_active_state') || 'null');
     let finishedLessons = JSON.parse(localStorage.getItem('pl_finished_lessons') || '[]');
-    let dictSortActive = false; 
+    let dictSortActive = null; // null | 'nl' | 'cz' 
     let selectedVoiceName = localStorage.getItem('pl_voice_name') || '';
 	let stats = JSON.parse(localStorage.getItem('pl_stats') || 'null');
 	let pinnedLessons = JSON.parse(localStorage.getItem('pl_pinned_lessons') || '[]');
@@ -2852,7 +2852,7 @@
         let dictMap = new Map();
         
         const nlHeaderStyle = 'cursor:pointer; text-decoration:underline; color:var(--primary);';
-        thead.innerHTML = `<th width="50%" style="${nlHeaderStyle}" onclick="toggleDictSort()">Nizozemsky ${dictSortActive ? '↓' : ''}</th><th width="50%">Česky</th>`;
+        thead.innerHTML = `<th width="50%" style="${nlHeaderStyle}" onclick="toggleDictSort('nl')">Nizozemsky ${dictSortActive === 'nl' ? '↓' : ''}</th><th width="50%" style="${nlHeaderStyle}" onclick="toggleDictSort('cz')">Česky ${dictSortActive === 'cz' ? '↓' : ''}</th>`;
 
 		let targetLessons = {};
         if (dictionaryScope) {
@@ -2889,6 +2889,28 @@
 		// 🔥 NOVÉ ŘAZENÍ: podle zbývajících "UMÍM"
 		uniqueWords.sort((a, b) => {
 
+			// 🔥 třídění podle kliknutí (ignoruje UMÍM)
+			if (dictSortActive) {
+
+				const transform = (t) => {
+					let m = splitP(t).m;
+
+					if (m.toLowerCase().startsWith('de ')) return m.substring(3).trim();
+					if (m.toLowerCase().startsWith('het ')) return m.substring(4).trim();
+
+					return m;
+				};
+
+				if (dictSortActive === 'nl') {
+					return transform(a.nl).localeCompare(transform(b.nl), 'nl');
+				}
+
+				if (dictSortActive === 'cz') {
+					return transform(a.cz).localeCompare(transform(b.cz), 'cs');
+				}
+			}
+
+			// 🔥 výchozí = podle UMÍM
 			const getRemaining = (w) => {
 
 				const base = w.nl.split(";")[0].trim().toLowerCase();
@@ -2897,7 +2919,7 @@
 					pw.nl.split(";")[0].trim().toLowerCase() === base
 				);
 
-				if (!p) return -1; // slova bez problematiky jdou dolů
+				if (!p) return -1;
 
 				const fails = p.failCount || 0;
 				const requiredScore = 4 + Math.min(fails, 5);
@@ -2909,19 +2931,7 @@
 			const ra = getRemaining(a);
 			const rb = getRemaining(b);
 
-			// 1️⃣ hlavní řazení: nejvyšší remaining první
 			if (ra !== rb) return rb - ra;
-
-			// 2️⃣ fallback: abeceda (jen pokud máš zapnuté třídění)
-			if (dictSortActive) {
-				const transformNL = (t) => { 
-					let m = splitP(t).m; 
-					if (m.toLowerCase().startsWith('de ')) return m.substring(3).trim() + ', De'; 
-					if (m.toLowerCase().startsWith('het ')) return m.substring(4).trim() + ', Het'; 
-					return m; 
-				};
-				return transformNL(a.nl).localeCompare(transformNL(b.nl), 'nl');
-			}
 
 			return 0;
 		});
@@ -3015,10 +3025,16 @@
         updateDictStats();
     }
 
-    function toggleDictSort() {
-        dictSortActive = !dictSortActive;
-        buildDictionary();
-    }
+    function toggleDictSort(type) {
+
+		if (dictSortActive === type) {
+			dictSortActive = null; // vypnout třídění
+		} else {
+			dictSortActive = type; // 'nl' nebo 'cz'
+		}
+
+		buildDictionary();
+	}
 
     function clearSearch() { const f = document.getElementById('dict-filter'); f.value = ''; filterDictionary(); f.focus(); }
     function filterDictionary() {

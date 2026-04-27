@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260427.7 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260427.8 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -3730,105 +3730,119 @@
 			`;
 
 			if(!preview){
-				const item = div;
-				const nl = div.querySelectorAll(".study-nl, .study-nl ~ .study-sub");
-				const ipa = div.querySelector(".study-ipa");
-				const timerBar = div.querySelector(".study-timer");
+                const item = div;
+                const nl = div.querySelectorAll(".study-nl, .study-nl ~ .study-sub");
+                const ipa = div.querySelector(".study-ipa");
+                const timerBar = div.querySelector(".study-timer");
 
-				let revealed = false;
-				let hideTimer = null;
-				let holdTimer = null;
-				let longPressActive = false; // Přepínač pro blokování kliku
+                let revealed = false;
+                let hideTimer = null;
+                let holdTimer = null;
+                let isLongPress = false; 
 
-				const performManualToggle = (e) => {
-					if (e && e.cancelable) e.preventDefault();
-					
-					clearTimeout(hideTimer);
-					revealed = !revealed;
-					const targetVis = revealed ? "visible" : "hidden";
-					
-					nl.forEach(el => el.style.visibility = targetVis);
-					ipa.style.visibility = targetVis;
-					
-					timerBar.style.transition = "none";
-					timerBar.style.transform = "scaleX(1)";
-					timerBar.style.opacity = "0";
+                // --- HLAVNÍ FUNKCE PRO RUČNÍ PŘEPNUTÍ ---
+                const performManualToggle = (e) => {
+                    if (e) {
+                        if (e.cancelable) e.preventDefault();
+                        e.stopPropagation();
+                    }
+                    
+                    clearTimeout(hideTimer);
+                    revealed = !revealed;
+                    const targetVis = revealed ? "visible" : "hidden";
+                    
+                    nl.forEach(el => el.style.visibility = targetVis);
+                    if (ipa) ipa.style.visibility = targetVis;
+                    
+                    // Reset lišty
+                    timerBar.style.transition = "none";
+                    timerBar.style.transform = "scaleX(1)";
+                    timerBar.style.opacity = "0";
 
-					if (navigator.vibrate) navigator.vibrate(40);
-				};
+                    if (navigator.vibrate) navigator.vibrate(40);
+                };
 
-				// --- KLIKNUTÍ (PROBĚHNE JEN KDYŽ TO NEBYL LONG-PRESS) ---
-				item.addEventListener('click', (e) => {
-					// Pokud byl právě aktivován long-press, tento klik ignorujeme a resetujeme stav
-					if (longPressActive) {
-						longPressActive = false;
-						e.preventDefault();
-						e.stopPropagation();
-						return;
-					}
+                // --- KLIKNUTÍ (Krátké) ---
+                item.addEventListener('click', (e) => {
+                    // Pokud právě proběhl nebo dobíhá longpress, totálně ignoruj klik
+                    if (isLongPress) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
 
-					// Běžná logika pro krátké kliknutí
-					speak(w.nl);
-					clearTimeout(hideTimer);
-					
-					nl.forEach(el => el.style.visibility = "hidden");
-					ipa.style.visibility = "hidden";
-					
-					timerBar.style.transition = "none";
-					timerBar.style.transform = "scaleX(1)";
-					timerBar.style.opacity = "0";
+                    speak(w.nl);
+                    clearTimeout(hideTimer);
+                    
+                    // Skrýt pro restart (vizuální feedback)
+                    nl.forEach(el => el.style.visibility = "hidden");
+                    if (ipa) ipa.style.visibility = "hidden";
+                    
+                    timerBar.style.transition = "none";
+                    timerBar.style.transform = "scaleX(1)";
+                    timerBar.style.opacity = "0";
 
-					revealed = true;
-					
-					setTimeout(() => {
-						nl.forEach(el => el.style.visibility = "visible");
-						ipa.style.visibility = "visible";
-						
-						if (studyHideEnabled) {
-							timerBar.style.opacity = "1";
-							setTimeout(() => {
-								timerBar.style.transition = `transform ${revealTime}ms linear`;
-								timerBar.style.transform = "scaleX(0)";
-							}, 10);
+                    revealed = true;
+                    
+                    setTimeout(() => {
+                        // Pokud mezitím někdo nezačal longpress
+                        if (isLongPress) return;
 
-							hideTimer = setTimeout(() => {
-								nl.forEach(el => el.style.visibility = "hidden");
-								ipa.style.visibility = "hidden";
-								timerBar.style.opacity = "0";
-								revealed = false;
-							}, revealTime);
-						}
-					}, 50);
-				});
+                        nl.forEach(el => el.style.visibility = "visible");
+                        if (ipa) ipa.style.visibility = "visible";
+                        
+                        if (studyHideEnabled) {
+                            timerBar.style.opacity = "1";
+                            setTimeout(() => {
+                                timerBar.style.transition = `transform ${revealTime}ms linear`;
+                                timerBar.style.transform = "scaleX(0)";
+                            }, 10);
 
-				// Pro PC (pravé tlačítko)
-				item.addEventListener('contextmenu', (e) => {
-					e.preventDefault();
-					performManualToggle(e);
-				});
+                            hideTimer = setTimeout(() => {
+                                nl.forEach(el => el.style.visibility = "hidden");
+                                if (ipa) ipa.style.visibility = "hidden";
+                                timerBar.style.opacity = "0";
+                                revealed = false;
+                            }, revealTime);
+                        }
+                    }, 50);
+                }, false);
 
-				// --- DOTYKOVÁ LOGIKA ---
-				item.addEventListener('touchstart', (e) => {
-					longPressActive = false; // Na začátku každého dotyku resetujeme
-					holdTimer = setTimeout(() => {
-						longPressActive = true; // Pokud vyprší časovač, je to long-press
-						performManualToggle(e);
-					}, 500); // 500ms pro aktivaci long-pressu
-				}, { passive: false });
+                // --- TOUCH LOGIKA (Android Fix) ---
+                item.addEventListener('touchstart', (e) => {
+                    // Nezačínáme longpress, pokud je to multitouch
+                    if (e.touches.length > 1) return;
 
-				item.addEventListener('touchend', (e) => {
-					clearTimeout(holdTimer); // Pokud zvedneš prst dřív, timer se zruší
-					// Pokud to byl long-press, preventDefault pomůže na některých prohlížečích,
-					// ale ten hlavní reset/blokaci udělá 'click' handler výše.
-					if (longPressActive && e.cancelable) {
-						e.preventDefault();
-					}
-				}, { passive: false });
+                    // Předpokládáme, že to bude obyčejný klik, dokud nevyprší časovač
+                    holdTimer = setTimeout(() => {
+                        isLongPress = true; 
+                        performManualToggle(e);
+                    }, 600); 
+                }, { passive: false });
 
-				item.addEventListener('touchmove', (e) => {
-					clearTimeout(holdTimer); // Pohyb prstem zruší detekci long-pressu
-				}, { passive: true });
-			}
+                item.addEventListener('touchend', (e) => {
+                    clearTimeout(holdTimer);
+                    if (isLongPress) {
+                        // Toto zabrání vyvolání události 'click' po uvolnění prstu
+                        if (e.cancelable) e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Zámek uvolníme až po 300ms, aby se odfiltrovaly všechny ghost-clicky
+                        setTimeout(() => { isLongPress = false; }, 300);
+                    }
+                }, { passive: false });
+
+                item.addEventListener('touchmove', (e) => {
+                    // Pokud uživatel pohne prstem (scrolluje), zrušíme detekci longpressu
+                    clearTimeout(holdTimer);
+                }, { passive: true });
+
+                // Pro PC pravé tlačítko
+                item.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    performManualToggle(e);
+                });
+            }
 
 			if (preview) div.onclick = () => speak(w.nl);
 

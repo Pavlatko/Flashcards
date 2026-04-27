@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260427.8 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260427.9 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -3737,16 +3737,18 @@
 
                 let revealed = false;
                 let hideTimer = null;
-                let holdTimer = null;
-                let isLongPress = false; 
+                let lastLongPressTime = 0; // Časový zámek pro Android
 
-                // --- HLAVNÍ FUNKCE PRO RUČNÍ PŘEPNUTÍ ---
+                // --- 1. RUČNÍ PŘEPNUTÍ (LONGPRESS / PRAVÉ TLAČÍTKO) ---
                 const performManualToggle = (e) => {
                     if (e) {
-                        if (e.cancelable) e.preventDefault();
+                        e.preventDefault();
                         e.stopPropagation();
                     }
                     
+                    // Zaznamenáme čas, kdy došlo k přepnutí
+                    lastLongPressTime = Date.now();
+
                     clearTimeout(hideTimer);
                     revealed = !revealed;
                     const targetVis = revealed ? "visible" : "hidden";
@@ -3754,93 +3756,73 @@
                     nl.forEach(el => el.style.visibility = targetVis);
                     if (ipa) ipa.style.visibility = targetVis;
                     
-                    // Reset lišty
+                    // Reset lišty časovače
                     timerBar.style.transition = "none";
                     timerBar.style.transform = "scaleX(1)";
                     timerBar.style.opacity = "0";
 
                     if (navigator.vibrate) navigator.vibrate(40);
+                    return false;
                 };
 
-                // --- KLIKNUTÍ (Krátké) ---
+                // --- 2. KLIKNUTÍ (MLUVENÍ + DOČASNÉ ZOBRAZENÍ) ---
                 item.addEventListener('click', (e) => {
-                    // Pokud právě proběhl nebo dobíhá longpress, totálně ignoruj klik
-                    if (isLongPress) {
-                        e.preventDefault();
-                        e.stopPropagation();
+                    // OCHRANA: Pokud před méně než 500ms proběhl longpress, ignoruj click
+                    if (Date.now() - lastLongPressTime < 500) {
                         return;
                     }
 
                     speak(w.nl);
+                    
+                    // Pokud už je slovíčko trvale odhaleno (revealed), jen mluvíme
+                    if (revealed) return;
+
+                    // Pokud je skryté, ukážeme ho dočasně
                     clearTimeout(hideTimer);
                     
-                    // Skrýt pro restart (vizuální feedback)
-                    nl.forEach(el => el.style.visibility = "hidden");
-                    if (ipa) ipa.style.visibility = "hidden";
+                    nl.forEach(el => el.style.visibility = "visible");
+                    if (ipa) ipa.style.visibility = "visible";
                     
-                    timerBar.style.transition = "none";
-                    timerBar.style.transform = "scaleX(1)";
-                    timerBar.style.opacity = "0";
+                    if (studyHideEnabled) {
+                        timerBar.style.opacity = "1";
+                        timerBar.style.transition = "none";
+                        timerBar.style.transform = "scaleX(1)";
 
-                    revealed = true;
-                    
-                    setTimeout(() => {
-                        // Pokud mezitím někdo nezačal longpress
-                        if (isLongPress) return;
+                        setTimeout(() => {
+                            timerBar.style.transition = `transform ${revealTime}ms linear`;
+                            timerBar.style.transform = "scaleX(0)";
+                        }, 10);
 
-                        nl.forEach(el => el.style.visibility = "visible");
-                        if (ipa) ipa.style.visibility = "visible";
-                        
-                        if (studyHideEnabled) {
-                            timerBar.style.opacity = "1";
-                            setTimeout(() => {
-                                timerBar.style.transition = `transform ${revealTime}ms linear`;
-                                timerBar.style.transform = "scaleX(0)";
-                            }, 10);
-
-                            hideTimer = setTimeout(() => {
+                        hideTimer = setTimeout(() => {
+                            // Skryjeme pouze pokud mezitím nedošlo k trvalému odhalení
+                            if (!revealed) {
                                 nl.forEach(el => el.style.visibility = "hidden");
                                 if (ipa) ipa.style.visibility = "hidden";
                                 timerBar.style.opacity = "0";
-                                revealed = false;
-                            }, revealTime);
-                        }
-                    }, 50);
-                }, false);
-
-                // --- TOUCH LOGIKA (Android Fix) ---
-                item.addEventListener('touchstart', (e) => {
-                    // Nezačínáme longpress, pokud je to multitouch
-                    if (e.touches.length > 1) return;
-
-                    // Předpokládáme, že to bude obyčejný klik, dokud nevyprší časovač
-                    holdTimer = setTimeout(() => {
-                        isLongPress = true; 
-                        performManualToggle(e);
-                    }, 600); 
-                }, { passive: false });
-
-                item.addEventListener('touchend', (e) => {
-                    clearTimeout(holdTimer);
-                    if (isLongPress) {
-                        // Toto zabrání vyvolání události 'click' po uvolnění prstu
-                        if (e.cancelable) e.preventDefault();
-                        e.stopPropagation();
-                        
-                        // Zámek uvolníme až po 300ms, aby se odfiltrovaly všechny ghost-clicky
-                        setTimeout(() => { isLongPress = false; }, 300);
+                            }
+                        }, revealTime);
                     }
+                });
+
+                // --- 3. DETEKCE LONGPRESSU PRO ANDROID/PC ---
+                
+                // Na Androidu longpress vyvolá 'contextmenu'
+                item.addEventListener('contextmenu', performManualToggle);
+
+                // Záložní touch-start timer pro zařízení, kde contextmenu nefunguje ideálně
+                let touchTimer;
+                item.addEventListener('touchstart', (e) => {
+                    touchTimer = setTimeout(() => {
+                        performManualToggle(e);
+                    }, 600); // délka pro longpress
                 }, { passive: false });
 
-                item.addEventListener('touchmove', (e) => {
-                    // Pokud uživatel pohne prstem (scrolluje), zrušíme detekci longpressu
-                    clearTimeout(holdTimer);
-                }, { passive: true });
+                item.addEventListener('touchend', () => {
+                    clearTimeout(touchTimer);
+                });
 
-                // Pro PC pravé tlačítko
-                item.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    performManualToggle(e);
+                item.addEventListener('touchmove', () => {
+                    clearTimeout(touchTimer);
                 });
             }
 

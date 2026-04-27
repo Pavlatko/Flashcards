@@ -739,11 +739,11 @@
 				<label class="checkbox-row"><input type="checkbox" id="keep-alive-enabled" onchange="toggleKeepAlive(this.checked)"> Udržovat spojení se sluchátkami</label>
 				<label class="checkbox-row"><input type="checkbox" id="show-repeat-next" onchange="toggleRepeatNext(this.checked)"> Zobrazovat &quot;Poslední dokončené&quot; tlačítka</label>
 				<label class="checkbox-row"><input type="checkbox" id="shuffle-study" onchange="toggleShuffleStudy(this.checked)">Pokaždé zamíchat STUDIUM</label>
-				<label class="checkbox-row"><input type="checkbox" id="study-hide-enabled" onchange="toggleStudyHide(this.checked)">Znovu skrývat slovíčka ve STUDIUM</label>
+				<label class="checkbox-row"><input type="checkbox" id="study-hide-enabled" onchange="toggleStudyHide(this.checked)">Automaticky skrývat slovíčka ve STUDIUM</label>
 
 				<div id="reveal-speed-container" style="margin-top: 15px; margin-bottom: 15px;">
 					<label class="settings-label" style="font-size: 0.8rem; margin-bottom: 5px; display: block;">
-						Čas zobrazení slovíček: <span id="reveal-val" style="font-weight: bold; color: var(--primary);">3.0</span> s
+						Čas do skrytí slovíčka: <span id="reveal-val" style="font-weight: bold; color: var(--primary);">3.0</span> s
 					</label>
 					<input type="range" id="reveal-slider" class="speed-slider" 
 						min="1000" max="20000" step="500" 

@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260426.1 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260427.1 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -738,8 +738,9 @@
                 <label class="checkbox-row"><input type="checkbox" id="read-all-forms" onchange="toggleAllForms(this.checked)"> Předčítat všechno</label>
 				<label class="checkbox-row"><input type="checkbox" id="keep-alive-enabled" onchange="toggleKeepAlive(this.checked)"> Udržovat spojení se sluchátkami</label>
 				<label class="checkbox-row"><input type="checkbox" id="show-repeat-next" onchange="toggleRepeatNext(this.checked)"> Zobrazovat &quot;Poslední dokončené&quot; tlačítka</label>
-				<label class="checkbox-row"><input type="checkbox" id="auto-backup-enabled" onchange="toggleAutoBackup(this.checked)">Automatické denní zálohy</label>
 				<label class="checkbox-row"><input type="checkbox" id="shuffle-study" onchange="toggleShuffleStudy(this.checked)">Pokaždé zamíchat STUDIUM</label>
+				<label class="checkbox-row"><input type="checkbox" id="study-hide-enabled" onchange="toggleStudyHide(this.checked)">Znovu skrývat slovíčka ve Studium</label>
+				<label class="checkbox-row"><input type="checkbox" id="auto-backup-enabled" onchange="toggleAutoBackup(this.checked)">Automatické denní zálohy</label>
 			</div>
 			<div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
 				<label class="settings-label">Barva pozadí aplikace:</label>
@@ -974,6 +975,7 @@
 	let showRepeatNext = localStorage.getItem('pl_show_repeat_next');
 	let autoBackupEnabled = localStorage.getItem('pl_auto_backup');
 	let shuffleStudy = localStorage.getItem('pl_shuffle_study') === 'true';
+	let studyHideEnabled = localStorage.getItem('pl_study_hide') !== 'false';
 
 	if(autoBackupEnabled === null){
 		autoBackupEnabled = true;
@@ -1848,6 +1850,7 @@
 		document.getElementById('show-repeat-next').checked = showRepeatNext;
 		document.getElementById('auto-backup-enabled').checked = autoBackupEnabled;
 		document.getElementById('shuffle-study').checked = shuffleStudy;
+		document.getElementById('study-hide-enabled').checked = studyHideEnabled;
     }
 
     function closeSettings() {
@@ -3750,44 +3753,50 @@
 
 				item.addEventListener("click", () => {
 
-					speak(w.nl);
+                    speak(w.nl);
 
-					// 🔥 RESET všeho
-					clearTimeout(hideTimer);
+                    // 🔥 RESET všeho
+                    clearTimeout(hideTimer);
 
-					nl.forEach(e => e.style.visibility = "hidden");
-					ipa.style.visibility = "hidden";
+                    nl.forEach(e => e.style.visibility = "hidden");
+                    ipa.style.visibility = "hidden";
 
-					timerBar.style.transition = "none";
-					timerBar.style.transform = "scaleX(1)";
-					timerBar.style.opacity = "0";
+                    timerBar.style.transition = "none";
+                    timerBar.style.transform = "scaleX(1)";
+                    timerBar.style.opacity = "0";
 
-					revealed = true;
+                    revealed = true;
 
-					setTimeout(()=>{
+                    setTimeout(()=>{
 
-						nl.forEach(e => e.style.visibility = "visible");
-						ipa.style.visibility = "visible";
+                        nl.forEach(e => e.style.visibility = "visible");
+                        ipa.style.visibility = "visible";
 
-						timerBar.style.transition = "none";
-						timerBar.style.transform = "scaleX(1)";
-						timerBar.style.opacity = "1";
+                        // LOGIKA SKRÝVÁNÍ: Spustí se jen, pokud je v nastavení zaškrtnuto
+                        if (studyHideEnabled) {
+                            timerBar.style.transition = "none";
+                            timerBar.style.transform = "scaleX(1)";
+                            timerBar.style.opacity = "1";
 
-						setTimeout(()=>{
-							timerBar.style.transition = "transform " + revealTime + "ms linear";
-							timerBar.style.transform = "scaleX(0)";
-						},10);
+                            setTimeout(()=>{
+                                timerBar.style.transition = "transform " + revealTime + "ms linear";
+                                timerBar.style.transform = "scaleX(0)";
+                            }, 10);
 
-						hideTimer = setTimeout(()=>{
-							nl.forEach(e => e.style.visibility = "hidden");
-							ipa.style.visibility = "hidden";
-							timerBar.style.opacity = "0";
-							revealed = false;
-						},revealTime)
+                            hideTimer = setTimeout(()=>{
+                                nl.forEach(e => e.style.visibility = "hidden");
+                                ipa.style.visibility = "hidden";
+                                timerBar.style.opacity = "0";
+                                revealed = false;
+                            }, revealTime);
+                        } else {
+                            // Pokud je skrývání vypnuté, zajistíme, aby lišta nebyla vidět
+                            timerBar.style.opacity = "0";
+                        }
 
-					}, revealDelay)
+                    }, revealDelay)
 
-				});
+                });
 
 				let holdTimer;
 				let startX = 0;
@@ -3844,7 +3853,7 @@
 				});
 			}
 
-			div.onclick = ()=> speak(w.nl);
+			if (preview) div.onclick = () => speak(w.nl);
 
 			list.appendChild(div);
 
@@ -4390,6 +4399,11 @@
 	function toggleShuffleStudy(val){
 		shuffleStudy = val;
 		localStorage.setItem('pl_shuffle_study', val);
+	}
+
+	function toggleStudyHide(val) {
+		studyHideEnabled = val;
+		localStorage.setItem('pl_study_hide', val);
 	}
 
 </script>

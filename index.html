@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260427.9 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260427.10 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -3737,17 +3737,19 @@
 
                 let revealed = false;
                 let hideTimer = null;
-                let lastLongPressTime = 0; // Časový zámek pro Android
+                let holdTimer = null;
+                let lastToggleTime = 0; 
 
-                // --- 1. RUČNÍ PŘEPNUTÍ (LONGPRESS / PRAVÉ TLAČÍTKO) ---
+                // --- 1. UNIVERZÁLNÍ PŘEPÍNAČ STAVU ---
                 const performManualToggle = (e) => {
                     if (e) {
-                        e.preventDefault();
+                        if (e.cancelable) e.preventDefault();
                         e.stopPropagation();
                     }
-                    
-                    // Zaznamenáme čas, kdy došlo k přepnutí
-                    lastLongPressTime = Date.now();
+
+                    // Časová pojistka proti dvojitému spuštění (Android touch + contextmenu)
+                    if (Date.now() - lastToggleTime < 450) return;
+                    lastToggleTime = Date.now();
 
                     clearTimeout(hideTimer);
                     revealed = !revealed;
@@ -3756,30 +3758,23 @@
                     nl.forEach(el => el.style.visibility = targetVis);
                     if (ipa) ipa.style.visibility = targetVis;
                     
-                    // Reset lišty časovače
+                    // Schovat lištu časovače při trvalém přepnutí
                     timerBar.style.transition = "none";
                     timerBar.style.transform = "scaleX(1)";
                     timerBar.style.opacity = "0";
 
-                    if (navigator.vibrate) navigator.vibrate(40);
-                    return false;
+                    if (navigator.vibrate) navigator.vibrate(45);
                 };
 
-                // --- 2. KLIKNUTÍ (MLUVENÍ + DOČASNÉ ZOBRAZENÍ) ---
+                // --- 2. KLIKNUTÍ (Levé / Krátké) ---
                 item.addEventListener('click', (e) => {
-                    // OCHRANA: Pokud před méně než 500ms proběhl longpress, ignoruj click
-                    if (Date.now() - lastLongPressTime < 500) {
-                        return;
-                    }
+                    // Ignoruj klik, pokud jsme právě dělali long-press/pravý klik
+                    if (Date.now() - lastToggleTime < 500) return;
 
                     speak(w.nl);
-                    
-                    // Pokud už je slovíčko trvale odhaleno (revealed), jen mluvíme
-                    if (revealed) return;
+                    if (revealed) return; // Pokud už je odhaleno, nic víc nedělej
 
-                    // Pokud je skryté, ukážeme ho dočasně
                     clearTimeout(hideTimer);
-                    
                     nl.forEach(el => el.style.visibility = "visible");
                     if (ipa) ipa.style.visibility = "visible";
                     
@@ -3794,7 +3789,6 @@
                         }, 10);
 
                         hideTimer = setTimeout(() => {
-                            // Skryjeme pouze pokud mezitím nedošlo k trvalému odhalení
                             if (!revealed) {
                                 nl.forEach(el => el.style.visibility = "hidden");
                                 if (ipa) ipa.style.visibility = "hidden";
@@ -3804,26 +3798,23 @@
                     }
                 });
 
-                // --- 3. DETEKCE LONGPRESSU PRO ANDROID/PC ---
-                
-                // Na Androidu longpress vyvolá 'contextmenu'
-                item.addEventListener('contextmenu', performManualToggle);
+                // --- 3. PRAVÝ KLIK (PC) A LONG-PRESS (Android) ---
 
-                // Záložní touch-start timer pro zařízení, kde contextmenu nefunguje ideálně
-                let touchTimer;
+                // Tato událost řeší Pravý klik na PC i Nativní Long-press na Androidu
+                item.addEventListener('contextmenu', (e) => {
+                    performManualToggle(e);
+                });
+
+                // Ruční timer pro Android (aby zavibroval dřív, než systém vyvolá menu)
                 item.addEventListener('touchstart', (e) => {
-                    touchTimer = setTimeout(() => {
+                    if (e.touches.length > 1) return;
+                    holdTimer = setTimeout(() => {
                         performManualToggle(e);
-                    }, 600); // délka pro longpress
+                    }, 550);
                 }, { passive: false });
 
-                item.addEventListener('touchend', () => {
-                    clearTimeout(touchTimer);
-                });
-
-                item.addEventListener('touchmove', () => {
-                    clearTimeout(touchTimer);
-                });
+                item.addEventListener('touchend', () => clearTimeout(holdTimer));
+                item.addEventListener('touchmove', () => clearTimeout(holdTimer));
             }
 
 			if (preview) div.onclick = () => speak(w.nl);

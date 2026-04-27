@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260427.1 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260427.2 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -739,7 +739,18 @@
 				<label class="checkbox-row"><input type="checkbox" id="keep-alive-enabled" onchange="toggleKeepAlive(this.checked)"> Udržovat spojení se sluchátkami</label>
 				<label class="checkbox-row"><input type="checkbox" id="show-repeat-next" onchange="toggleRepeatNext(this.checked)"> Zobrazovat &quot;Poslední dokončené&quot; tlačítka</label>
 				<label class="checkbox-row"><input type="checkbox" id="shuffle-study" onchange="toggleShuffleStudy(this.checked)">Pokaždé zamíchat STUDIUM</label>
-				<label class="checkbox-row"><input type="checkbox" id="study-hide-enabled" onchange="toggleStudyHide(this.checked)">Znovu skrývat slovíčka ve Studium</label>
+				<label class="checkbox-row"><input type="checkbox" id="study-hide-enabled" onchange="toggleStudyHide(this.checked)">Znovu skrývat slovíčka ve STUDIUM</label>
+
+				<div id="reveal-speed-container" style="margin-top: 15px; margin-bottom: 15px;">
+					<label class="settings-label" style="font-size: 0.8rem; margin-bottom: 5px; display: block;">
+						Čas zobrazení: <span id="reveal-val" style="font-weight: bold; color: var(--primary);">3.0</span> s
+					</label>
+					<input type="range" id="reveal-slider" class="speed-slider" 
+						min="1000" max="20000" step="500" 
+						value="3000" 
+						oninput="updateRevealTime(this.value)">
+				</div>
+
 				<label class="checkbox-row"><input type="checkbox" id="auto-backup-enabled" onchange="toggleAutoBackup(this.checked)">Automatické denní zálohy</label>
 			</div>
 			<div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
@@ -976,6 +987,7 @@
 	let autoBackupEnabled = localStorage.getItem('pl_auto_backup');
 	let shuffleStudy = localStorage.getItem('pl_shuffle_study') === 'true';
 	let studyHideEnabled = localStorage.getItem('pl_study_hide') !== 'false';
+	let revealTime = parseInt(localStorage.getItem('pl_reveal_time')) || 3000;
 
 	if(autoBackupEnabled === null){
 		autoBackupEnabled = true;
@@ -1851,6 +1863,9 @@
 		document.getElementById('auto-backup-enabled').checked = autoBackupEnabled;
 		document.getElementById('shuffle-study').checked = shuffleStudy;
 		document.getElementById('study-hide-enabled').checked = studyHideEnabled;
+		document.getElementById('reveal-slider').value = revealTime;
+		document.getElementById('reveal-val').innerText = (revealTime / 1000).toFixed(1);
+		
     }
 
     function closeSettings() {
@@ -3746,7 +3761,6 @@
 				let revealed = false;
 				let hideTimer = null;
 
-				const revealTime = 3000; // jak dlouho je text vidět STUDIUM
 				const revealDelay = 0; // prodleva zobrazení textu od kliknutí (audio náskok) → text STUDIUM
 
 				let pressTimer = null;
@@ -4404,6 +4418,17 @@
 	function toggleStudyHide(val) {
 		studyHideEnabled = val;
 		localStorage.setItem('pl_study_hide', val);
+	}
+
+	function updateRevealTime(val) {
+		revealTime = parseInt(val);
+		localStorage.setItem('pl_reveal_time', val);
+		
+		// Aktualizace textu přímo při posouvání
+		const display = document.getElementById('reveal-val');
+		if (display) {
+			display.innerText = (val / 1000).toFixed(1);
+		}
 	}
 
 </script>

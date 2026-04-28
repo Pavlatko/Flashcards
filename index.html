@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260427.3 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260428.2 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -2139,6 +2139,8 @@
 
 	function showWord(resetState = true) {
 
+		window.speechSynthesis.cancel();
+
 		if (resetState) {
 			isFlipped = false;
 			wasFlippedOnce = false;
@@ -2230,44 +2232,41 @@
 	}
 
     function toggleFlip(e) {
-		if (cardHoldTriggered) return;
-		if (e) e.stopPropagation();
+        if (cardHoldTriggered) return;
+        if (e) e.stopPropagation();
         isFlipped = !isFlipped;
-		wasFlippedOnce = true;
-		saveProgress();
+        wasFlippedOnce = true;
+        saveProgress();
         document.getElementById('card').classList.toggle('is-flipped');
         document.getElementById('flip-row').style.display = 'none';
-        // po otočení karta → nápověda zmizí
-		if (currentLessonId === "problematic") {
 
-			// ponecháme pouze kotvu
-			const cur = words[currentIndex];
-			const pIdx = problematic.findIndex(w => w.nl === cur.nl);
-			const pinned = pIdx !== -1 && problematic[pIdx].pinned;
-
-			const hintRow = document.getElementById("hint-row");
-
-			hintRow.style.display = "flex";
-
-			hintRow.innerHTML = `
-				<button class="btn-action btn-flip-big"
-					style="--btn-color:${pinned ? 'var(--success)' : 'var(--danger)'};"
-					onclick="togglePinWord()">
-					${pinned ? "⛓️‍💥 UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
-				</button>
-			`;
-
-		} else {
-
-			// běžné lekce → nápověda úplně zmizí
-			document.getElementById('hint-row').style.display = 'none';
-
-		}
+        // Ošetření nápovědy a kotvy
+        if (currentLessonId === "problematic") {
+            const cur = words[currentIndex];
+            const pIdx = problematic.findIndex(w => w.nl === cur.nl);
+            const pinned = pIdx !== -1 && problematic[pIdx].pinned;
+            const hintRow = document.getElementById("hint-row");
+            hintRow.style.display = "flex";
+            hintRow.innerHTML = `
+                <button class="btn-action btn-flip-big"
+                    style="--btn-color:${pinned ? 'var(--success)' : 'var(--danger)'};"
+                    onclick="togglePinWord()">
+                    ${pinned ? "⛓️‍💥 UVOLNIT SLOVÍČKO" : "⚓ UKOTVIT SLOVÍČKO"}
+                </button>
+            `;
+        } else {
+            document.getElementById('hint-row').style.display = 'none';
+        }
+        
         document.getElementById('action-row').style.display = 'flex';
-        // 🔥 mluv jen po otočení
-		if (isFlipped && mode === 'CZ-NL') {
-			speak(words[currentIndex].nl);
-		}
+
+        // --- OPRAVA AUDIA ---
+        // Audio se spustí, pokud:
+        // 1. Režim je CZ-NL a karta je otočená na rub (nizozemština)
+        // 2. Režim je NL-CZ a karta je otočená na líc (nizozemština)
+        if ((mode === 'CZ-NL' && isFlipped) || (mode === 'NL-CZ' && !isFlipped)) {
+            speak(words[currentIndex].nl);
+        }
     }
 
 	function updatePinStar(){

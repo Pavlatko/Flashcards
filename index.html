@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260428.4 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260428.5 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1028,6 +1028,7 @@
     let currentLessonId = ""; let trainingActive = false; let currentOpenCategory = null;
     let wasFlippedOnce = false;
 	let isProcessing = false;
+	let isInputBlocked = false; // Tato nová proměnná bude hlídat časovou ochranu
 	let afterError = false;
     let dictionaryScope = null;
     let hintLevel = 0; 
@@ -2146,6 +2147,10 @@
 
 		window.speechSynthesis.cancel();
 
+		// Časová ochrana 250ms po zobrazení nové karty
+		isInputBlocked = true;
+		setTimeout(() => { isInputBlocked = false; }, 250);
+
 		if (resetState) {
 			isFlipped = false;
 			wasFlippedOnce = false;
@@ -2237,11 +2242,17 @@
 	}
 
     function toggleFlip(e) {
-        if (cardHoldTriggered) return;
-        if (e) e.stopPropagation();
-        isFlipped = !isFlipped;
-        wasFlippedOnce = true;
-        saveProgress();
+		if (cardHoldTriggered || isInputBlocked) return; // Přidána kontrola isInputBlocked
+		if (e) e.stopPropagation();
+		
+		isFlipped = !isFlipped;
+		wasFlippedOnce = true;
+		
+		// Po otočení opět zablokujeme vstup na 250ms
+		isInputBlocked = true;
+		setTimeout(() => { isInputBlocked = false; }, 250);
+
+		saveProgress();
         document.getElementById('card').classList.toggle('is-flipped');
         document.getElementById('flip-row').style.display = 'none';
 
@@ -2492,7 +2503,7 @@
 
 	function handleResult(ok, e) {
 		if (e) e.stopPropagation(); 
-		if (isProcessing) return; 
+		if (isProcessing || isInputBlocked) return; // Přidána kontrola isInputBlocked
 
 		if (!ok) {
 			afterError = true;

@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260428.3 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260428.4 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -2296,28 +2296,26 @@
 	}
 
 	// ===== DLOUHÝ STISK NA KARTĚ = OPAKOVAT AUDIO =====
-
 	let cardHoldTimer = null;
 	let cardHoldTriggered = false;
 
 	const cardEl = document.getElementById("card");
 
 	cardEl.addEventListener("touchstart", () => {
-
 		cardHoldTriggered = false;
 
 		cardHoldTimer = setTimeout(() => {
-
-			// AUDIO jen pokud už byla karta alespoň jednou otočena
-			if (!wasFlippedOnce) return;
+			// AUDIO se spustí pokud:
+			// 1. Karta už byla alespoň jednou otočena (univerzální)
+			// 2. NEBO pokud jsme v režimu NL-CZ, kde je holandština na přední straně a není co vyspoilerovat
+			if (!wasFlippedOnce && mode !== 'NL-CZ') return;
 
 			cardHoldTriggered = true;
 
 			const cur = words[currentIndex];
 			if (cur) speak(cur.nl, true);
 
-		}, 300); // délka podržení - stisk
-
+		}, 300); // délka podržení pro aktivaci
 	});
 
 	cardEl.addEventListener("touchend", () => {

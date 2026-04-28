@@ -719,7 +719,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260428.2 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260428.3 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -2079,15 +2079,20 @@
 	}
 
     function resumeTraining() {
-
 		if (!activeState) return;
 
 		currentLessonId = activeState.lessonId;
 		words = JSON.parse(JSON.stringify(activeState.words));
-
-		currentIndex = Math.max(0, Math.min(activeState.index, words.length - 1));
 		mode = activeState.mode;
 
+		if (activeState.index >= words.length) {
+			localStorage.removeItem('pl_active_state');
+			activeState = null;
+			renderMenu();
+			return;
+		}
+
+		currentIndex = activeState.index;
 		isFlipped = activeState.isFlipped || false;
 		wasFlippedOnce = activeState.wasFlippedOnce || false;
 		afterError = activeState.afterError || false;
@@ -2561,8 +2566,9 @@
 				.some(w => w.nl === cur.nl);
 
 			if (!alreadyExists) {
-				words.splice(insertIndex, 0, { ...cur });
-			}
+                words.splice(insertIndex, 0, { ...cur });
+                saveProgress(); 
+            }
 
 			// 🔥 ULOŽIT AŽ PO KOMPLETNÍ ZMĚNĚ STAVU
 			saveProgress();
@@ -3125,31 +3131,24 @@
     }
 
 	function saveProgress() {
+		if (!trainingActive) return; 
 
-		if (!trainingActive || isProcessing) return;
-
-		// 🔥 1. ochrana proti prázdnému poli
 		if (!words || words.length === 0) return;
 
-		// 🔥 2. absolutní kontrola indexu
-		currentIndex = Math.max(0, Math.min(currentIndex, words.length - 1));
+		const safeIndex = Math.max(0, Math.min(currentIndex, words.length));
 
-		// 🔥 3. vytvoření čistého snapshotu (žádná reference)
 		const state = {
 			lessonId: currentLessonId,
 			words: JSON.parse(JSON.stringify(words)),
-			index: currentIndex,
+			index: safeIndex,
 			mode: mode,
 			isFlipped: isFlipped,
 			wasFlippedOnce: wasFlippedOnce,
 			afterError: afterError,
-			failedWords: [...failedWords]   // 🔥 PŘIDAT
+			failedWords: [...failedWords]
 		};
 
-		// 🔥 4. atomic save
 		localStorage.setItem('pl_active_state', JSON.stringify(state));
-
-		// 🔥 5. sync do paměti
 		activeState = state;
 	}
     

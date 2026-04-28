@@ -2147,9 +2147,9 @@
 
 		window.speechSynthesis.cancel();
 
-		// Časová ochrana 250ms po zobrazení nové karty
+		// Časová ochrana 333ms po zobrazení nové karty
 		isInputBlocked = true;
-		setTimeout(() => { isInputBlocked = false; }, 250);
+		setTimeout(() => { isInputBlocked = false; }, 333);
 
 		if (resetState) {
 			isFlipped = false;
@@ -2248,9 +2248,9 @@
 		isFlipped = !isFlipped;
 		wasFlippedOnce = true;
 		
-		// Po otočení opět zablokujeme vstup na 250ms
+		// Po otočení opět zablokujeme vstup na 333ms
 		isInputBlocked = true;
-		setTimeout(() => { isInputBlocked = false; }, 250);
+		setTimeout(() => { isInputBlocked = false; }, 333);
 
 		saveProgress();
         document.getElementById('card').classList.toggle('is-flipped');

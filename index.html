@@ -720,7 +720,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260428.6 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260501.1 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1769,37 +1769,50 @@
 		}
 
 		if (pinnedLessons.length > 0){
+            addSection(pc,"📌 Připnuté lekce");
 
-			addSection(pc,"📌 Připnuté lekce");
+            // Pomocná funkce pro zjištění názvu kategorie, do které lekce patří
+            const getCategoryForLesson = (lessonName) => {
+                for (const catName in categories) {
+                    if (categories[catName].includes(lessonName)) return catName;
+                }
+                return "ZZZ"; // Lekce bez kategorie se zařadí na konec
+            };
 
-			[...pinnedLessons]
-			.sort((a,b)=>a.localeCompare(b, undefined, {numeric:true}))
-			.forEach(name=>{
+            [...pinnedLessons]
+            .sort((a, b) => {
+                const catA = getCategoryForLesson(a);
+                const catB = getCategoryForLesson(b);
+                
+                // Pokud jsou kategorie různé, seřaď je podle názvu kategorie
+                if (catA !== catB) {
+                    return catA.localeCompare(catB, undefined, {numeric:true});
+                }
+                // Pokud jsou ve stejné kategorii, seřaď je podle názvu lekce
+                return a.localeCompare(b, undefined, {numeric:true});
+            })
+            .forEach(name=>{
+                if(!allLessons[name]) return;
 
-				if(!allLessons[name]) return;
+                const r = document.createElement('div');
+                r.className = 'lesson-row';
 
-				const r = document.createElement('div');
-				r.className = 'lesson-row';
+                const isFinished = finishedLessons.includes(name) ? ' is-finished' : '';
 
-				const isFinished = finishedLessons.includes(name) ? ' is-finished' : '';
+                r.innerHTML = `
+                    <button class="lesson-btn${isFinished}"
+                    onclick="selectLesson('${name}')">
+                    ${name}
+                    </button>
 
-				r.innerHTML = `
-					<button class="lesson-btn${isFinished}"
-					onclick="selectLesson('${name}')">
-					${name}
-					</button>
-
-					<div class="lesson-pin"
-					onclick="togglePinLesson('${name}')">
-					📌
-					</div>
-				`;
-
-				pc.appendChild(r);
-
-			});
-
-		}
+                    <div class="lesson-pin"
+                    onclick="togglePinLesson('${name}')">
+                    📌
+                    </div>
+                `;
+                pc.appendChild(r);
+            });
+        }
 
 		if (Object.keys(categories).length > 0 || Object.keys(allLessons).length > 0){
 			addSection(cc,"📚 Kategorie a lekce");

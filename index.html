@@ -781,7 +781,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260501.2 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260501.3 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -3745,10 +3745,8 @@
 		document.getElementById('mode-area').style.display = 'none';
 		document.getElementById('study-area').style.display = 'block';
 
-		// Výběr lekce (včetně problematických)
 		let lesson = currentLessonId === "problematic" ? problematic : allLessons[currentLessonId];
 
-		// Shuffle logika (zachování zamíchaného pořadí)
 		if (shuffleStudy && !preview) {
 			const storageKey = "pl_study_order";
 			const saved = localStorage.getItem(storageKey);
@@ -3772,22 +3770,26 @@
 		lesson.forEach(w => {
 			const div = document.createElement("div");
 			div.className = "study-item";
+			div.style.position = "relative";
 
 			const nlParts = w.nl.split(";").map(s => s.trim());
 			const czParts = w.cz.split(";").map(s => s.trim());
 
-			// HTML struktura (zachovává tvůj styl)
 			let czHtml = `<div class="study-cz">${czParts[0]}</div>`;
 			for (let i = 1; i < czParts.length; i++) czHtml += `<div class="study-sub">${czParts[i]}</div>`;
 
 			let nlHtml = `<div class="study-nl">${nlParts[0]}</div>`;
 			for (let i = 1; i < nlParts.length; i++) nlHtml += `<div class="study-sub">${nlParts[i]}</div>`;
 
-			// Logika počátečního skrytí
 			const hideCZ = !preview && studyDirection === 'NL-CZ';
 			const hideNL = !preview && studyDirection === 'CZ-NL';
 
+			// Kontrola ukotvení (hledáme v globálním seznamu problematických)
+			const isPinnedGlobal = problematic.find(p => p.nl === w.nl && p.pinned === true);
+			const pinHtml = isPinnedGlobal ? `<div class="study-pin" style="position:absolute; top:8px; left:10px; font-size:1.1rem; opacity:0.8; z-index:10;">⚓</div>` : "";
+
 			div.innerHTML = `
+				${pinHtml}
 				<div class="cz-wrapper" style="${hideCZ ? 'visibility:hidden' : ''}">${czHtml}</div>
 				<div class="study-sep"></div>
 				<div class="nl-text-wrapper" style="${hideNL ? 'visibility:hidden' : ''}">${nlHtml}</div>
@@ -3798,39 +3800,88 @@
 				<div class="study-timer"></div>
 			`;
 
-			if (!preview) {
-				const item = div;
-				const timerBar = div.querySelector(".study-timer");
-				// Cíl, který se odkrývá, závisí na zvoleném směru
-				// Vybereme všechny prvky, které se mají odkrývat/skrývat
-				const targets = studyDirection === 'CZ-NL' 
-					? div.querySelectorAll(".nl-text-wrapper, .ipa-wrapper") 
-					: div.querySelectorAll(".cz-wrapper");
+			const item = div;
+			let lastToggleTime = 0;
 
-				let revealed = false; // Trvalé odkrytí
-				let hideTimer = null;
-				let lastToggleTime = 0;
+			// --- UNIVERZÁLNÍ FUNKCE PRO UKOTVENÍ ---
+			const performPinToggle = (e) => {
+				if (e) { if (e.cancelable) e.preventDefault(); e.stopPropagation(); }
+				if (Date.now() - lastToggleTime < 450) return;
+				lastToggleTime = Date.now();
 
-				const performManualToggle = (e) => {
-					if (e) { if (e.cancelable) e.preventDefault(); e.stopPropagation(); }
-					if (Date.now() - lastToggleTime < 450) return;
-					lastToggleTime = Date.now();
+				let pIdx = problematic.findIndex(x => x.nl === w.nl);
+				let pinnedState = false;
 
-					clearTimeout(hideTimer);
-					revealed = !revealed;
-					targets.forEach(el => el.style.visibility = revealed ? "visible" : "hidden");
+				if (pIdx !== -1) {
+					// Slovo už v problematických je -> přepneme pin
+					problematic[pIdx].pinned = !problematic[pIdx].pinned;
+					pinnedState = problematic[pIdx].pinned;
 					
-					timerBar.style.transition = "none";
-					timerBar.style.transform = "scaleX(1)";
-					timerBar.style.opacity = "0";
-					if (navigator.vibrate) navigator.vibrate(45);
-				};
+					if (pinnedState) {
+						problematic[pIdx].pinnedAt = Date.now();
+					} else {
+						delete problematic[pIdx].pinnedAt;
+						
+						// --- LOGIKA VYČIŠTĚNÍ ---
+						// Pokud slovo odukotvíme a nemá žádné chyby (failCount je 0 nebo neexistuje), 
+						// smažeme ho z problematických úplně.
+						if (!problematic[pIdx].failCount || problematic[pIdx].failCount === 0) {
+							problematic.splice(pIdx, 1);
+						}
+					}
+				} else {
+					// Slovo v problematických není -> přidáme ho jako ukotvené
+					const newPinned = { 
+						...w, 
+						lesson: currentLessonId, 
+						pinned: true, 
+						pinnedAt: Date.now(),
+						score: 0,
+						failCount: 0 
+					};
+					problematic.push(newPinned);
+					pinnedState = true;
+				}
+
+				saveData();
+
+				// Vizuální update kotvy
+				let pinEl = item.querySelector(".study-pin");
+				if (pinnedState) {
+					if (!pinEl) {
+						pinEl = document.createElement("div");
+						pinEl.className = "study-pin";
+						pinEl.style.cssText = "position:absolute; top:8px; left:10px; font-size:1.1rem; opacity:0.8; z-index:10;";
+						pinEl.innerText = "⚓";
+						item.appendChild(pinEl);
+					}
+				} else if (pinEl) {
+					pinEl.remove();
+				}
+
+				if (navigator.vibrate) navigator.vibrate(45);
+			};
+
+			// Přidání listenerů pro Ukotvení (funguje ve STUDIUM i NÁHLED)
+			item.addEventListener('contextmenu', (e) => performPinToggle(e));
+			let holdTimer;
+			item.addEventListener('touchstart', (e) => {
+				if (e.touches.length > 1) return;
+				holdTimer = setTimeout(() => performPinToggle(e), 550);
+			}, { passive: false });
+			item.addEventListener('touchend', () => clearTimeout(holdTimer));
+			item.addEventListener('touchmove', () => clearTimeout(holdTimer));
+
+			if (!preview) {
+				const timerBar = div.querySelector(".study-timer");
+				const targets = studyDirection === 'CZ-NL' ? div.querySelectorAll(".nl-text-wrapper, .ipa-wrapper") : div.querySelectorAll(".cz-wrapper");
+				let hideTimer = null;
 
 				item.addEventListener('click', (e) => {
 					if (Date.now() - lastToggleTime < 500) return;
 					speak(w.nl);
-					if (revealed) return;
-
+					
+					// Odkrytí s časovačem
 					clearTimeout(hideTimer);
 					targets.forEach(el => el.style.visibility = "visible");
 					
@@ -3844,43 +3895,30 @@
 						}, 10);
 
 						hideTimer = setTimeout(() => {
-							if (!revealed) {
-								targets.forEach(el => el.style.visibility = "hidden");
-								timerBar.style.opacity = "0";
-							}
+							targets.forEach(el => el.style.visibility = "hidden");
+							timerBar.style.opacity = "0";
 						}, revealTime);
 					}
 				});
-
-				item.addEventListener('contextmenu', (e) => performManualToggle(e));
-				let holdTimer;
-				item.addEventListener('touchstart', (e) => {
-					if (e.touches.length > 1) return;
-					holdTimer = setTimeout(() => performManualToggle(e), 550);
-				}, { passive: false });
-				item.addEventListener('touchend', () => clearTimeout(holdTimer));
-				item.addEventListener('touchmove', () => clearTimeout(holdTimer));
 			} else {
-				div.onclick = () => speak(w.nl);
+				item.addEventListener('click', (e) => {
+					if (Date.now() - lastToggleTime < 500) return;
+					speak(w.nl);
+				});
 			}
 
 			list.appendChild(div);
 		});
 
-		// --- OBNOVENÉ DŮLEŽITÉ ŘÁDKY (PERSISTENCE A UI) ---
 		document.getElementById("lesson-name-display").innerText = 
 			currentLessonId === "problematic" ? "🔥 Problematické" : currentLessonId;
 
-		if (preview) {
-			localStorage.setItem('pl_app_view', 'study_preview');
-		} else {
-			localStorage.setItem('pl_app_view', 'study');
-		}
+		localStorage.setItem('pl_app_view', preview ? 'study_preview' : 'study');
 		localStorage.setItem('pl_current_lesson_id', currentLessonId);
 		localStorage.setItem('pl_return_view', 'mode-area');
 
 		updateLessonArrows();
-		window.scrollTo(0, 0); // Jistota, že začneš nahoře
+		window.scrollTo(0, 0); 
 	}
 
 	// ZAVŘENÍ STUDIUM

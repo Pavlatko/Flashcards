@@ -223,6 +223,67 @@
         .dict-btn-wrap .btn-action { width: auto !important; } /* Pro slovníček a nastavení zachováme flexibilitu */
 		.btn-action { height: 56px; }
 
+		/* Kontejner pro přepínač směru */
+		.study-direction-wrapper {
+			display: flex;
+			justify-content: center;
+			width: 100%;
+			margin-bottom: 20px;
+		}
+
+		.direction-switcher {
+			display: flex;
+			background: rgba(255, 255, 255, 0.2);
+			backdrop-filter: blur(10px);
+			-webkit-backdrop-filter: blur(10px);
+			border: 1px solid rgba(0, 0, 0, 0.1);
+			border-radius: 50px;
+			padding: 4px;
+			box-shadow: inset 0 2px 4px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.05);
+			width: 100%;
+			max-width: 320px;
+			position: relative;
+			cursor: pointer;
+		}
+
+		.direction-option {
+			flex: 1;
+			text-align: center;
+			padding: 10px 5px;
+			font-size: 0.85rem;
+			font-weight: bold;
+			color: var(--text-color);
+			z-index: 2;
+			transition: color 0.3s ease;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+			opacity: 0.6;
+		}
+
+		.direction-option.active {
+			opacity: 1;
+		}
+
+		/* Ten plovoucí skleněný jezdec */
+		.direction-slider {
+			position: absolute;
+			top: 4px;
+			left: 4px;
+			width: calc(50% - 4px);
+			height: calc(100% - 8px);
+			background: linear-gradient(to bottom, rgba(255,255,255,0.5), rgba(255,255,255,0.1)), var(--primary);
+			border-radius: 40px;
+			z-index: 1;
+			transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+			box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.4);
+		}
+
+		/* Poloha jezdce pro druhý směr */
+		.dir-nl-cz .direction-slider {
+			transform: translateX(100%);
+		}
 
          #counter-wrap { 
             width: 100%; 
@@ -720,7 +781,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260501.1 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260501.2 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -928,6 +989,14 @@
 
 		</div>
 
+		<div id="study-direction-container" class="study-direction-wrapper">
+			<div id="direction-switcher" class="direction-switcher" onclick="toggleStudyDirection()">
+				<div class="direction-slider"></div>
+				<div id="opt-cz-nl" class="direction-option"><span>🇨🇿 ➔ 🇳🇱</span></div>
+				<div id="opt-nl-cz" class="direction-option"><span>🇳🇱 ➔ 🇨🇿</span></div>
+			</div>
+		</div>
+
 		<div id="study-list"></div>
 
 		<button class="btn-action btn-flip-big"
@@ -989,6 +1058,7 @@
 	let shuffleStudy = localStorage.getItem('pl_shuffle_study') === 'true';
 	let studyHideEnabled = localStorage.getItem('pl_study_hide') !== 'false';
 	let revealTime = parseInt(localStorage.getItem('pl_reveal_time')) || 3000;
+	let studyDirection = localStorage.getItem('pl_study_direction') || 'CZ-NL';
 
 	if(autoBackupEnabled === null){
 		autoBackupEnabled = true;
@@ -3655,15 +3725,19 @@
 	}
 	// **************************************************************
 
-	function openStudyMode(preview=false){
-
+	function openStudyMode(preview = false) {
 		trainingActive = true;
 		manageKeepAlive();
 
+		const dirContainer = document.getElementById('study-direction-container');
+		if (dirContainer) {
+			dirContainer.style.display = preview ? 'none' : 'flex';
+		}
+		
+		updateStudyDirectionUI(); 
+
 		document.body.classList.toggle("study-preview", preview);
-
 		studyPreviewMode = preview;
-
 		sessionStartTime = Date.now();
 
 		document.getElementById('menu-area').style.display = 'none';
@@ -3671,38 +3745,18 @@
 		document.getElementById('mode-area').style.display = 'none';
 		document.getElementById('study-area').style.display = 'block';
 
-		// OPRAVA: správný zdroj slov
-		let lesson =
-			currentLessonId === "problematic"
-				? problematic
-				: allLessons[currentLessonId];
+		// Výběr lekce (včetně problematických)
+		let lesson = currentLessonId === "problematic" ? problematic : allLessons[currentLessonId];
 
-		// ===== SHUFFLE LOGIKA =====
-
+		// Shuffle logika (zachování zamíchaného pořadí)
 		if (shuffleStudy && !preview) {
-
 			const storageKey = "pl_study_order";
-
 			const saved = localStorage.getItem(storageKey);
-
 			if (saved) {
-
-				try {
-					lesson = JSON.parse(saved);
-				} catch(e) {
-					localStorage.removeItem(storageKey);
-
-					const shuffled = [...lesson].sort(() => Math.random() - 0.5);
-					localStorage.setItem(storageKey, JSON.stringify(shuffled));
-					lesson = shuffled;
-				}
-
+				try { lesson = JSON.parse(saved); } catch (e) { localStorage.removeItem(storageKey); }
 			} else {
-
 				const shuffled = [...lesson].sort(() => Math.random() - 0.5);
-
 				localStorage.setItem(storageKey, JSON.stringify(shuffled));
-
 				lesson = shuffled;
 			}
 		}
@@ -3711,154 +3765,122 @@
 		list.innerHTML = "";
 
 		if (!lesson || lesson.length === 0) {
-			list.innerHTML = "<div style='text-align:center; opacity:0.7;'>Žádná slovíčka.</div>";
+			list.innerHTML = "<div style='text-align:center; opacity:0.7; margin-top:20px;'>Žádná slovíčka v této lekci.</div>";
 			return;
 		}
 
-		lesson.forEach(w=>{
-
+		lesson.forEach(w => {
 			const div = document.createElement("div");
 			div.className = "study-item";
 
 			const nlParts = w.nl.split(";").map(s => s.trim());
 			const czParts = w.cz.split(";").map(s => s.trim());
 
-			let nlHtml = `<div class="study-nl">${nlParts[0]}</div>`;
-			for(let i=1;i<nlParts.length;i++){
-				nlHtml += `<div class="study-sub">${nlParts[i]}</div>`;
-			}
-
+			// HTML struktura (zachovává tvůj styl)
 			let czHtml = `<div class="study-cz">${czParts[0]}</div>`;
-			for(let i=1;i<czParts.length;i++){
-				czHtml += `<div class="study-sub">${czParts[i]}</div>`;
-			}
+			for (let i = 1; i < czParts.length; i++) czHtml += `<div class="study-sub">${czParts[i]}</div>`;
 
-			const nlStyle = preview ? "" : "style='visibility:hidden'";
-			const ipaStyle = preview ? "" : "style='visibility:hidden'";
+			let nlHtml = `<div class="study-nl">${nlParts[0]}</div>`;
+			for (let i = 1; i < nlParts.length; i++) nlHtml += `<div class="study-sub">${nlParts[i]}</div>`;
+
+			// Logika počátečního skrytí
+			const hideCZ = !preview && studyDirection === 'NL-CZ';
+			const hideNL = !preview && studyDirection === 'CZ-NL';
 
 			div.innerHTML = `
-				${czHtml}
-
+				<div class="cz-wrapper" style="${hideCZ ? 'visibility:hidden' : ''}">${czHtml}</div>
 				<div class="study-sep"></div>
-
-				<div class="study-nl" ${nlStyle}>${nlParts[0]}</div>
-				${nlParts.slice(1).map(p => `<div class="study-sub" ${nlStyle}>${p}</div>`).join("")}
-
+				<div class="nl-text-wrapper" style="${hideNL ? 'visibility:hidden' : ''}">${nlHtml}</div>
 				<div class="study-sep"></div>
-
-				<div class="study-ipa" ${ipaStyle}>${w.ipa}</div>
-
+				<div class="ipa-wrapper" style="${hideNL ? 'visibility:hidden' : ''}">
+					<div class="study-ipa">${w.ipa}</div>
+				</div>
 				<div class="study-timer"></div>
 			`;
 
-			if(!preview){
-                const item = div;
-                const nl = div.querySelectorAll(".study-nl, .study-nl ~ .study-sub");
-                const ipa = div.querySelector(".study-ipa");
-                const timerBar = div.querySelector(".study-timer");
+			if (!preview) {
+				const item = div;
+				const timerBar = div.querySelector(".study-timer");
+				// Cíl, který se odkrývá, závisí na zvoleném směru
+				// Vybereme všechny prvky, které se mají odkrývat/skrývat
+				const targets = studyDirection === 'CZ-NL' 
+					? div.querySelectorAll(".nl-text-wrapper, .ipa-wrapper") 
+					: div.querySelectorAll(".cz-wrapper");
 
-                let revealed = false;
-                let hideTimer = null;
-                let holdTimer = null;
-                let lastToggleTime = 0; 
+				let revealed = false; // Trvalé odkrytí
+				let hideTimer = null;
+				let lastToggleTime = 0;
 
-                // --- 1. UNIVERZÁLNÍ PŘEPÍNAČ STAVU ---
-                const performManualToggle = (e) => {
-                    if (e) {
-                        if (e.cancelable) e.preventDefault();
-                        e.stopPropagation();
-                    }
+				const performManualToggle = (e) => {
+					if (e) { if (e.cancelable) e.preventDefault(); e.stopPropagation(); }
+					if (Date.now() - lastToggleTime < 450) return;
+					lastToggleTime = Date.now();
 
-                    // Časová pojistka proti dvojitému spuštění (Android touch + contextmenu)
-                    if (Date.now() - lastToggleTime < 450) return;
-                    lastToggleTime = Date.now();
+					clearTimeout(hideTimer);
+					revealed = !revealed;
+					targets.forEach(el => el.style.visibility = revealed ? "visible" : "hidden");
+					
+					timerBar.style.transition = "none";
+					timerBar.style.transform = "scaleX(1)";
+					timerBar.style.opacity = "0";
+					if (navigator.vibrate) navigator.vibrate(45);
+				};
 
-                    clearTimeout(hideTimer);
-                    revealed = !revealed;
-                    const targetVis = revealed ? "visible" : "hidden";
-                    
-                    nl.forEach(el => el.style.visibility = targetVis);
-                    if (ipa) ipa.style.visibility = targetVis;
-                    
-                    // Schovat lištu časovače při trvalém přepnutí
-                    timerBar.style.transition = "none";
-                    timerBar.style.transform = "scaleX(1)";
-                    timerBar.style.opacity = "0";
+				item.addEventListener('click', (e) => {
+					if (Date.now() - lastToggleTime < 500) return;
+					speak(w.nl);
+					if (revealed) return;
 
-                    if (navigator.vibrate) navigator.vibrate(45);
-                };
+					clearTimeout(hideTimer);
+					targets.forEach(el => el.style.visibility = "visible");
+					
+					if (studyHideEnabled) {
+						timerBar.style.opacity = "1";
+						timerBar.style.transition = "none";
+						timerBar.style.transform = "scaleX(1)";
+						setTimeout(() => {
+							timerBar.style.transition = `transform ${revealTime}ms linear`;
+							timerBar.style.transform = "scaleX(0)";
+						}, 10);
 
-                // --- 2. KLIKNUTÍ (Levé / Krátké) ---
-                item.addEventListener('click', (e) => {
-                    // Ignoruj klik, pokud jsme právě dělali long-press/pravý klik
-                    if (Date.now() - lastToggleTime < 500) return;
+						hideTimer = setTimeout(() => {
+							if (!revealed) {
+								targets.forEach(el => el.style.visibility = "hidden");
+								timerBar.style.opacity = "0";
+							}
+						}, revealTime);
+					}
+				});
 
-                    speak(w.nl);
-                    if (revealed) return; // Pokud už je odhaleno, nic víc nedělej
-
-                    clearTimeout(hideTimer);
-                    nl.forEach(el => el.style.visibility = "visible");
-                    if (ipa) ipa.style.visibility = "visible";
-                    
-                    if (studyHideEnabled) {
-                        timerBar.style.opacity = "1";
-                        timerBar.style.transition = "none";
-                        timerBar.style.transform = "scaleX(1)";
-
-                        setTimeout(() => {
-                            timerBar.style.transition = `transform ${revealTime}ms linear`;
-                            timerBar.style.transform = "scaleX(0)";
-                        }, 10);
-
-                        hideTimer = setTimeout(() => {
-                            if (!revealed) {
-                                nl.forEach(el => el.style.visibility = "hidden");
-                                if (ipa) ipa.style.visibility = "hidden";
-                                timerBar.style.opacity = "0";
-                            }
-                        }, revealTime);
-                    }
-                });
-
-                // --- 3. PRAVÝ KLIK (PC) A LONG-PRESS (Android) ---
-
-                // Tato událost řeší Pravý klik na PC i Nativní Long-press na Androidu
-                item.addEventListener('contextmenu', (e) => {
-                    performManualToggle(e);
-                });
-
-                // Ruční timer pro Android (aby zavibroval dřív, než systém vyvolá menu)
-                item.addEventListener('touchstart', (e) => {
-                    if (e.touches.length > 1) return;
-                    holdTimer = setTimeout(() => {
-                        performManualToggle(e);
-                    }, 550);
-                }, { passive: false });
-
-                item.addEventListener('touchend', () => clearTimeout(holdTimer));
-                item.addEventListener('touchmove', () => clearTimeout(holdTimer));
-            }
-
-			if (preview) div.onclick = () => speak(w.nl);
+				item.addEventListener('contextmenu', (e) => performManualToggle(e));
+				let holdTimer;
+				item.addEventListener('touchstart', (e) => {
+					if (e.touches.length > 1) return;
+					holdTimer = setTimeout(() => performManualToggle(e), 550);
+				}, { passive: false });
+				item.addEventListener('touchend', () => clearTimeout(holdTimer));
+				item.addEventListener('touchmove', () => clearTimeout(holdTimer));
+			} else {
+				div.onclick = () => speak(w.nl);
+			}
 
 			list.appendChild(div);
-
 		});
 
-		document.getElementById("lesson-name-display").innerText =
-			currentLessonId === "problematic"
-				? "🔥 Problematické"
-				: currentLessonId;
+		// --- OBNOVENÉ DŮLEŽITÉ ŘÁDKY (PERSISTENCE A UI) ---
+		document.getElementById("lesson-name-display").innerText = 
+			currentLessonId === "problematic" ? "🔥 Problematické" : currentLessonId;
 
-		if(preview){
-			localStorage.setItem('pl_app_view','study_preview');
-		}else{
-			localStorage.setItem('pl_app_view','study');
+		if (preview) {
+			localStorage.setItem('pl_app_view', 'study_preview');
+		} else {
+			localStorage.setItem('pl_app_view', 'study');
 		}
 		localStorage.setItem('pl_current_lesson_id', currentLessonId);
 		localStorage.setItem('pl_return_view', 'mode-area');
 
 		updateLessonArrows();
+		window.scrollTo(0, 0); // Jistota, že začneš nahoře
 	}
 
 	// ZAVŘENÍ STUDIUM
@@ -4400,6 +4422,31 @@
 		const display = document.getElementById('reveal-val');
 		if (display) {
 			display.innerText = (val / 1000).toFixed(1);
+		}
+	}
+
+	function toggleStudyDirection() {
+		studyDirection = (studyDirection === 'CZ-NL') ? 'NL-CZ' : 'CZ-NL';
+		localStorage.setItem('pl_study_direction', studyDirection);
+		updateStudyDirectionUI();
+		openStudyMode(studyPreviewMode); // Znovu vykreslíme seznam s novým směrem
+	}
+
+	function updateStudyDirectionUI() {
+		const switcher = document.getElementById('direction-switcher');
+		const optCzNl = document.getElementById('opt-cz-nl');
+		const optNlCz = document.getElementById('opt-nl-cz');
+		
+		if (!switcher) return;
+
+		if (studyDirection === 'CZ-NL') {
+			switcher.classList.remove('dir-nl-cz');
+			optCzNl.classList.add('active');
+			optNlCz.classList.remove('active');
+		} else {
+			switcher.classList.add('dir-nl-cz');
+			optCzNl.classList.remove('active');
+			optNlCz.classList.add('active');
 		}
 	}
 

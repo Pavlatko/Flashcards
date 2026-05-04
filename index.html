@@ -219,9 +219,14 @@
 		}
 
         /* Tlačítka, která mají být vedle sebe (např. UMÍM/NEUMÍM) */
-        .btn-neumim, .btn-umim, .btn-poslech-blue {flex: 1; max-height: 56px;}
+        .btn-neumim, .btn-umim, .btn-poslech-blue { flex: 1; height: 56px; } /* Změněno z max-height na height */
         .dict-btn-wrap .btn-action { width: auto !important; } /* Pro slovníček a nastavení zachováme flexibilitu */
-		.btn-action { height: 56px; }
+		.btn-action { 
+			height: 56px; 
+			padding-top: 0 !important;    /* Vynutíme nulový horní padding */
+			padding-bottom: 0 !important; /* Vynutíme nulový dolní padding */
+			line-height: 1;               /* Stabilizuje pozici textu */
+		}
 
 		/* Kontejner pro přepínač směru */
 		.study-direction-wrapper {
@@ -781,7 +786,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260504.3 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260504.4 by <b>Pavlatko</b>Labs
         </div>
     </div>
 

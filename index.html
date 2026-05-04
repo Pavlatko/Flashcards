@@ -781,7 +781,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260504.2 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260504.3 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -918,8 +918,20 @@
 
 		</div>
 		<button class="btn-action btn-flip-big" style="--btn-color:var(--secondary); margin-top:15px;" onclick="openDictionary(currentLessonId)">📖 Slovníček lekce</button>
-		<button id="pin-lesson-btn" class="btn-action btn-flip-big mode-gap" style="--btn-color:var(--category);" onclick="togglePinLesson(currentLessonId)"> 📍 Připnout </button>
-		<button id="toggle-finished-btn" class="btn-action btn-flip-big" style="--btn-color:var(--category);" onclick="toggleLessonFinished()"></button>
+		<!-- Nový řádek pro připnutí a stav splnění -->
+		<div id="lesson-status-row" style="display:flex; gap:15px; width:100%; margin-top:15px;">
+			<button id="pin-lesson-btn" 
+					class="btn-action btn-flip-big" 
+					style="--btn-color:var(--category); flex:1;" 
+					onclick="togglePinLesson(currentLessonId)">
+					📍 Připnout 
+			</button>
+			<button id="toggle-finished-btn" 
+					class="btn-action btn-flip-big" 
+					style="--btn-color:var(--category); flex:1;" 
+					onclick="toggleLessonFinished()">
+			</button>
+		</div>
 	</div>
 
     <div id="dictionary-area">
@@ -1980,20 +1992,21 @@
 		});
 	}
 
-	function selectLesson(id) { 
+	function selectLesson(id) {
 		document.getElementById('app-body').classList.add('mode-active');
-        currentLessonId = id; 
+		currentLessonId = id; 
+		
+		const statusRow = document.getElementById("lesson-status-row");
 		const pinBtn = document.getElementById("pin-lesson-btn");
 		const row = document.getElementById("problematic-buttons-row");
 		const pinnedPreviewBtn = document.getElementById("pinned-preview-btn");
 
 		if (id === "problematic") {
-
 			if (row) row.style.display = "flex";
+			if (statusRow) statusRow.style.display = "none"; // Schováme celou řadu u problematických
 
 			if (pinnedPreviewBtn) {
 				const enabled = hasPinnedWords();
-
 				if (enabled) {
 					pinnedPreviewBtn.style.opacity = "1";
 					pinnedPreviewBtn.style.pointerEvents = "auto";
@@ -2002,52 +2015,35 @@
 					pinnedPreviewBtn.style.pointerEvents = "none";
 				}
 			}
-
 		} else {
-
 			if (row) row.style.display = "none";
+			if (statusRow) statusRow.style.display = "flex"; // Ukážeme řadu u běžných lekcí
 
-		}
-
-		if (pinBtn){
-
-			// Problematické nelze připnout
-			if(id === "problematic"){
-				pinBtn.style.display = "none";
-			}else{
-				pinBtn.style.display = "block";
-
-				if(pinnedLessons.includes(id)){
-					pinBtn.innerText = "📌 Odepnout";
-				}else{
-					pinBtn.innerText = "📍 Připnout";
+			if (pinBtn) {
+				if (pinnedLessons.includes(id)) {
+					pinBtn.innerText = "📍 Připnuto";
+				} else {
+					pinBtn.innerText = "📌 Odepnuto";
 				}
 			}
-
 		}
-        words = id === 'problematic' ? [...problematic] : [...allLessons[id]]; 
-        
-        document.getElementById('menu-area').style.display = 'none'; 
-        document.getElementById('category-detail-area').style.display = 'none';
-        document.getElementById('mode-area').style.display = 'flex'; 
-        
-        // OPRAVA: Vždy nastavíme název konkrétní lekce, ne kategorie nebo výchozí text
-        const displayId = id === 'problematic' ? '🔥 Problematické' : id;
-        document.getElementById('lesson-name-display').innerText = displayId;
-        document.getElementById('lesson-name-display').style.color = "var(--text-color)";
-        
-        // Zobrazení počtu slovíček hned pod názvem
-        document.getElementById('lesson-info-sub').innerText = `Počet slovíček: ${words.length}`;
+		
+		// ... zbytek funkce (words = ..., displayId = ..., atd.)
+		words = id === 'problematic' ? [...problematic] : [...allLessons[id]]; 
+		document.getElementById('menu-area').style.display = 'none'; 
+		document.getElementById('category-detail-area').style.display = 'none';
+		document.getElementById('mode-area').style.display = 'flex'; 
+		
+		const displayId = id === 'problematic' ? '🔥 Problematické' : id;
+		document.getElementById('lesson-name-display').innerText = displayId;
+		document.getElementById('lesson-info-sub').innerText = `Počet slovíček: ${words.length}`;
 
-        updateToggleFinishedBtn();
-        
-        localStorage.setItem('pl_app_view', 'mode-area');
-        localStorage.setItem('pl_current_lesson_id', id); 
-
+		updateToggleFinishedBtn();
+		localStorage.setItem('pl_app_view', 'mode-area');
+		localStorage.setItem('pl_current_lesson_id', id); 
 		updateLessonArrows();
-
-        window.scrollTo(0, 0);
-    }
+		window.scrollTo(0, 0);
+	}
 
 	function updateToggleFinishedBtn() {
         const btn = document.getElementById('toggle-finished-btn');
@@ -2058,9 +2054,9 @@
         }
         btn.style.display = 'block';
         if (finishedLessons.includes(currentLessonId)) {
-            btn.innerText = "❌ Označit jako NEZKOUŠENÉ";
+            btn.innerText = "✅ Splněno";
         } else {
-            btn.innerText = "✅ Označit jako SPLNĚNÉ";
+            btn.innerText = "❌ Nesplněno";
         }
 
 		// Nové
@@ -2069,9 +2065,9 @@
 		if(pinBtn){
 
 			if(pinnedLessons.includes(currentLessonId)){
-			pinBtn.innerText = "📌 Odepnout";
+			pinBtn.innerText = "📍 Připnuto";
 			}else{
-			pinBtn.innerText = "📍 Připnout";
+			pinBtn.innerText = "📌 Odepnuto";
 			}
 
 		}
@@ -4303,9 +4299,9 @@
 
 		if(btn){
 			if(pinnedLessons.includes(name)){
-				btn.innerText = "📌 Odepnout";
+				btn.innerText = "📍 Připnuto";
 			}else{
-				btn.innerText = "📍 Připnout";
+				btn.innerText = "📌 Odepnuto";
 			}
 		}
 

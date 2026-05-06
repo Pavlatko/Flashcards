@@ -273,15 +273,17 @@ button{
 <div class="headerContent">
 
 <div style="display:flex;gap:6px;margin-bottom:8px">
-<select id="category"></select>
-<button class="btn-green" onclick="newCategory()" style="width:45px">+</button>
-<button class="btn-red" onclick="deleteCategory()" style="width:45px">🗑</button>
+    <select id="category"></select>
+    <button class="btn-green" onclick="newCategory()" style="width:45px">+</button>
+    <button class="btn" onclick="renameCategory()" style="width:45px">✏️</button>
+    <button class="btn-red" onclick="deleteCategory()" style="width:45px">🗑</button>
 </div>
 
 <div style="display:flex;gap:6px;margin-bottom:8px">
-<select id="lesson"></select>
-<button class="btn-green" onclick="newLesson()" style="width:45px">+</button>
-<button class="btn-red" onclick="deleteLesson()" style="width:45px">🗑</button>
+    <select id="lesson"></select>
+    <button class="btn-green" onclick="newLesson()" style="width:45px">+</button>
+    <button class="btn" onclick="renameLesson()" style="width:45px">✏️</button>
+    <button class="btn-red" onclick="deleteLesson()" style="width:45px">🗑</button>
 </div>
 
 <div class="toolbar">
@@ -1180,6 +1182,69 @@ function toggleHeader(){
         list.style.maxHeight = "45vh"
     }
 
+}
+
+function renameCategory() {
+    const oldName = document.getElementById("category").value;
+
+    if (!oldName || oldName === "all" || oldName === "none") {
+        alert("Vyber konkrétní kategorii k přejmenování.");
+        return;
+    }
+
+    let newName = prompt(`Přejmenovat kategorii "${oldName}" na:`, oldName);
+
+    if (!newName || newName.trim() === "" || newName.trim() === oldName) return;
+    newName = newName.trim();
+
+    if (categories[newName]) {
+        alert("Kategorie s tímto názvem již existuje.");
+        return;
+    }
+
+    // Přenést data do nového klíče a starý smazat
+    categories[newName] = categories[oldName];
+    delete categories[oldName];
+
+    save();
+    loadCategories();
+    document.getElementById("category").value = newName;
+    loadLessons();
+    showToast(`Kategorie byla přejmenována na <b>${newName}</b>`);
+}
+
+function renameLesson() {
+    const oldName = document.getElementById("lesson").value;
+
+    if (!oldName || oldName === "all") {
+        alert("Vyber konkrétní lekci k přejmenování.");
+        return;
+    }
+
+    let newName = prompt(`Přejmenovat lekci "${oldName}" na:`, oldName);
+
+    if (!newName || newName.trim() === "" || newName.trim() === oldName) return;
+    newName = newName.trim();
+
+    if (lessons[newName]) {
+        alert("Lekce s tímto názvem již existuje.");
+        return;
+    }
+
+    // 1. Přejmenovat v hlavním objektu lekcí
+    lessons[newName] = lessons[oldName];
+    delete lessons[oldName];
+
+    // 2. Aktualizovat název ve všech kategoriích, kde je lekce zapsaná
+    Object.keys(categories).forEach(catKey => {
+        categories[catKey] = categories[catKey].map(lName => lName === oldName ? newName : lName);
+    });
+
+    save();
+    loadLessons();
+    document.getElementById("lesson").value = newName;
+    renderWords();
+    showToast(`Lekce byla přejmenována na <b>${newName}</b>`);
 }
 
 </script>

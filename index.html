@@ -864,7 +864,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260506.5 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260506.6 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1157,6 +1157,7 @@
 	let revealTime = parseInt(localStorage.getItem('pl_reveal_time')) || 3000;
 	let studyDirection = localStorage.getItem('pl_study_direction') || 'CZ-NL';
 	let lessonScores = JSON.parse(localStorage.getItem('pl_lesson_scores') || '{}');
+	let kickstartOpenedAt = 0;
 
 	if(autoBackupEnabled === null){
 		autoBackupEnabled = true;
@@ -4680,30 +4681,28 @@
 		const today = new Date().toISOString().slice(0, 10);
 		const lastKick = localStorage.getItem("pl_last_kickstart");
 		
-		// Spustit pouze pokud je nový den
+		// 1. Kontrola, zda už dnes proběhlo
 		if (lastKick === today) return;
 
-		// Najdeme slova z posledních 24 hodin
-		const last24h = Date.now() - (24 * 60 * 60 * 1000);
-		const recentFails = stats.failLog.filter(f => f.time > last24h);
+		// 2. Definice dnešní půlnoci (vše od teď zpět je "minulost")
+		const startOfToday = new Date();
+		startOfToday.setHours(0, 0, 0, 0);
 
-		if (recentFails.length === 0) return;
+		// 3. Najdeme chyby, které se staly PŘED dnešní půlnocí (v rámci posledních 7 dní)
+		const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+		const historicalFails = stats.failLog.filter(f => f.time > sevenDaysAgo && f.time < startOfToday.getTime());
 
-		// Spočítáme výskyty v posledních 24h
+		if (historicalFails.length === 0) return;
+
+		// 4. Spočítáme výskyty historických chyb
 		const counts = {};
-		recentFails.forEach(f => counts[f.word] = (counts[f.word] || 0) + 1);
+		historicalFails.forEach(f => counts[f.word] = (counts[f.word] || 0) + 1);
 
-		// Seřadíme: 
-		// 1. Podle počtu chyb za 24h
-		// 2. Podle celkového počtu chyb (wordFailClicks)
-		const sorted = Object.keys(counts).sort((a, b) => {
-			if (counts[b] !== counts[a]) return counts[b] - counts[a];
-			return (stats.wordFailClicks[b] || 0) - (stats.wordFailClicks[a] || 0);
-		});
-
+		// 5. Seřadíme podle četnosti
+		const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
 		const worstWordKey = sorted[0];
 		
-		// Najdeme objekt slova v databázi (všech lekcích)
+		// 6. Najdeme objekt slova v databázi
 		let foundWord = null;
 		for (const lesson of Object.values(allLessons)) {
 			foundWord = lesson.find(w => w.nl.toLowerCase().trim() === worstWordKey);
@@ -4715,12 +4714,29 @@
 			document.getElementById('kick-cz').innerText = foundWord.cz.split(';')[0].trim();
 			document.getElementById('kick-ipa').innerText = foundWord.ipa ? `[${foundWord.ipa}]` : '';
 			
+			// Nastavíme čas otevření pro zámek
+			kickstartOpenedAt = Date.now();
+			
+			// Změníme text nápovědy na odpočet (volitelné, ale užitečné)
+			const hintText = document.querySelector('#daily-kickstart-overlay .kickstart-card div:last-child');
+			hintText.id = "kickstart-hint-text";
+			hintText.innerText = "Soustřeď se na slovíčko...";
+
 			document.getElementById('daily-kickstart-overlay').style.display = 'flex';
 			
 			// Přečíst slovo
 			setTimeout(() => speak(foundWord.nl, true), 800);
 			
-			// Uložit, že jsme si pro dnešek vybrali
+			// Po 5 sekundách povolíme zavření a změníme text
+			setTimeout(() => {
+				if(document.getElementById('kickstart-hint-text')) {
+					document.getElementById('kickstart-hint-text').innerText = "Kliknutím začneš nový den...";
+					document.getElementById('kickstart-hint-text').style.color = "var(--primary)";
+					document.getElementById('kickstart-hint-text').style.opacity = "1";
+				}
+			}, 5000);
+			
+			// Uložíme, že dnes už proběhlo
 			localStorage.setItem("pl_last_kickstart", today);
 		}
 	}

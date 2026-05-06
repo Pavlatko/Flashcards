@@ -786,7 +786,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260504.4 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260506.1 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -923,7 +923,9 @@
 
 		</div>
 		<button class="btn-action btn-flip-big" style="--btn-color:var(--secondary); margin-top:15px;" onclick="openDictionary(currentLessonId)">📖 Slovníček lekce</button>
-		<!-- Nový řádek pro připnutí a stav splnění -->
+		<button id="save-as-lesson-btn" class="btn-action btn-flip-big" style="--btn-color:var(--primary); margin-top:10px; display:none;" onclick="saveProblematicAsLesson()">
+			💾 Uložit jako lekci
+		</button>
 		<div id="lesson-status-row" style="display:flex; gap:15px; width:100%; margin-top:15px;">
 			<button id="pin-lesson-btn" 
 					class="btn-action btn-flip-big" 
@@ -2005,10 +2007,12 @@
 		const pinBtn = document.getElementById("pin-lesson-btn");
 		const row = document.getElementById("problematic-buttons-row");
 		const pinnedPreviewBtn = document.getElementById("pinned-preview-btn");
+		const saveBtn = document.getElementById("save-as-lesson-btn");
 
 		if (id === "problematic") {
 			if (row) row.style.display = "flex";
 			if (statusRow) statusRow.style.display = "none"; // Schováme celou řadu u problematických
+			if (saveBtn) saveBtn.style.display = "block"; // Zobrazit u problematických
 
 			if (pinnedPreviewBtn) {
 				const enabled = hasPinnedWords();
@@ -2023,6 +2027,7 @@
 		} else {
 			if (row) row.style.display = "none";
 			if (statusRow) statusRow.style.display = "flex"; // Ukážeme řadu u běžných lekcí
+			if (saveBtn) saveBtn.style.display = "none"; // Schovat u běžných lekcí
 
 			if (pinBtn) {
 				if (pinnedLessons.includes(id)) {
@@ -4495,6 +4500,50 @@
 			switcher.classList.add('dir-nl-cz');
 			optCzNl.classList.remove('active');
 			optNlCz.classList.add('active');
+		}
+	}
+
+	function saveProblematicAsLesson() {
+		if (problematic.length === 0) {
+			alert("Seznam problematických slov je prázdný.");
+			return;
+		}
+
+		const now = new Date();
+		// Datum ve formátu RRMMDD
+		const dateStr = now.getFullYear().toString().slice(-2) + 
+						String(now.getMonth() + 1).padStart(2, '0') + 
+						String(now.getDate()).padStart(2, '0');
+		
+		// Čas ve formátu HH:MM
+		const timeStr = String(now.getHours()).padStart(2, '0') + ":" + 
+						String(now.getMinutes()).padStart(2, '0');
+		
+		const newLessonName = `Problematické: ${dateStr}, ${timeStr}`;
+
+		// Vyčištění slov od balastu (score, failCount, atd.)
+		const cleanedWords = problematic.map(w => ({
+			nl: w.nl,
+			ipa: w.ipa || "",
+			cz: w.cz
+		}));
+
+		// Uložení nové lekce
+		allLessons[newLessonName] = cleanedWords;
+		saveData();
+
+		// Refresh menu (aby se lekce objevila v seznamu, až se tam vrátíš)
+		renderMenu();
+
+		// OPRAVA: renderMenu() nám přepsal nadpis na "Flashcards", tak ho hodíme zpět
+		document.getElementById('lesson-name-display').innerText = "🔥 Problematické";
+
+		// Toast notifikace
+		const toast = document.getElementById('toast');
+		if (toast) {
+			toast.innerHTML = `Lekce uložena:<br><b style="color:var(--primary)">${newLessonName}</b>`;
+			toast.style.opacity = "1";
+			setTimeout(() => { toast.style.opacity = "0"; }, 4000);
 		}
 	}
 

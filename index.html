@@ -761,7 +761,6 @@
 		/* Styl pro procenta v tlačítkách */
 		.score-text {
 			color: #d1d1d1;          /* Světle šedá (nebije tolik do očí jako čistě bílá) */
-			font-size: 0.85em;       /* O něco menší než název lekce */
 			font-weight: normal;     /* Aby to nebylo tučné jako zbytek tlačítka */
 			margin-left: 8px;        /* Mezera od názvu lekce */
 			opacity: 0.9;            /* Jemná průhlednost pro "glassy" efekt */
@@ -1881,7 +1880,7 @@
 			
 			// TADY JE TA OPRAVA:
 			const sRep = lessonScores[lastFinishedLesson];
-			const scoreRepeat = sRep !== undefined ? `&nbsp;<span class="score-text">(${sRep}%)</span>` : '';
+			const scoreRepeat = sRep !== undefined ? ` <span class="score-text">(${sRep}%)</span>` : '';
 
 			r.innerHTML = `
 				<button class="lesson-btn resume-btn${isFinishedRepeat}"
@@ -1899,7 +1898,7 @@
 				
 				// A TADY TAKY:
 				const sNext = lessonScores[nextLesson];
-				const scoreNext = sNext !== undefined ? `&nbsp;<span class="score-text">(${sNext}%)</span>` : '';
+				const scoreNext = sNext !== undefined ? ` <span class="score-text">(${sNext}%)</span>` : '';
 
 				r2.innerHTML = `
 					<button class="lesson-btn${isFinishedNext}"
@@ -1942,7 +1941,7 @@
                 const isFinished = finishedLessons.includes(name) ? ' is-finished' : '';
 
 				// NOVÉ: Zjištění skóre
-				const score = lessonScores[name] !== undefined ? `&nbsp;<span class="score-text">(${lessonScores[name]}%)</span>` : '';
+				const score = lessonScores[name] !== undefined ? ` <span class="score-text">(${lessonScores[name]}%)</span>` : '';
 
 				r.innerHTML = `
 					<button class="lesson-btn${isFinished}"
@@ -1984,7 +1983,7 @@
                 const isFinished = finishedLessons.includes(n) ? ' is-finished' : '';
                 
                 // Tady už proměnná "n" existuje, takže skóre bude fungovat
-                const score = lessonScores[n] !== undefined ? `&nbsp;<span class="score-text">(${lessonScores[n]}%)</span>` : '';
+                const score = lessonScores[n] !== undefined ? ` <span class="score-text">(${lessonScores[n]}%)</span>` : '';
 
                 r.innerHTML = `
                     <button class="lesson-btn${isFinished}" onclick="selectLesson('${n}')">
@@ -2061,7 +2060,7 @@
 				const isFinished = finishedLessons.includes(n) ? ' is-finished' : '';
 				
 				// NOVÉ: Získání skóre
-				const score = lessonScores[n] !== undefined ? `&nbsp;<span class="score-text">(${lessonScores[n]}%)</span>` : '';
+				const score = lessonScores[n] !== undefined ? ` <span class="score-text">(${lessonScores[n]}%)</span>` : '';
 				
 				r.innerHTML = `
 					<button class="lesson-btn${isFinished}" onclick="selectLesson('${n}')">

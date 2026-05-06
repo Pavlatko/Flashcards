@@ -728,6 +728,36 @@
 			box-shadow: 0 4px 10px rgba(0,0,0,0.08);
 		}
 
+		/* Ranní Brain Kickstart Pop-up */
+		#daily-kickstart-overlay {
+			position: fixed;
+			top: 0; left: 0; width: 100%; height: 100%;
+			background: rgba(0,0,0,0.85);
+			z-index: 9999;
+			display: none;
+			justify-content: center;
+			align-items: center;
+			backdrop-filter: blur(5px);
+		}
+		.kickstart-card {
+			background: white;
+			width: 90%;
+			max-width: 400px;
+			padding: 30px;
+			border-radius: 25px;
+			text-align: center;
+			box-shadow: 0 0 30px rgba(74, 144, 226, 0.5);
+			border: 2px solid var(--primary);
+		}
+		.kickstart-label {
+			font-size: 0.8rem;
+			text-transform: uppercase;
+			letter-spacing: 1px;
+			color: var(--danger);
+			font-weight: bold;
+			margin-bottom: 20px;
+		}
+
 		</style>
 	<link rel="icon" type="image/png" href="icon.png">
 	<link rel="apple-touch-icon" href="icon.png">
@@ -739,6 +769,18 @@
     </div>
 
     <div id="toast" class="lesson-toast"></div>
+
+	<div id="daily-kickstart-overlay" onclick="closeDailyKickstart()">
+		<div class="kickstart-card">
+			<div class="kickstart-label">🔥 Poslední nejproblémovější</div>
+			<div id="kick-nl" class="main-word" style="font-size: 2.2rem; color: #000;"></div>
+			<div id="kick-cz" class="sub-word" style="font-size: 1.6rem; margin-top: 10px;"></div>
+			<div id="kick-ipa" class="ipa" style="margin-top: 15px;"></div>
+			<div style="margin-top: 30px; font-size: 0.8rem; color: var(--neutral); opacity: 0.7;">
+				Kliknutím začneš nový den...
+			</div>
+		</div>
+	</div>
 
 	<div id="menu-area">
         <div id="resume-container"></div>
@@ -786,7 +828,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260506.1 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260506.2 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1111,6 +1153,7 @@
 	stats.problematicLearnCounts ??= [];
 	stats.appTimeTotal ??= 0;
 	stats.wordFailClicks ??= {};
+	stats.failLog ??= [];
 
 	let sessionStartTime = null;
 
@@ -2607,6 +2650,13 @@
 
 			// 🔥 ZAPOČÍTAT SKUTEČNÉ KLIKNUTÍ NA NEUMÍM
 			const wordKey = cur.nl.trim().toLowerCase();
+
+			// Nový zápis pro ranní analýzu:
+			stats.failLog.push({ word: wordKey, time: Date.now() });
+			// Čištění starého logu (pamatujeme si jen 7 dní, ať to nebobtná)
+			const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+			stats.failLog = stats.failLog.filter(entry => entry.time > sevenDaysAgo);
+
 			if (!stats.wordFailClicks[wordKey]) {
 				stats.wordFailClicks[wordKey] = 0;
 			}
@@ -4546,6 +4596,62 @@
 			setTimeout(() => { toast.style.opacity = "0"; }, 4000);
 		}
 	}
+
+	function runDailyKickstart() {
+		const today = new Date().toISOString().slice(0, 10);
+		const lastKick = localStorage.getItem("pl_last_kickstart");
+		
+		// Spustit pouze pokud je nový den
+		if (lastKick === today) return;
+
+		// Najdeme slova z posledních 24 hodin
+		const last24h = Date.now() - (24 * 60 * 60 * 1000);
+		const recentFails = stats.failLog.filter(f => f.time > last24h);
+
+		if (recentFails.length === 0) return;
+
+		// Spočítáme výskyty v posledních 24h
+		const counts = {};
+		recentFails.forEach(f => counts[f.word] = (counts[f.word] || 0) + 1);
+
+		// Seřadíme: 
+		// 1. Podle počtu chyb za 24h
+		// 2. Podle celkového počtu chyb (wordFailClicks)
+		const sorted = Object.keys(counts).sort((a, b) => {
+			if (counts[b] !== counts[a]) return counts[b] - counts[a];
+			return (stats.wordFailClicks[b] || 0) - (stats.wordFailClicks[a] || 0);
+		});
+
+		const worstWordKey = sorted[0];
+		
+		// Najdeme objekt slova v databázi (všech lekcích)
+		let foundWord = null;
+		for (const lesson of Object.values(allLessons)) {
+			foundWord = lesson.find(w => w.nl.toLowerCase().trim() === worstWordKey);
+			if (foundWord) break;
+		}
+
+		if (foundWord) {
+			document.getElementById('kick-nl').innerText = foundWord.nl.split(';')[0].trim();
+			document.getElementById('kick-cz').innerText = foundWord.cz.split(';')[0].trim();
+			document.getElementById('kick-ipa').innerText = foundWord.ipa ? `[${foundWord.ipa}]` : '';
+			
+			document.getElementById('daily-kickstart-overlay').style.display = 'flex';
+			
+			// Přečíst slovo
+			setTimeout(() => speak(foundWord.nl, true), 800);
+			
+			// Uložit, že jsme si pro dnešek vybrali
+			localStorage.setItem("pl_last_kickstart", today);
+		}
+	}
+
+	function closeDailyKickstart() {
+		document.getElementById('daily-kickstart-overlay').style.display = 'none';
+	}
+
+	// Spuštění po načtení
+	setTimeout(runDailyKickstart, 1500);
 
 </script>
 

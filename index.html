@@ -828,7 +828,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260506.3 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260506.4 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -1872,12 +1872,12 @@
 			
 			// TADY JE TA OPRAVA:
 			const sRep = lessonScores[lastFinishedLesson];
-			const scoreRepeat = sRep !== undefined ? ` <small>[${sRep}%]</small>` : '';
+			const scoreRepeat = sRep !== undefined ? ` <em>[${sRep}%]</em>` : '';
 
 			r.innerHTML = `
 				<button class="lesson-btn resume-btn${isFinishedRepeat}"
 					onclick="selectLesson('${lastFinishedLesson}')">
-					🔁 &nbsp; Opakovat: ${lastFinishedLesson}${scoreRepeat}
+					🔁 &nbsp; Opakovat: ${lastFinishedLesson} ${scoreRepeat}
 				</button>`;
 			rc.appendChild(r);
 
@@ -1890,12 +1890,12 @@
 				
 				// A TADY TAKY:
 				const sNext = lessonScores[nextLesson];
-				const scoreNext = sNext !== undefined ? ` <small>[${sNext}%]</small>` : '';
+				const scoreNext = sNext !== undefined ? ` <em>[${sNext}%]</em>` : '';
 
 				r2.innerHTML = `
 					<button class="lesson-btn${isFinishedNext}"
 						onclick="selectLesson('${nextLesson}')">
-						➡ &nbsp; Následuje: ${nextLesson}${scoreNext}
+						➡ &nbsp; Následuje: ${nextLesson} ${scoreNext}
 					</button>`;
 				rc.appendChild(r2);
 			}
@@ -1933,12 +1933,12 @@
                 const isFinished = finishedLessons.includes(name) ? ' is-finished' : '';
 
 				// NOVÉ: Zjištění skóre
-				const score = lessonScores[name] !== undefined ? ` <small>[${lessonScores[name]}%]</small>` : '';
+				const score = lessonScores[name] !== undefined ? ` <em>[${lessonScores[name]}%]</em>` : '';
 
 				r.innerHTML = `
 					<button class="lesson-btn${isFinished}"
 					onclick="selectLesson('${name}')">
-					${name} (${allLessons[name].length})${score}
+					${name} (${allLessons[name].length}) ${score}
 					</button>
 
 					<div class="lesson-pin"
@@ -1975,11 +1975,11 @@
                 const isFinished = finishedLessons.includes(n) ? ' is-finished' : '';
                 
                 // Tady už proměnná "n" existuje, takže skóre bude fungovat
-                const score = lessonScores[n] !== undefined ? ` <small>[${lessonScores[n]}%]</small>` : '';
+                const score = lessonScores[n] !== undefined ? ` <em>[${lessonScores[n]}%]</em>` : '';
 
                 r.innerHTML = `
                     <button class="lesson-btn${isFinished}" onclick="selectLesson('${n}')">
-                        ${n} (${allLessons[n].length})${score}
+                        ${n} (${allLessons[n].length}) ${score}
                     </button>`;
                 c.appendChild(r); // Vkládáme do kontejneru pro lekce (c)
             }
@@ -2052,11 +2052,11 @@
 				const isFinished = finishedLessons.includes(n) ? ' is-finished' : '';
 				
 				// NOVÉ: Získání skóre
-				const score = lessonScores[n] !== undefined ? ` <small>[${lessonScores[n]}%]</small>` : '';
+				const score = lessonScores[n] !== undefined ? ` <em>[${lessonScores[n]}%]</em>` : '';
 				
 				r.innerHTML = `
 					<button class="lesson-btn${isFinished}" onclick="selectLesson('${n}')">
-						${n} (${allLessons[n].length})${score}
+						${n} (${allLessons[n].length}) ${score}
 					</button>`;
 				
 				container.appendChild(r);

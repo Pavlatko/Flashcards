@@ -766,6 +766,32 @@
 			opacity: 0.9;            /* Jemná průhlednost pro "glassy" efekt */
 		}
 
+		/* Kontejner pro progress bar */
+		#progress-container {
+			width: 100%;
+			max-width: 340px; /* Stejná šířka jako counter-wrap */
+			height: 4px;
+			background: rgba(0, 0, 0, 0.1); /* Světle šedé pozadí linky */
+			border-radius: 2px;
+			margin-top: 8px;
+			overflow: hidden;
+			display: none; /* Schováme ho v menu, ukážeme jen v tréninku */
+		}
+
+		/* Samotná vyplněná část linky */
+		#progress-fill {
+			height: 100%;
+			width: 0%;
+			background: var(--primary); /* Použije tvou modrou barvu */
+			box-shadow: 0 0 8px var(--primary); /* Jemná záře */
+			transition: width 0.3s ease-out; /* Plynulý pohyb */
+		}
+
+		/* Zobrazení baru pouze v tréninkovém módu */
+		.training-mode #progress-container {
+			display: block;
+		}
+
 		</style>
 	<link rel="icon" type="image/png" href="icon.png">
 	<link rel="apple-touch-icon" href="icon.png">
@@ -775,7 +801,9 @@
         <div id="lesson-name-display">Flashcards</div>
         <div id="remaining-count"></div>
     </div>
-
+	<div id="progress-container">
+		<div id="progress-fill"></div>
+	</div>
     <div id="toast" class="lesson-toast"></div>
 
 	<div id="daily-kickstart-overlay" onclick="closeDailyKickstart()">
@@ -836,7 +864,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260506.4 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260506.5 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -2402,6 +2430,22 @@
 		updatePinStar();
 		renderPinButton();
 		saveProgress();
+
+		// Aktualizace progress baru (založeno na unikátních slovech)
+		const progressFill = document.getElementById('progress-fill');
+		if (progressFill && words.length > 0) {
+			// 1. Zjistíme celkový počet unikátních slov v aktuálním tréninku
+			const totalUnique = new Set(words.map(w => w.nl)).size;
+			
+			// 2. Zjistíme, kolik unikátních slov ještě zbývá (včetně toho aktuálního)
+			const uniqueRemaining = new Set(words.slice(currentIndex).map(w => w.nl)).size;
+			
+			// 3. Výpočet: (Celkem - Zbývá) / Celkem
+			// Pokud zbývá všechno, je to 0 %. Pokud zbývá 0, je to 100 %.
+			const percentage = ((totalUnique - uniqueRemaining) / totalUnique) * 100;
+			
+			progressFill.style.width = percentage + "%";
+		}
 	}
 
 	function hasPinnedWords(){

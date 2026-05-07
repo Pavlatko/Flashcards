@@ -2150,7 +2150,7 @@
 		document.getElementById('lesson-name-display').innerText = displayId;
 		// Úprava zobrazení informací pod názvem
 		const count = words.length;
-		const scoreInfo = lessonScores[id] !== undefined ? ` | Poslední test: ${lessonScores[id]}%` : '';
+		const scoreInfo = lessonScores[id] !== undefined ? ` • Poslední test: ${lessonScores[id]}%` : '';
 		document.getElementById('lesson-info-sub').innerText = `Počet slovíček: ${count}${scoreInfo}`;
 
 		updateToggleFinishedBtn();

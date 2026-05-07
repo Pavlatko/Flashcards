@@ -864,7 +864,7 @@
 		</div>
 
 		<div style="text-align: center; font-size: 0.7rem; color: var(--neutral); margin-top: 0; padding-bottom: 5px; opacity: 0.6;">
-            <b>Flashcards</b> 260507.1 by <b>Pavlatko</b>Labs
+            <b>Flashcards</b> 260507.2 by <b>Pavlatko</b>Labs
         </div>
     </div>
 
@@ -2203,30 +2203,25 @@
     }
 
     function backFromModeSelection() {
-		document.getElementById('app-body').classList.remove('mode-active');
-		document.getElementById('mode-area').style.display = 'none';
-		localStorage.removeItem('pl_app_view');
-		localStorage.removeItem('pl_current_lesson_id');
+        // Odstranění tříd pro režim tréninku/výběru
+        document.getElementById('app-body').classList.remove('mode-active');
+        document.getElementById('mode-area').style.display = 'none';
+        
+        // Vyčištění lokálního úložiště, aby si aplikace nepamatovala, že byla v podmenu
+        localStorage.removeItem('pl_app_view');
+        localStorage.removeItem('pl_current_lesson_id');
+        localStorage.removeItem('pl_current_cat');
 
-		let cat = currentOpenCategory;
+        // Resetování proměnné aktuální kategorie
+        currentOpenCategory = null;
 
-		// pokud nevíme kategorii, zkusíme ji dohledat podle lekce
-		if (!cat) {
-			for (const c in categories) {
-				if (categories[c].includes(currentLessonId)) {
-					cat = c;
-					break;
-				}
-			}
-		}
-
-		if (cat) {
-			openCategory(cat);
-		} else {
-			document.getElementById('menu-area').style.display = 'flex';
-			renderMenu();
-		}
-	}
+        // Zobrazení hlavního menu a jeho překreslení
+        document.getElementById('menu-area').style.display = 'flex';
+        renderMenu();
+        
+        // Odrolování nahoru pro čistý návrat
+        window.scrollTo(0, 0);
+    }
 
 	function startTraining(m, isR = false) { 
 		// --- OCHRANA POSTUPU (PŘESUNUTO SEM) ---
